@@ -46,4 +46,88 @@
 			init_basic(1.0 - ( eulers ** ( -sample_interval / time_const )))
 
 
+/datum/teg_transformation_clock
+	var/obj/machinery/power/generatorTemp/generator
+	var/datum/teg_transformation/active_form
+	var/static/list/possible_transformations
+
+	New(teg)
+		. = ..()
+		generator = teg
+		if(!possible_transformations)
+			possible_transformations = list()
+			for(var/T in childrentypesof(/datum/teg_transformation))
+				var/datum/teg_transformation/TT = new T
+				possible_transformations += TT
+
+	disposing()
+		. = ..()
+		generator = null
+		active_form = null
+
+	proc/check_transformation()
+		for(var/datum/teg_transformation/T as() in possible_transformations)
+			if(active_form?.type == T.type) continue // Skip current form
+
+			var/reagents_present = length(T.required_reagents)
+			for(var/R as() in T.required_reagents)
+				if( generator.circ1.reagents.get_reagent_amount(R) + generator.circ2.reagents.get_reagent_amount(R) >= T.required_reagents[R] )
+				else
+					reagents_present = FALSE
+					break
+
+			if(reagents_present)
+				// Azrun TODO Remove reagents from circulator reagents
+
+				// Azrun TODO Spawn delay transformation to allow for animations, audio, and such to play
+				if(active_form)
+					active_form.on_revert()
+				active_form = new T.type
+				active_form.on_transform(generator)
+				return
+
+ABSTRACT_TYPE(/datum/teg_transformation)
+datum
+	teg_transformation
+		var/name = null
+		var/id = null
+		var/audio_clip
+		var/visible_msg
+		var/audible_msg
+		var/teg_overlay
+		var/circulator_overlay
+		var/material
+		var/list/required_reagents
+		var/obj/machinery/power/generatorTemp/teg
+
+		proc/on_grump()
+			return FALSE
+
+		proc/on_transform(obj/machinery/power/generatorTemp/teg)
+			src.teg = teg
+			if(src.material)
+				teg.setMaterial(src.material)
+				teg.circ1.setMaterial(src.material)
+				teg.circ2.setMaterial(src.material)
+			return
+
+		proc/on_revert()
+			src.teg.setMaterial(initial(src.material))
+			src.teg.circ1.setMaterial(initial(src.material))
+			src.teg.circ2.setMaterial(initial(src.material))
+			qdel(src.teg.variant_clock.active_form)
+			src.teg.variant_clock.active_form = null
+			return
+
+		default
+			name = "Default"
+			material = "steel"
+
+		flock
+			material = "gnesis"
+		vampire
+			material = "bone"
+
+		birdbird
+			name = "Squawk"
 

@@ -275,6 +275,9 @@
 
 		src.lube_boost = lube_efficiency
 
+		if(src.generator?.variant_clock)
+			src.generator.variant_clock.check_transformation()
+
 	process()
 		..()
 		src.lube_loss_check()
@@ -408,6 +411,7 @@
 	var/obj/machinery/atmospherics/binary/circulatorTemp/circ1
 	var/obj/machinery/atmospherics/binary/circulatorTemp/right/circ2
 	var/list/obj/machinery/power/furnace/furnaces
+	var/datum/teg_transformation_clock/variant_clock
 
 	var/lastgen = 0
 	var/lastgenlev = -1
@@ -469,6 +473,7 @@
 		//List init
 		history = list()
 		furnaces = list()
+		variant_clock = new(src)
 		grump_prefix = list("an upsetting", "an unsettling", "a scary", "a loud", "a sassy", "a grouchy", "a grumpy",
 												"an awful", "a horrible", "a despicable", "a pretty rad", "a godawful")
 		grump_suffix = list("noise", "racket", "ruckus", "sound", "clatter", "fracas", "hubbub")
@@ -486,6 +491,7 @@
 			src.circ1?.side = LEFT_CIRCULATOR
 			src.circ2?.generator = src
 			src.circ2?.side = RIGHT_CIRCULATOR
+			src.variant_clock.generator = src
 
 			//furnaces
 			for(var/obj/machinery/power/furnace/F in orange(15, src.loc))
@@ -500,6 +506,7 @@
 		src.circ1 = null
 		src.circ2?.generator = null
 		src.circ2 = null
+		qdel(variant_clock)
 		..()
 
 	proc/updateicon()
@@ -643,7 +650,9 @@
 			if(prob(50)) grump--
 			if(prob(5)) grump -= min(stoked_sum/10, 15)
 
-		classic_grump()
+		// Use classic grump if not handled by variant
+		if(!src.variant_clock?.active_form?.on_grump(src))
+			classic_grump()
 
 	// engine looping sounds and hazards
 	proc/classic_grump()
