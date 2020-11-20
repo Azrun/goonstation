@@ -125,9 +125,96 @@ datum
 
 		flock
 			material = "gnesis"
+			//material = "gnesisglass"
+			required_reagents = list("flockdrone_fluid" = 10)
+			var/obj/flock_structure/collector/teg/flock_gen
+			var/bit_count = 0
+
+			on_transform(obj/machinery/power/generatorTemp/teg)
+				. = ..()
+				// Azrun TODO Add cool flock sounds!
+				flock_convert_turf(get_turf(teg.loc))
+				SPAWN_DBG(0)
+					radial_flock_conversion(flock_gen, 3)
+
+				var/flock_to_join
+				if(length(flocks))
+					flock_to_join = pick(flocks)
+				flock_gen = new(teg.loc, flock_to_join)
+				flock_gen.assign_generator(teg)
+
+				// Variant ONLY active while resource collector is present, revert if destroyed
+				RegisterSignal(flock_gen, COMSIG_PARENT_PRE_DISPOSING, .proc/on_revert)
+
+			on_revert()
+				. = ..()
+				// Azrun TODO Add sad flock sounds!
+				qdel(flock_gen)
+				flock_gen = null
+
+			on_grump()
+				if(!flock_gen)
+					src.on_revert()
+					return
+				var/list/ejectables = list()
+
+				if( bit_count ) // We have produced a flock bit, spew forth flockdrone fluid
+					var/obj/decal/cleanable/flockdrone_debris/fluid/D
+					for(var/datum/reagents/reagents in list(src.teg.circ1.reagents,src.teg.circ2.reagents))
+						if(!reagents.total_volume) continue
+						var/fluid_amount = reagents.get_reagent_amount("flockdrone_fluid")
+						if(fluid_amount < 20) continue
+						fluid_amount = min(reagents.get_reagent_amount("flockdrone_fluid"), 20)
+
+						reagents.remove_reagent("flockdrone_fluid", fluid_amount)
+						D = new /obj/decal/cleanable/flockdrone_debris/fluid()
+						D.anchored = 0 //Unanchor the fluid so we can eject it
+						ejectables += D
+						break
+
+				if(src.teg.grump > 100 && prob(10))
+					// Decreases likelyhood of getting flock bits as more bits generated
+					if(src.teg.lastgenlev > 10 && prob(clamp(100-(bit_count*20),2,95)))
+						var/mob/living/critter/flock/bit/B
+						B = new(F=flock_gen.flock)
+						ejectables += B
+						bit_count++
+						src.teg.grump -= 100
+
+					if(prob(50))
+						var/cube_cnt = rand(0,2)
+						for(var/i=1, i<cube_cnt, i++) //here im using the flockdronegibs proc to handle throwing things out randomly. in these for loops im just creating the objects (resource caches and flockdrone eggs) and adding them to the list (eject) which will get thrown about
+							var/obj/item/flockcache/x = new(flock_gen.contents)
+							x.resources = rand(1, clamp(src.teg.lastgenlev/4, 2, 50))
+							ejectables += x
+							src.teg.grump -= x.resources
+
+				if(length(ejectables))
+					handle_ejectables(teg.loc, ejectables)
+				if(D)
+					// Reachor fluid if it was ejected
+					D.anchored = TRUE
+					if(D.loc == teg.loc) qdel(D)
+
+				return TRUE
+
 		vampire
 			material = "bone"
 
 		birdbird
 			name = "Squawk"
+
+
+/obj/flock_structure/collector/teg
+	var/obj/machinery/power/generatorTemp/teg
+	health = 90
+
+	proc/assign_generator(obj/machinery/power/generatorTemp/generator)
+		teg = generator
+
+	//Azrun TODO Add on_attack to electricute based on TEG power
+
+	process()
+		. = ..()
+		src.poweruse -= clamp(teg.lastgenlev/4, 1, 50)
 
