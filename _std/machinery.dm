@@ -12,18 +12,28 @@
 #define LIGHT_BURNED 3
 
 //apc stuff
-#define EQUIP 1 	//! Power Channel: Equipment
-#define LIGHT 2 	//! Power Channel: Lighting
-#define ENVIRON 3 //! Power Channel: Enviroment
-#define TOTAL 4		//! For total power used only
+/// Power Channel: Equipment - I'M ON ANOTHER LINE!
+#define EQUIP 1
+/// Power Channel: Lighting
+#define LIGHT 2
+/// Power Channel: Enviroment
+#define ENVIRON 3
+/// For total power used only
+#define TOTAL 4
 
 // bitflags for machine stat variable
-#define BROKEN    (1<<0)		//! Status flag: machine non-functional
-#define NOPOWER   (1<<1)		//! Status flag: no available power
-#define POWEROFF  (1<<2)		//! Status flag: machine shut down, but may still draw a trace amount
-#define MAINT     (1<<3)		//! Status flag: under maintainance
-#define HIGHLOAD  (1<<4)		//! Status flag: using a lot of power
-#define EMP_SHORT (1<<5)		//! Status flag: 1 second long emp duration, avoid stacking emp faster than 1Hz
+/// Status flag: machine non-functional - I'M ON ANOTHER LINE!
+#define BROKEN    (1<<0)
+/// Status flag: no available power
+#define NOPOWER   (1<<1)
+/// Status flag: machine shut down, but may still draw a trace amount
+#define POWEROFF  (1<<2)
+/// Status flag: under maintainance
+#define MAINT     (1<<3)
+/// Status flag: using a lot of power
+#define HIGHLOAD  (1<<4)
+/// Status flag: 1 second long emp duration, avoid stacking emp faster than 1Hz
+#define EMP_SHORT (1<<5)
 
 
 //recharger stuff
