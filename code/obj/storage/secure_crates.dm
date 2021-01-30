@@ -138,3 +138,4 @@
 		name = "secure gas crate"
 		desc = "Contains experimental gas for toxins evaluation."
 		req_access = list(access_research_director)
+		spawn_contents = list(/obj/machinery/portable_atmospherics/canister/oxygen_agent_b)

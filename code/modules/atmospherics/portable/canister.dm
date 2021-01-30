@@ -80,6 +80,17 @@
 	name = "Canister \[Empty\]"
 	icon_state = "empty"
 	casecolor = "empty"
+/obj/machinery/portable_atmospherics/canister/oxygen_agent_b
+	name = "Low-Volume Canister \[O2-b\]"
+	icon_state = "redorange"
+	casecolor = "redorange"
+	volume = 100
+
+	update_icon()
+		..()
+		UpdateOverlays(null, "pressure")
+		return
+
 
 /obj/machinery/portable_atmospherics/canister/New()
 	..()
@@ -740,6 +751,16 @@
 	..()
 	src.air_contents.oxygen = (O2STANDARD*src.maximum_pressure*filled)*air_contents.volume/(R_IDEAL_GAS_EQUATION*air_contents.temperature)
 	src.air_contents.nitrogen = (N2STANDARD*src.maximum_pressure*filled)*air_contents.volume/(R_IDEAL_GAS_EQUATION*air_contents.temperature)
+
+	src.update_icon()
+	return 1
+
+/obj/machinery/portable_atmospherics/canister/oxygen_agent_b/New()
+
+	..()
+
+	var/datum/gas/oxygen_agent_b/trace_gas = air_contents.get_or_add_trace_gas_by_type(/datum/gas/oxygen_agent_b)
+	trace_gas.moles = (src.maximum_pressure*filled)*air_contents.volume/(R_IDEAL_GAS_EQUATION*air_contents.temperature)
 
 	src.update_icon()
 	return 1
