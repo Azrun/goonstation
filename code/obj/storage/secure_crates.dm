@@ -125,3 +125,16 @@
 		desc = "Contains controlled explosives designed for trench use."
 		req_access = list(access_engineering)
 		spawn_contents = list(/obj/item/pipebomb/bomb/engineering = 6)
+
+/obj/storage/secure/crate/science
+	name = "Science crate"
+	desc = "A secure gear crate."
+	icon_state = "scicrate"
+	density = 1
+	icon_opened = "scicrate-open"
+	icon_closed = "scicrate"
+
+	toxins
+		name = "secure gas crate"
+		desc = "Contains experimental gas for toxins evaluation."
+		req_access = list(access_research_director)
