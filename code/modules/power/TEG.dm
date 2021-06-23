@@ -1191,6 +1191,7 @@ Present 	Unscrewed  Connected 	Unconnected		Missing
 			if (TEG_SEMI_STATE_UNSCREWED)
 				owner.visible_message("<span class='notice'>[owner] begins to snip wiring between the semiconductor and \the [generator].</span>")
 				playsound(generator, "sound/items/Scissor.ogg", 60, 1)
+				generator.electrocute(owner, 15, generator.netnum)
 			if (TEG_SEMI_STATE_DISCONNECTED)
 				owner.visible_message("<span class='notice'>[owner] begins prying out the semiconductor from \the [generator].</span>")
 				playsound(generator, "sound/items/Crowbar.ogg", 60, 1)
@@ -1208,6 +1209,7 @@ Present 	Unscrewed  Connected 	Unconnected		Missing
 			if (TEG_SEMI_STATE_UNSCREWED)
 				generator.semiconductor_state = TEG_SEMI_STATE_DISCONNECTED
 				boutput(owner, "<span class='notice'>You snip the last piece of the electrical system connected to the semiconductor.</span>")
+				generator.electrocute(owner, 85, generator.netnum)
 				playsound(generator, "sound/items/Scissor.ogg", 80, 1)
 				generator.semiconductor_repair = "The semiconductor has been disconnected and can be pried out or reconnected with additional cable."
 				generator.status = BROKEN // SEMICONDUCTOR DISCONNECTED IT BROKEN
@@ -1305,9 +1307,11 @@ Present 	Unscrewed  Connected 	Unconnected		Missing
 					generator.semiconductor_repair = "The semiconductor has been wired in but has excess cable that must be removed."
 					generator.status &= ~BROKEN // SEMICONDUCTOR RECONNECTED IT UNBROKEN
 					generator.updateicon()
+					generator.electrocute(owner, 15, generator.netnum)
 
 			if (TEG_SEMI_STATE_CONNECTED)
 				generator.semiconductor_state = TEG_SEMI_STATE_UNSCREWED
+				generator.electrocute(owner, 15, generator.netnum)
 				boutput(owner, "<span class='notice'>You snip the excess wires from the semiconductor.</span>")
 				playsound(generator, "sound/items/Scissor.ogg", 80, 1)
 				generator.semiconductor_repair = "The semiconductor is visible and needs to be disconnected from \the [generator] with some wirecutters or closed up with a screwdriver."
