@@ -82,7 +82,7 @@
 			src.stains = list()
 			src.UpdateName()
 
-	proc/update_wear_image(mob/living/carbon/human/H)
+	proc/update_wear_image(mob/living/carbon/human/H, override)
 		return
 
 

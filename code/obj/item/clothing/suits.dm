@@ -185,9 +185,8 @@
 			random_design = rand(1,10)
 			src.wear_image.overlays += image(src.wear_image_icon,"design_[random_design]")
 
-		update_wear_image(mob/living/carbon/human/H)
-			src.wear_image.overlays = list(image(src.wear_image.icon,"suit-design_[random_design]")) //this will break humans due to "suit-" prefix
-
+		update_wear_image(mob/living/carbon/human/H, override)
+			src.wear_image.overlays = list(image(src.wear_image.icon,"[override ? "suit-" : ""]design_[random_design]"))
 		tan
 			name = "tan jacket"
 			icon_state = "jacket_tan"

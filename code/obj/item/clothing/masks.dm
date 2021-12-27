@@ -151,8 +151,8 @@
 	icon_state = "moustache"
 	item_state = "moustache"
 	see_face = 1
-	
-/obj/item/clothing/mask/moustache/Italian 
+
+/obj/item/clothing/mask/moustache/Italian
 	name = "fake Italian moustache"
 	desc = "For those who can't cut the lasagna."
 	icon_state = "moustache-i"
@@ -454,12 +454,12 @@
 		src.UpdateOverlays(inventory, "surgmaskcolour")
 		src.wear_image.overlays += onhead
 
-	update_wear_image(mob/living/carbon/human/H)
+	update_wear_image(mob/living/carbon/human/H, override)
 		var/image/onhead
 		if(bee)
-			onhead = image(src.wear_image.icon,"mask-surgicalshield-bee") //this will break humans due to "mask-" prefix
+			onhead = image(src.wear_image.icon,"[override ? "mask-" : ""]surgicalshield-bee")
 		else
-			onhead = image(src.wear_image.icon,"mask-surgicalshield-overlay")
+			onhead = image(src.wear_image.icon,"[override ? "mask-" : ""]surgicalshield-overlay")
 			onhead.color = "#[randcol]"
 		src.wear_image.overlays = list(onhead)
 
