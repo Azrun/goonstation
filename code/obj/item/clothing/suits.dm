@@ -178,11 +178,15 @@
 	design
 		name = "jacket"
 		desc = "A colorful jacket with a neat design on the back."
+		var/random_design
 
 		New()
 			..()
-			var/random_design = rand(1,10)
+			random_design = rand(1,10)
 			src.wear_image.overlays += image(src.wear_image_icon,"design_[random_design]")
+
+		update_wear_image(mob/living/carbon/human/H)
+			src.wear_image.overlays = list(image(src.wear_image.icon,"suit-design_[random_design]")) //this will break humans due to "suit-" prefix
 
 		tan
 			name = "tan jacket"

@@ -296,6 +296,7 @@
 			src.wear_suit.wear_image.icon = src.wear_suit.wear_image_icon
 			src.wear_suit.wear_image.icon_state = wear_state
 
+		src.wear_suit.update_wear_image(src)
 		src.wear_suit.wear_image.color = src.wear_suit.color
 		src.wear_suit.wear_image.alpha = src.wear_suit.alpha
 		UpdateOverlays(src.wear_suit.wear_image, "wear_suit")
@@ -424,6 +425,7 @@
 		src.wear_mask.wear_image.layer = src.wear_mask.wear_layer
 		src.wear_mask.wear_image.color = src.wear_mask.color
 		src.wear_mask.wear_image.alpha = src.wear_mask.alpha
+		src.wear_mask.update_wear_image(src)
 		UpdateOverlays(src.wear_mask.wear_image, "wear_mask")
 		if (src.wear_mask.worn_material_texture_image != null)
 			src.wear_mask.worn_material_texture_image.layer = src.wear_mask.wear_image.layer + 0.1

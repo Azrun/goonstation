@@ -425,6 +425,8 @@
 	w_class = W_CLASS_SMALL
 	c_flags = COVERSMOUTH | COVERSEYES
 	permeability_coefficient = 0.50
+	var/bee = FALSE
+	var/randcol
 
 	setupProperties()
 		..()
@@ -437,6 +439,7 @@
 		var/image/onhead = image('icons/mob/mask.dmi', "")
 
 		if (prob(1))
+			bee = TRUE
 			name = "surgical face bee-ld"
 			inventory.icon_state = "surgicalshield-bee"
 			onhead.icon_state = "surgicalshield-bee"
@@ -444,12 +447,22 @@
 		else
 			inventory.icon_state = "surgicalshield-overlay"
 			onhead.icon_state = "surgicalshield-overlay"
-			var/randcol = random_hex(6)
+			randcol = random_hex(6)
 			inventory.color = "#[randcol]"
 			onhead.color = "#[randcol]"
 
 		src.UpdateOverlays(inventory, "surgmaskcolour")
 		src.wear_image.overlays += onhead
+
+	update_wear_image(mob/living/carbon/human/H)
+		var/image/onhead
+		if(bee)
+			onhead = image(src.wear_image.icon,"mask-surgicalshield-bee") //this will break humans due to "mask-" prefix
+		else
+			onhead = image(src.wear_image.icon,"mask-surgicalshield-overlay")
+			onhead.color = "#[randcol]"
+		src.wear_image.overlays = list(onhead)
+
 
 /obj/item/paper_mask
 	name = "unfinished paper mask"
