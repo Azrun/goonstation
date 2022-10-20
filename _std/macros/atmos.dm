@@ -123,6 +123,8 @@
 #define FIRE_MINIMUM_TEMPERATURE_TO_EXIST	(100+T0C)
 #define FIRE_SPREAD_RADIOSITY_SCALE		0.85
 /// Amount of heat released per mole of burnt carbon into the tile
+#define FIRE_METHANE_ENERGY_RELEASED	400000
+/// Amount of heat released per mole of burnt carbon into the tile
 #define FIRE_CARBON_ENERGY_RELEASED	  500000
 /// Amount of heat released per mole of burnt plasma into the tile
 #define FIRE_PLASMA_ENERGY_RELEASED	 3000000
@@ -134,6 +136,12 @@
 #define PLASMA_MINIMUM_OXYGEN_NEEDED		(2 MOLES)
 #define PLASMA_MINIMUM_OXYGEN_PLASMA_RATIO	30
 #define PLASMA_OXYGEN_FULLBURN				10
+
+//Farts
+#define METHANE_MINIMUM_BURN_TEMPERATURE	(600+T0C)
+#define METHANE_LOWER_EXPLOSIVE_LIMIT		(0.044)
+#define METHANE_UPPER_EXPLOSIVE_LIMIT		(0.164)
+#define METHANE_OXYGEN_FULLBURN				(9.52)
 
 /// Hotspot Maximum Temperature without a catalyst
 #define HOTSPOT_MAX_NOCAT_TEMPERATURE (80000)
@@ -203,11 +211,11 @@ What can break when adding new gases:
 	TEG stats computer will ignore your new gas. Feel free to add it to reactor_stats.dm manually but good luck.
 */
 
-#define SPECIFIC_HEAT_PLASMA		200
+#define SPECIFIC_HEAT_PLASMA	200
 #define SPECIFIC_HEAT_O2		20
 #define SPECIFIC_HEAT_N2		20
 #define SPECIFIC_HEAT_CO2		30
-#define SPECIFIC_HEAT_FARTS 69
+#define SPECIFIC_HEAT_FARTS 	69
 
 #define _APPLY_TO_GASES(PREF, SUFF, MACRO, ARGS...) \
 	MACRO(PREF ## oxygen ## SUFF, SPECIFIC_HEAT_O2, "O2", ARGS) \

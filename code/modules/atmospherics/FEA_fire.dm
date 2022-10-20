@@ -52,12 +52,16 @@
 
 	if ((exposed_temperature > PLASMA_MINIMUM_BURN_TEMPERATURE) && (air_contents.toxins > 0.5))
 		igniting = 1
+	else if ((exposed_temperature > METHANE_MINIMUM_BURN_TEMPERATURE) && (air_contents.farts > 0.5))
+		var/pp_vol = air_contents.farts/TOTAL_MOLES(air_contents)
+		if(pp_vol >= METHANE_LOWER_EXPLOSIVE_LIMIT && pp_vol <= METHANE_UPPER_EXPLOSIVE_LIMIT )
+			igniting = 1
 
 	if (igniting)
 
 		if (locate(/obj/fire_foam) in src) return 0
 
-		if (air_contents.oxygen < 0.5 || air_contents.toxins < 0.5)
+		if (air_contents.oxygen < 0.5 || (air_contents.toxins < 0.5 && air_contents.farts < 0.5 ))
 			return 0
 
 		if (parent?.group_processing)
@@ -249,7 +253,7 @@
 			qdel(src)
 			return 0
 
-		if (!location.air || location.air.toxins < 0.5 || location.air.oxygen < 0.5)
+		if (!location.air || (location.air.toxins < 0.5 && location.air.farts < 0.5 ) || location.air.oxygen < 0.5)
 			qdel(src)
 			return 0
 

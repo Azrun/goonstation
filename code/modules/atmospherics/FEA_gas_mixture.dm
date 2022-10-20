@@ -138,17 +138,6 @@ What are the archived variables for?
 					. |= CATALYST_ACTIVE
 				. |= REACTION_ACTIVE
 
-	if(src.temperature > 900 && src.farts > MINIMUM_REACT_QUANTITY && src.toxins > MINIMUM_REACT_QUANTITY && src.carbon_dioxide > MINIMUM_REACT_QUANTITY)
-		reaction_rate = min(src.carbon_dioxide*0.75, src.toxins*0.25, src.farts*0.05)
-		reaction_rate = QUANTIZE(reaction_rate)
-
-		src.carbon_dioxide -= reaction_rate
-		src.toxins += reaction_rate
-
-		src.farts -= reaction_rate*0.05
-
-		src.temperature += (reaction_rate*10000)/HEAT_CAPACITY(src)
-		. |= REACTION_ACTIVE
 
 	fuel_burnt = 0
 	if(temperature > FIRE_MINIMUM_TEMPERATURE_TO_EXIST)
@@ -183,6 +172,24 @@ What are the archived variables for?
 				energy_released += FIRE_PLASMA_ENERGY_RELEASED * (plasma_burn_rate)
 
 				src.fuel_burnt += (plasma_burn_rate) * ( 1 + oxygen_burn_rate)
+
+	//Handle farts burning
+	if(src.farts > MINIMUM_REACT_QUANTITY)
+		var/burned_fuel = 0
+
+		//Stoichiometric air-to-fuel ratios for methane is 9.52
+		if(src.oxygen > src.farts * METHANE_OXYGEN_FULLBURN)
+			burned_fuel = src.farts
+		else
+			burned_fuel = src.farts * (src.oxygen / METHANE_OXYGEN_FULLBURN)
+
+		burned_fuel	= QUANTIZE(burned_fuel * 0.5)
+		src.farts -= burned_fuel
+		src.oxygen -= burned_fuel
+		src.carbon_dioxide += burned_fuel
+		energy_released += FIRE_CARBON_ENERGY_RELEASED * burned_fuel
+
+		src.fuel_burnt += burned_fuel
 
 	if(energy_released > 0)
 		var/new_heat_capacity = HEAT_CAPACITY(src)
