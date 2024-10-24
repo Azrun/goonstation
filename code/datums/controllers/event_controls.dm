@@ -1,13 +1,15 @@
 var/datum/event_controller/random_events
 
 /datum/event_controller
-	var/list/events = list()
-	var/major_events_begin = 30 MINUTES // 30m
-	var/time_between_events_lower = 11 MINUTES  // 11m
-	var/time_between_events_upper = 20 MINUTES // 20m
 	var/events_enabled = TRUE
 	var/announce_events = TRUE
-	var/event_cycle_count = 0
+
+	var/list/major_events = list()
+	var/major_events_begin = 30 MINUTES // 30m
+	var/time_between_major_events_lower = 11 MINUTES  // 11m
+	var/time_between_major_events_upper = 20 MINUTES // 20m
+	var/major_events_enabled = TRUE
+	var/major_event_cycle_count = 0
 
 	var/list/minor_events = list()
 	var/minor_events_begin = 10 MINUTES // 10m
@@ -39,6 +41,10 @@ var/datum/event_controller/random_events
 	var/list/special_events = list()
 	var/minimum_population = 15 // Minimum amount of players connected for event to occur
 
+	var/datum/storyteller/active_storyteller
+
+	var/list/queued_events
+
 	var/start_events_enabled = FALSE
 	var/list/start_events = list()
 	var/list/datum/random_event/delayed_start = list()
@@ -48,7 +54,7 @@ var/datum/event_controller/random_events
 
 		for (var/X in concrete_typesof(/datum/random_event/major))
 			var/datum/random_event/RE = new X
-			events += RE
+			major_events += RE
 
 		for (var/X in concrete_typesof(/datum/random_event/major/antag)+concrete_typesof(/datum/random_event/major/player_spawn/antag))
 			var/datum/random_event/RE = new X
@@ -70,7 +76,15 @@ var/datum/event_controller/random_events
 			var/datum/random_event/RE = new X
 			start_events += RE
 
+		queued_events = list("major"=list(),"minor"=list(),"special_events"=list(),"spawn"=list())
+
+		src.active_storyteller = new/datum/storyteller/basic()
+		src.active_storyteller.set_active(src)
+
 	proc/process()
+		if( !events_enabled )
+			return
+
 		// prevent random events near round end
 		if (emergency_shuttle.location > SHUTTLE_LOC_STATION || current_state == GAME_STATE_FINISHED)
 			return
@@ -78,62 +92,7 @@ var/datum/event_controller/random_events
 		if (ticker.round_elapsed_ticks == 0)
 			roundstart_events()
 
-		if (ticker.round_elapsed_ticks >= major_events_begin)
-			if (ticker.round_elapsed_ticks >= next_major_event)
-				event_cycle()
-
-		if (ticker.round_elapsed_ticks >= spawn_events_begin)
-			if (ticker.round_elapsed_ticks >= next_spawn_event)
-				spawn_event()
-
-		if (ticker.round_elapsed_ticks >= minor_events_begin)
-			if (ticker.round_elapsed_ticks >= next_minor_event)
-				minor_event_cycle()
-
-	proc/event_cycle()
-		event_cycle_count++
-		if (total_clients() <= minimum_population)
-			message_admins(SPAN_INTERNAL("A random event would have happened now, but there aren't enough players!"))
-		else if (!events_enabled)
-			message_admins(SPAN_INTERNAL("A random event would have happened now, but they are disabled!"))
-		else
-			do_random_event(events)
-
-		major_event_timer = rand(time_between_events_lower,time_between_events_upper)
-		next_major_event = ticker.round_elapsed_ticks + major_event_timer
-		message_admins(SPAN_INTERNAL("Next event will occur at [round(next_major_event / 600)] minutes into the round."))
-
-	proc/minor_event_cycle()
-		minor_event_cycle_count++
-		if (minor_events_enabled)
-			do_random_event(minor_events)
-
-		minor_event_timer = rand(time_between_minor_events_lower,time_between_minor_events_upper)
-		next_minor_event = ticker.round_elapsed_ticks + minor_event_timer
-
-	proc/spawn_event(var/type = "player")
-		var/do_event = 1
-		if (!events_enabled)
-			message_admins(SPAN_INTERNAL("A spawn event would have happened now, but they are disabled!"))
-			do_event = 0
-		if (total_clients() < minimum_population)
-			message_admins(SPAN_INTERNAL("A spawn event would have happened now, but there is not enough players!"))
-			do_event = 0
-
-		if (do_event && ticker?.mode?.do_random_events)
-			var/aap = get_alive_antags_percentage()
-			var/dcp = get_dead_crew_percentage()
-			if (aap < alive_antags_threshold && (ticker?.mode?.do_antag_random_spawns))
-				do_random_event(antag_spawn_events, source = "spawn_antag")
-				message_admins(SPAN_INTERNAL("Antag spawn event success!<br>[round(100 * aap, 0.1)]% of the alive crew were antags."))
-			else if (dcp > dead_players_threshold)
-				do_random_event(player_spawn_events, source = "spawn_player")
-				message_admins(SPAN_INTERNAL("Player spawn event success!<br>[round(100 * dcp, 0.1)]% of the entire crew were dead."))
-			else
-				message_admins("<span class='internal'>A spawn event would have happened now, but it was not needed based on alive players + antagonists headcount or game mode!<br> \
-								[round(100 * aap, 0.1)]% of the alive crew were antags and [round(100 * dcp, 0.1)]% of the entire crew were dead.</span>")
-
-		next_spawn_event = ticker.round_elapsed_ticks + rand(time_between_spawn_events_lower, time_between_spawn_events_upper)
+		active_storyteller.process()
 
 	proc/do_random_event(var/list/event_bank, var/source = null)
 		if (!event_bank || length(event_bank) < 1)
@@ -165,7 +124,7 @@ var/datum/event_controller/random_events
 		if (!reason)
 			reason = "coded instance (undefined)"
 
-		var/list/allevents = events | minor_events | special_events
+		var/list/allevents = major_events | minor_events | special_events
 		for (var/datum/random_event/RE in allevents)
 			if (RE.name == string)
 				RE.event_effect(reason)
@@ -177,7 +136,8 @@ var/datum/event_controller/random_events
 
 	proc/event_config()
 		var/dat = "<html><body><title>Random Events Controller</title>"
-		dat += "<b><u>Random Event Controls</u></b><HR>"
+		dat += "<b><u>Random Event Controls: </u></b><HR>"
+		dat += "<b><u><a href='byond://?src=\ref[src];Storyteller=1'>Storyteller:</a></u></b> [active_storyteller.name]<br>"
 
 		if (current_state <= GAME_STATE_PREGAME)
 			dat += "<b>Random Events begin at: <a href='byond://?src=\ref[src];EventBegin=1'>[round(major_events_begin / 600)] minutes</a><br>"
@@ -188,21 +148,24 @@ var/datum/event_controller/random_events
 			dat += "Next minor event at [round(next_minor_event / 600)] minutes into the round.<br>"
 			dat += "Next spawn event at [round(next_spawn_event / 600)] minutes into the round.<br>"
 
+		dat += "<b><a href='byond://?src=\ref[src];Storyteller=1'>Storyteller:</a></b> [active_storyteller.name]<br>"
 		dat += "<b><a href='byond://?src=\ref[src];EnableEvents=1'>Random Events Enabled:</a></b> [events_enabled ? "Yes" : "No"]<br>"
-		dat += "<b><a href='byond://?src=\ref[src];EnableMEvents=1'>Minor Events Enabled:</a></b> [minor_events_enabled ? "Yes" : "No"]<br>"
+		dat += "<b><a href='byond://?src=\ref[src];EnableMajorEvents=1'>Major Events Enabled:</a></b> [major_events_enabled ? "Yes" : "No"]<br>"
+		dat += "<b><a href='byond://?src=\ref[src];EnableMinorEvents=1'>Minor Events Enabled:</a></b> [minor_events_enabled ? "Yes" : "No"]<br>"
 		dat += "<b><a href='byond://?src=\ref[src];AnnounceEvents=1'>Announce Events to Station:</a></b> [announce_events ? "Yes" : "No"]<br>"
 		dat += "<b><a href='byond://?src=\ref[src];TimeLocks=1'>Time Locking:</a></b> [time_lock ? "Yes" : "No"]<br>"
 		dat += "<b>Minimum Population for Events: <a href='byond://?src=\ref[src];MinPop=1'>[minimum_population] players</a><br>"
-		dat += "<b>Time Between Events:</b> <a href='byond://?src=\ref[src];TimeLower=1'>[round(time_between_events_lower / 600)]m</a> /"
-		dat += " <a href='byond://?src=\ref[src];TimeUpper=1'>[round(time_between_events_upper / 600)]m</a><br>"
+		dat += "<b>Time Between Events:</b> <a href='byond://?src=\ref[src];TimeLower=1'>[round(time_between_major_events_lower / 600)]m</a> /"
+		dat += " <a href='byond://?src=\ref[src];TimeUpper=1'>[round(time_between_major_events_upper / 600)]m</a><br>"
 		dat += "<b>Time Between Minor Events:</b> <a href='byond://?src=\ref[src];MTimeLower=1'>[round(time_between_minor_events_lower / 600)]m</a> /"
 		dat += " <a href='byond://?src=\ref[src];MTimeUpper=1'>[round(time_between_minor_events_upper / 600)]m</a>"
 		dat += "<HR>"
 
 		dat += "<b><u>Normal Random Events</u></b><BR>"
-		for(var/datum/random_event/RE in events)
+		for(var/datum/random_event/RE in major_events)
 			dat += "<a href='byond://?src=\ref[src];TriggerEvent=\ref[RE]'><b>[RE.name]</b></a>"
 			dat += " <small><a href='byond://?src=\ref[src];DisableEvent=\ref[RE]'>([RE.disabled ? "Disabled" : "Enabled"])</a>"
+			dat += "<a href='byond://?src=\ref[src];ScheduleEvent=\ref[RE]'><i>Schedule</i></a>"
 			if (RE.is_event_available())
 				dat += " (Active)"
 			dat += "<br></small>"
@@ -212,6 +175,7 @@ var/datum/event_controller/random_events
 		for(var/datum/random_event/RE in minor_events)
 			dat += "<a href='byond://?src=\ref[src];TriggerMEvent=\ref[RE]'><b>[RE.name]</b></a>"
 			dat += " <small><a href='byond://?src=\ref[src];DisableMEvent=\ref[RE]'>([RE.disabled ? "Disabled" : "Enabled"])</a>"
+			dat += "<a href='byond://?src=\ref[src];ScheduleMEvent=\ref[RE]'><i>Schedule</i></a>"
 			if (RE.is_event_available())
 				dat += " (Active)"
 			dat += "<br></small>"
@@ -219,7 +183,9 @@ var/datum/event_controller/random_events
 
 		dat += "<b><u>Gimmick Events</u></b><BR>"
 		for(var/datum/random_event/RE in special_events)
-			dat += "<a href='byond://?src=\ref[src];TriggerSEvent=\ref[RE]'><b>[RE.name]</b></a><br>"
+			dat += "<a href='byond://?src=\ref[src];TriggerSEvent=\ref[RE]'><b>[RE.name]</b></a>"
+			dat += "<a href='byond://?src=\ref[src];ScheduleSEvent=\ref[RE]'><i>Schedule</i></a>"
+			dat += "<br></small>"
 
 		if(length(start_events))
 			dat += "<BR>"
@@ -233,11 +199,12 @@ var/datum/event_controller/random_events
 
 	Topic(href, href_list[])
 		//So we have not had any validation on the admin random events panel since its inception. Argh. /Spy
+		var/datum/random_event/RE
 		if(usr?.client && !usr.client.holder) {boutput(usr, "<h3 class='admin'>Only administrators may use this command.</span>"); return}
 		if (href_list["TriggerEvent"] || href_list["TriggerMEvent"] || href_list["TriggerSEvent"] || href_list["TriggerStartEvent"])
-			var/datum/random_event/RE
+
 			if(href_list["TriggerEvent"])
-				RE = locate(href_list["TriggerEvent"]) in events
+				RE = locate(href_list["TriggerEvent"]) in major_events
 			else if(href_list["TriggerMEvent"])
 				RE = locate(href_list["TriggerMEvent"]) in minor_events
 			else if(href_list["TriggerSEvent"])
@@ -257,8 +224,32 @@ var/datum/event_controller/random_events
 				else
 					RE.event_effect("Triggered by [key_name(usr)]")
 
+		if (href_list["ScheduleEvent"] || href_list["ScheduleMEvent"] || href_list["ScheduleSEvent"] || href_list["ScheduleStartEvent"])
+			var/queue_string
+			if(href_list["ScheduleEvent"])
+				RE = locate(href_list["ScheduleEvent"]) in major_events
+				queue_string = "major"
+			else if(href_list["ScheduleMEvent"])
+				RE = locate(href_list["ScheduleMEvent"]) in minor_events
+				queue_string = "minor"
+			else if(href_list["ScheduleSEvent"])
+				RE = locate(href_list["ScheduleSEvent"]) in special_events
+				queue_string = "special_events"
+			if (!istype(RE,/datum/random_event/))
+				return
+			if(RE.always_custom)
+				return
+
+			var/schedule_time = input("When should '[RE.name]' be called? (Minute)","Random Events",minimum_population) as num
+			if(schedule_time MINUTES <= ticker.round_elapsed_ticks)
+				boutput(usr, SPAN_ALERT("Well that doesn't even make sense. That already happened!"))
+				return
+
+			src.queued_events[queue_string]["[RE.name]_[schedule_time]_[usr]"] += list(RE,schedule_time MINUTES)
+
+
 		else if(href_list["DisableEvent"])
-			var/datum/random_event/RE = locate(href_list["DisableEvent"]) in events
+			RE = locate(href_list["DisableEvent"]) in major_events
 			if (!istype(RE,/datum/random_event/))
 				return
 			RE.disabled = !RE.disabled
@@ -267,7 +258,7 @@ var/datum/event_controller/random_events
 			logTheThing(LOG_DIARY, usr, "switched [RE.name] event [RE.disabled ? "Off" : "On"]", "admin")
 
 		else if(href_list["DisableMEvent"])
-			var/datum/random_event/RE = locate(href_list["DisableMEvent"]) in minor_events
+			RE = locate(href_list["DisableMEvent"]) in minor_events
 			if (!istype(RE,/datum/random_event/))
 				return
 			RE.disabled = !RE.disabled
@@ -305,13 +296,26 @@ var/datum/event_controller/random_events
 			logTheThing(LOG_ADMIN, usr, "set minor events to begin at [time] minutes")
 			logTheThing(LOG_DIARY, usr, "set minor events to begin at [time] minutes", "admin")
 
+		else if(href_list["Storyteller"])
+			var/datum/storyteller/new_teller = tgui_input_list(usr,"Choose Storyteller", "Storyteller", concrete_typesof(/datum/storyteller))
+			if(new_teller)
+				active_storyteller = new new_teller()
+				active_storyteller.set_active(src)
+
 		else if(href_list["EnableEvents"])
 			events_enabled = !events_enabled
 			message_admins("Admin [key_name(usr)] [events_enabled ? "enabled" : "disabled"] random events")
 			logTheThing(LOG_ADMIN, usr, "[events_enabled ? "enabled" : "disabled"] random events")
 			logTheThing(LOG_DIARY, usr, "[events_enabled ? "enabled" : "disabled"] random events", "admin")
 
-		else if(href_list["EnableMEvents"])
+		else if(href_list["EnableMajorEvents"])
+			major_events_enabled = !major_events_enabled
+			message_admins("Admin [key_name(usr)] [major_events_enabled ? "enabled" : "disabled"] random major events")
+			logTheThing(LOG_ADMIN, usr, "[major_events_enabled ? "enabled" : "disabled"] random major events")
+			logTheThing(LOG_DIARY, usr, "[major_events_enabled ? "enabled" : "disabled"] random major events", "admin")
+
+
+		else if(href_list["EnableMinorEvents"])
 			minor_events_enabled = !minor_events_enabled
 			message_admins("Admin [key_name(usr)] [minor_events_enabled ? "enabled" : "disabled"] minor events")
 			logTheThing(LOG_ADMIN, usr, "[minor_events_enabled ? "enabled" : "disabled"] minor events")
@@ -336,13 +340,13 @@ var/datum/event_controller/random_events
 				return
 
 			time *= 600
-			if (time > time_between_events_upper)
+			if (time > time_between_major_events_upper)
 				boutput(usr, SPAN_ALERT("You cannot set the lower bound higher than the upper bound."))
 			else
-				time_between_events_lower = time
-				message_admins("Admin [key_name(usr)] set event lower interval bound to [time_between_events_lower / 600] minutes")
-				logTheThing(LOG_ADMIN, usr, "set event lower interval bound to [time_between_events_lower / 600] minutes")
-				logTheThing(LOG_DIARY, usr, "set event lower interval bound to [time_between_events_lower / 600] minutes", "admin")
+				time_between_major_events_lower = time
+				message_admins("Admin [key_name(usr)] set event lower interval bound to [time_between_major_events_lower / 600] minutes")
+				logTheThing(LOG_ADMIN, usr, "set event lower interval bound to [time_between_major_events_lower / 600] minutes")
+				logTheThing(LOG_DIARY, usr, "set event lower interval bound to [time_between_major_events_lower / 600] minutes", "admin")
 
 		else if(href_list["TimeUpper"])
 			var/time = input("Set the upper bound to how many minutes?","Random Events") as num
@@ -351,13 +355,13 @@ var/datum/event_controller/random_events
 				return
 
 			time *= 600
-			if (time < time_between_events_lower)
+			if (time < time_between_major_events_lower)
 				boutput(usr, SPAN_ALERT("You cannot set the upper bound lower than the lower bound."))
 			else
-				time_between_events_upper = time
-			message_admins("Admin [key_name(usr)] set event upper interval bound to [time_between_events_upper / 600] minutes")
-			logTheThing(LOG_ADMIN, usr, "set event upper interval bound to [time_between_events_upper / 600] minutes")
-			logTheThing(LOG_DIARY, usr, "set event upper interval bound to [time_between_events_upper / 600] minutes", "admin")
+				time_between_major_events_upper = time
+			message_admins("Admin [key_name(usr)] set event upper interval bound to [time_between_major_events_upper / 600] minutes")
+			logTheThing(LOG_ADMIN, usr, "set event upper interval bound to [time_between_major_events_upper / 600] minutes")
+			logTheThing(LOG_DIARY, usr, "set event upper interval bound to [time_between_major_events_upper / 600] minutes", "admin")
 
 		else if(href_list["MTimeLower"])
 			var/time = input("Set the lower bound to how many minutes?","Random Events") as num
@@ -381,7 +385,7 @@ var/datum/event_controller/random_events
 				return
 
 			time *= 600
-			if (time < time_between_events_lower)
+			if (time < time_between_minor_events_lower)
 				boutput(usr, SPAN_ALERT("You cannot set the upper bound lower than the lower bound."))
 			else
 				time_between_minor_events_upper = time

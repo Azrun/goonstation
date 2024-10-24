@@ -1708,6 +1708,7 @@
 #include "code\modules\storage\items\bible.dm"
 #include "code\modules\storage\items\lanyard.dm"
 #include "code\modules\storage\items\terminus.dm"
+#include "code\modules\storytellers\storyteller.dm"
 #include "code\modules\telescience\radiostation.dm"
 #include "code\modules\telescience\teleport_jammer.dm"
 #include "code\modules\telescience\teleporter_old.dm"
