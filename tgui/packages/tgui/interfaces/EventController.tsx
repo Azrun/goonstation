@@ -9,8 +9,7 @@ import {
   Flex,
   NumberInput,
   Section,
-  Stack,
-} from 'tgui-core/components';
+  Stack } from 'tgui-core/components';
 import { toFixed } from 'tgui-core/math';
 import { BooleanLike } from 'tgui-core/react';
 
@@ -30,12 +29,12 @@ interface QueuedEventData {
   time: number;
 }
 
-export const QueuedEvent = (queueData: QueuedEventData) => {
-  const { act, data } = useBackend<EventControllerData>();
+const QueuedEvent = (props: QueuedEventData, key:string) => {
+  const { act } = useBackend<EventControllerData>();
   return (
-    <Stack align="center">
-      <Stack.Item grow>{queueData.name}</Stack.Item>
-      <Stack.Item>{getMinutes(queueData.time)} Min</Stack.Item>
+    <Stack align="left">
+      <Stack.Item grow>{props.name}</Stack.Item>
+      <Stack.Item>{getMinutes(props.time)} Min</Stack.Item>
       <Stack.Item>
         <Button
           icon="delete-left"
@@ -43,9 +42,9 @@ export const QueuedEvent = (queueData: QueuedEventData) => {
           color="bad"
           onClick={() =>
             act('unschedule_event', {
-              name: queueData.name,
-              id: queueData.queueID,
-              category: queueData.category,
+              name: props.name,
+              id: props.queueID,
+              category: props.category,
             })
           }
         />
@@ -64,15 +63,15 @@ interface EventData {
   enabled: BooleanLike;
 }
 
-export const getMinutes = (time) => {
+const getMinutes = (time) => {
   return time / 60 / 10;
 };
 
-export const toMinutes = (time) => {
+const toMinutes = (time) => {
   return time * 60 * 10;
 };
 
-export const getEventIconColor = (enabled, active) => {
+const getEventIconColor = (enabled, active) => {
   if (enabled) {
     if (active) {
       return 'green';
@@ -84,41 +83,44 @@ export const getEventIconColor = (enabled, active) => {
   }
 };
 
-export const Event = (eventData: EventData) => {
-  const { act, data } = useBackend<EventControllerData>();
+const Event = (props: EventData) => {
+  const { act } = useBackend<EventControllerData>();
   return (
-    <Stack align="center">
+    <Stack>
       <Stack.Item>
         <Button
           icon={'circle'}
-          color={getEventIconColor(eventData.enabled, eventData.available)}
+          color={getEventIconColor(props.enabled, props.available)}
           onClick={() =>
             act('toggle_event', {
-              name: eventData.name,
-              ref: eventData.byondRef,
+              name: props.name,
+              ref: props.byondRef,
             })
           }
         />
       </Stack.Item>
-      <Stack.Item grow>{eventData.name}</Stack.Item>
+      <Stack.Item>{props.name}</Stack.Item>
+      <Stack.Item grow opacity={0.3}>{props.description}</Stack.Item>
       <Stack.Item>
         <Button
           icon="gun"
           tooltip="Fire Event"
+          color={props.customizable ? 'green' : 'blue'}
           onClick={() =>
             act('trigger_event', {
-              name: eventData.name,
-              ref: eventData.byondRef,
+              name: props.name,
+              ref: props.byondRef,
             })
           }
         />
         <Button
           icon="calendar-plus"
           tooltip="Schedule"
+          disabled={props.alwaysCustom}
           onClick={() =>
             act('schedule_event', {
-              name: eventData.name,
-              ref: eventData.byondRef,
+              name: props.name,
+              ref: props.byondRef,
             })
           }
         />
@@ -137,96 +139,102 @@ interface EventTypeData {
   eventList: Array<EventData>;
 }
 
-export const EventCategory = (categoryData: EventTypeData) => {
-  const { act, data } = useBackend<EventControllerData>();
+const EventCategory = (props: EventTypeData) => {
+  const { act } = useBackend<EventControllerData>();
   return (
     <Section
       title={
         <Stack align="center">
-          <Stack.Item>{categoryData.name}</Stack.Item>
+          <Stack.Item>{props.name}</Stack.Item>
           <Stack.Item>
             <Button.Checkbox
-              checked={categoryData.enabled}
+              checked={props.enabled}
               tooltip="Toggle Event Enablement"
             />
           </Stack.Item>
         </Stack>
       }
     >
-      {categoryData.startTime ? (
-        <Flex.Item mb={1}>
-          <Stack>
-            <Stack.Item>
-              Start Time:
-              <NumberInput
-                value={getMinutes(categoryData.startTime)}
-                minValue={0}
-                maxValue={500}
-                stepPixelSize={4}
-                step={0.1}
-                width="50px"
-                format={(value) => toFixed(value, numberOfDecimalDigits(0.1))}
-                unit="Min"
-                onDrag={(value) =>
-                  act('set_category_value', {
-                    name: 'startTime',
-                    category: categoryData.name,
-                    new_data: toMinutes(value),
-                  })
-                }
-              />
-            </Stack.Item>
-            <Stack.Item>
-              Time Between Events:{' '}
-              <NumberInput
-                value={getMinutes(categoryData.delayLow)}
-                minValue={0}
-                maxValue={500}
-                stepPixelSize={4}
-                step={0.1}
-                width="50px"
-                format={(value) => toFixed(value, numberOfDecimalDigits(0.1))}
-                unit="Min"
-                onDrag={(value) =>
-                  act('set_category_value', {
-                    name: 'delayLow',
-                    category: categoryData.name,
-                    new_data: toMinutes(value),
-                  })
-                }
-              />
-              /{' '}
-              <NumberInput
-                value={getMinutes(categoryData.delayHigh)}
-                minValue={0}
-                maxValue={500}
-                stepPixelSize={4}
-                step={0.1}
-                width="50px"
-                format={(value) => toFixed(value, numberOfDecimalDigits(0.1))}
-                unit="Min"
-                onDrag={(value) =>
-                  act('set_category_value', {
-                    name: 'delayHigh',
-                    category: categoryData.name,
-                    new_data: toMinutes(value),
-                  })
-                }
-              />
-            </Stack.Item>
-          </Stack>
-        </Flex.Item>
+      {props.startTime ? (
+        <Flex>
+          <Flex.Item mb={1}>
+            <Stack>
+              <Stack.Item>
+                Start Time:
+                <NumberInput
+                  value={getMinutes(props.startTime)}
+                  minValue={0}
+                  maxValue={500}
+                  stepPixelSize={4}
+                  step={0.1}
+                  width="50px"
+                  format={(value) => toFixed(value, numberOfDecimalDigits(0.1))}
+                  unit="Min"
+                  onDrag={(value) =>
+                    act('set_category_value', {
+                      name: 'startTime',
+                      category: props.name,
+                      new_data: toMinutes(value),
+                    })
+                  }
+                />
+              </Stack.Item>
+              <Stack.Item>
+                Time Between Events:{' '}
+                <NumberInput
+                  value={getMinutes(props.delayLow)}
+                  minValue={0}
+                  maxValue={500}
+                  stepPixelSize={4}
+                  step={0.1}
+                  width="50px"
+                  format={(value) => toFixed(value, numberOfDecimalDigits(0.1))}
+                  unit="Min"
+                  onDrag={(value) =>
+                    act('set_category_value', {
+                      name: 'delayLow',
+                      category: props.name,
+                      new_data: toMinutes(value),
+                    })
+                  }
+                />
+                /{' '}
+                <NumberInput
+                  value={getMinutes(props.delayHigh)}
+                  minValue={0}
+                  maxValue={500}
+                  stepPixelSize={4}
+                  step={0.1}
+                  width="50px"
+                  format={(value) => toFixed(value, numberOfDecimalDigits(0.1))}
+                  unit="Min"
+                  onDrag={(value) =>
+                    act('set_category_value', {
+                      name: 'delayHigh',
+                      category: props.name,
+                      new_data: toMinutes(value),
+                    })
+                  }
+                />
+              </Stack.Item>
+            </Stack>
+          </Flex.Item>
+        </Flex>
       ) : (
         ''
       )}
-
-      {categoryData.eventList
-        ? categoryData.eventList.map((event) => (
-            <Flex.Item mb={0} key={event.name}>
+      <Flex direction="column">
+        {props.eventList ? (
+          props.eventList.map((event) => (
+            <Flex.Item key={event.name}
+            >
               <Event {...event} />
             </Flex.Item>
           ))
-        : ''}
+        ) : (
+          <Flex.Item />
+        )}
+      </Flex>
     </Section>
   );
 };
@@ -345,13 +353,20 @@ export const EventController = () => {
           </Stack>
         </Section>
         <Section title="Scheduled Events">
-          {data.queuedEvents.length
-            ? data.queuedEvents.map((queuedEvent) => (
-                <Flex.Item mb={1} key={queuedEvent.name}>
+          <Flex direction="column">
+            {data.queuedEvents.length ? (
+              data.queuedEvents.map((queuedEvent) => (
+                <Flex.Item
+                  mb={1}
+                  key={queuedEvent.name}
+                  >
                   <QueuedEvent {...queuedEvent} />
                 </Flex.Item>
               ))
-            : 'None'}
+            ) : (
+              <Flex.Item>None</Flex.Item>
+            )}
+          </Flex>
           {}
         </Section>
 
