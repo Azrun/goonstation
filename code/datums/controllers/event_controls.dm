@@ -165,7 +165,8 @@ var/datum/event_controller/random_events
 		for(var/datum/random_event/RE in major_events)
 			dat += "<a href='byond://?src=\ref[src];TriggerEvent=\ref[RE]'><b>[RE.name]</b></a>"
 			dat += " <small><a href='byond://?src=\ref[src];DisableEvent=\ref[RE]'>([RE.disabled ? "Disabled" : "Enabled"])</a>"
-			dat += "<a href='byond://?src=\ref[src];ScheduleEvent=\ref[RE]'><i>Schedule</i></a>"
+			if(!RE.always_custom)
+				dat += " <a href='byond://?src=\ref[src];ScheduleEvent=\ref[RE]'><i>Schedule</i></a>"
 			if (RE.is_event_available())
 				dat += " (Active)"
 			dat += "<br></small>"
@@ -175,7 +176,8 @@ var/datum/event_controller/random_events
 		for(var/datum/random_event/RE in minor_events)
 			dat += "<a href='byond://?src=\ref[src];TriggerMEvent=\ref[RE]'><b>[RE.name]</b></a>"
 			dat += " <small><a href='byond://?src=\ref[src];DisableMEvent=\ref[RE]'>([RE.disabled ? "Disabled" : "Enabled"])</a>"
-			dat += "<a href='byond://?src=\ref[src];ScheduleMEvent=\ref[RE]'><i>Schedule</i></a>"
+			if(!RE.always_custom)
+				dat += " <a href='byond://?src=\ref[src];ScheduleMEvent=\ref[RE]'><i>Schedule</i></a>"
 			if (RE.is_event_available())
 				dat += " (Active)"
 			dat += "<br></small>"
@@ -184,8 +186,9 @@ var/datum/event_controller/random_events
 		dat += "<b><u>Gimmick Events</u></b><BR>"
 		for(var/datum/random_event/RE in special_events)
 			dat += "<a href='byond://?src=\ref[src];TriggerSEvent=\ref[RE]'><b>[RE.name]</b></a>"
-			dat += "<a href='byond://?src=\ref[src];ScheduleSEvent=\ref[RE]'><i>Schedule</i></a>"
-			dat += "<br></small>"
+			if(!RE.always_custom)
+				dat += " <small><a href='byond://?src=\ref[src];ScheduleSEvent=\ref[RE]'><i>Schedule</i></a></small>"
+			dat += "<br>"
 
 		if(length(start_events))
 			dat += "<BR>"
@@ -240,7 +243,7 @@ var/datum/event_controller/random_events
 			if(RE.always_custom)
 				return
 
-			var/schedule_time = input("When should '[RE.name]' be called? (Minute)","Random Events",minimum_population) as num
+			var/schedule_time = input("When should '[RE.name]' be called? (Shift time in minutes)","Random Events",minimum_population) as num
 			if(schedule_time MINUTES <= ticker.round_elapsed_ticks)
 				boutput(usr, SPAN_ALERT("Well that doesn't even make sense. That already happened!"))
 				return
@@ -394,3 +397,301 @@ var/datum/event_controller/random_events
 			logTheThing(LOG_DIARY, usr, "set minor event upper interval bound to [time_between_minor_events_upper / 600] minutes", "admin")
 
 		src.event_config()
+
+/datum/event_controller/ui_state(mob/user)
+	return tgui_admin_state
+
+/datum/event_controller/ui_interact(mob/user, datum/tgui/ui)
+	ui = tgui_process.try_update_ui(user, src, ui)
+	if(!ui)
+		ui = new(user, src, "EventController")
+		ui.open()
+
+/datum/event_controller/ui_static_data(mob/user)
+	. = list()
+	var/datum/random_event/RE
+	.["eventsEnabled"] = src.events_enabled
+	.["announce"] = src.announce_events
+	.["minPopulation"] = src.minimum_population
+	.["aliveAntagonistThreshold"] = src.alive_antags_threshold
+	.["deadPlayersThreshold"] = src.dead_players_threshold
+	.["eventData"] = list()
+
+	var/list/majorEventData = list()
+	for(RE in src.major_events)
+		majorEventData += list(list(
+			"byondRef" = ref(RE),
+			"name" = RE.name,
+			"description" = "",//RE.description,
+			"customizable" = RE.customization_available,
+			"alwaysCustom" = RE.always_custom,
+			"available" = RE.is_event_available(),
+			"enabled" =  !RE.disabled
+		))
+	.["eventData"] += list(list(
+		"name" = "major",
+		"enabled" = src.major_events_enabled,
+		"startTime" = src.major_events_begin,
+		"delayLow" = src.time_between_major_events_lower,
+		"delayHigh" = src.time_between_major_events_upper,
+		"nextEvent" = src.next_major_event,
+		"eventList" = majorEventData
+	))
+
+	var/list/minorEventData = list()
+	for(RE in src.minor_events)
+		minorEventData += list(list(
+			"byondRef" = ref(RE),
+			"name" = RE.name,
+			"description" = "Foo",//RE.description,
+			"customizable" = RE.customization_available,
+			"alwaysCustom" = RE.always_custom,
+			"available" = RE.is_event_available(),
+			"enabled" =  !RE.disabled
+		))
+	.["eventData"] += list(list(
+		"name" = "minor",
+		"enabled" = src.minor_events_enabled,
+		"startTime" = src.minor_events_begin,
+		"delayLow" = src.time_between_minor_events_lower,
+		"delayHigh" = src.time_between_minor_events_upper,
+		"nextEvent" = src.next_minor_event,
+		"eventList" = minorEventData
+	))
+
+	var/list/specialEventData = list()
+	for(RE in src.special_events)
+		specialEventData += list(list(
+			"byondRef" = ref(RE),
+			"name" = RE.name,
+			"description" = "Foo",//RE.description,
+			"customizable" = RE.customization_available,
+			"alwaysCustom" = RE.always_custom,
+			"available" = RE.is_event_available(),
+			"enabled" =  !RE.disabled
+		))
+	.["eventData"] += list(list(
+		"name" = "special",
+		"enabled" = 0,
+		"startTime" = 0,
+		"delayLow" = 0,
+		"delayHigh" = 0,
+		"nextEvent" = 0,
+		"eventList" = specialEventData
+	))
+
+	.["eventData"] += list(list(
+		"name" = "spawn",
+		"enabled" = TRUE,
+		"startTime" = src.spawn_events_begin,
+		"delayLow" = src.time_between_spawn_events_lower,
+		"delayHigh" = src.time_between_spawn_events_upper,
+		"nextEvent" = src.next_spawn_event,
+		"eventList" = list()
+	))
+
+	.["storyTellerList"] = list()
+	// .["typeData"] = list()
+	// for(var/datum/terrainify/T as anything in terrains)
+	// 	.["typeData"][T.type] += list(
+	// 		"name" = T.name,
+	// 		"description" = T.desc,
+	// 		"options"=T.additional_options,
+	// 		"toggles"=T.additional_toggles )
+
+/datum/event_controller/ui_data()
+	. = list()
+	var/datum/random_event/RE
+	.["eventsEnabled"] = src.events_enabled
+	.["announce"] = src.announce_events
+	.["minPopulation"] = src.minimum_population
+	.["aliveAntagonistThreshold"] = src.alive_antags_threshold
+	.["deadPlayersThreshold"] = src.dead_players_threshold
+	.["eventData"] = list()
+
+	var/list/majorEventData = list()
+	for(RE in src.major_events)
+		majorEventData += list(list(
+			"byondRef" = ref(RE),
+			"name" = RE.name,
+			"description" = "Foo",//RE.description,
+			"customizable" = RE.customization_available,
+			"alwaysCustom" = RE.always_custom,
+			"available" = RE.is_event_available(),
+			"enabled" =  !RE.disabled
+		))
+	.["eventData"] += list(list(
+		"name" = "major",
+		"enabled" = src.major_events_enabled,
+		"startTime" = src.major_events_begin,
+		"delayLow" = src.time_between_major_events_lower,
+		"delayHigh" = src.time_between_major_events_upper,
+		"nextEvent" = src.next_major_event,
+		"eventList" = majorEventData
+	))
+
+	var/list/minorEventData = list()
+	for(RE in src.minor_events)
+		minorEventData += list(list(
+			"byondRef" = ref(RE),
+			"name" = RE.name,
+			"description" = "Foo",//RE.description,
+			"customizable" = RE.customization_available,
+			"alwaysCustom" = RE.always_custom,
+			"available" = RE.is_event_available(),
+			"enabled" =  !RE.disabled
+		))
+	.["eventData"] += list(list(
+		"name" = "minor",
+		"enabled" = src.minor_events_enabled,
+		"startTime" = src.minor_events_begin,
+		"delayLow" = src.time_between_minor_events_lower,
+		"delayHigh" = src.time_between_minor_events_upper,
+		"nextEvent" = src.next_minor_event,
+		"eventList" = minorEventData
+	))
+
+	var/list/specialEventData = list()
+	for(RE in src.special_events)
+		specialEventData += list(list(
+			"byondRef" = ref(RE),
+			"name" = RE.name,
+			"description" = "Foo",//RE.description,
+			"customizable" = RE.customization_available,
+			"alwaysCustom" = RE.always_custom,
+			"available" = RE.is_event_available(),
+			"enabled" =  !RE.disabled
+		))
+	.["eventData"] += list(list(
+		"name" = "special",
+		"eventList" = specialEventData
+	))
+
+	.["eventData"] += list(list(
+		"name" = "spawn",
+		"enabled" = TRUE,
+		"startTime" = src.spawn_events_begin,
+		"delayLow" = src.time_between_spawn_events_lower,
+		"delayHigh" = src.time_between_spawn_events_upper,
+		"nextEvent" = src.next_spawn_event,
+	))
+
+	.["queuedEvents"] = list()
+	for(var/category in src.queued_events)
+		for(var/queue_id in src.queued_events[category])
+			RE = src.queued_events[category][queue_id][1]
+			var/event_time = random_events.queued_events[category][queue_id][2]
+			.["queuedEvents"] += list(list(
+				"queueID" = queue_id,
+				 category = category,
+				 name = RE.name,
+				 time = event_time
+			))
+
+
+/datum/event_controller/ui_act(action, list/params, datum/tgui/ui)
+	. = ..()
+	if(.)
+		return
+	var/datum/random_event/RE
+	switch(action)
+		if("trigger_event")
+			RE = locate(params["ref"])
+			if(istype(RE) && params["name"] == RE.name)
+				RE.event_effect("Triggered by [key_name(usr)]")
+
+		if("toggle_event")
+			RE = locate(params["ref"])
+			if(istype(RE) && params["name"] == RE.name)
+				RE.disabled = !RE.disabled
+				. = TRUE
+
+		if("schedule_event")
+			RE = locate(params["ref"])
+			var/queue_string
+			if( RE in major_events )
+				queue_string = "major"
+			else if(RE in minor_events )
+				queue_string = "minor"
+			else if(RE in special_events )
+				queue_string = "special_events"
+
+			if(istype(RE) && params["name"] == RE.name)
+				var/schedule_time = tgui_input_number(usr, "When should '[RE.name]' be called? (Shift time in minutes)","Schedule Event",ticker.round_elapsed_ticks / 60 / 10, INFINITY, ticker.round_elapsed_ticks / 60 / 10)
+				if(schedule_time MINUTES <= ticker.round_elapsed_ticks)
+					boutput(usr, SPAN_ALERT("Well that doesn't even make sense. That already happened!"))
+					return
+
+				src.queued_events[queue_string]["[RE.name]_[schedule_time]_[usr]"] += list(RE,schedule_time MINUTES)
+				. = TRUE
+
+		if("set_category_value")
+			. = TRUE
+			switch(params["category"])
+				if("spawn")
+					switch(params["name"])
+						if("startTime")
+							src.spawn_events_begin = params["new_data"]
+						if("delayLow")
+							src.time_between_spawn_events_lower = params["new_data"]
+						if("delayHigh")
+							src.time_between_spawn_events_upper = params["new_data"]
+						else
+							. = FALSE
+
+				if("major")
+					. = TRUE
+					switch(params["name"])
+						if("toggle_category")
+							src.major_events_enabled = !src.major_events_enabled
+						if("startTime")
+							src.major_events_begin = params["new_data"]
+						if("delayLow")
+							src.time_between_major_events_lower = params["new_data"]
+						if("delayHigh")
+							src.time_between_major_events_upper = params["new_data"]
+						else
+							. = FALSE
+
+				if("minor")
+					. = TRUE
+					switch(params["name"])
+						if("toggle_category")
+							src.minor_events_enabled = !src.minor_events_enabled
+						if("startTime")
+							src.minor_events_begin = params["new_data"]
+						if("delayLow")
+							src.time_between_minor_events_lower = params["new_data"]
+						if("delayHigh")
+							src.time_between_minor_events_upper = params["new_data"]
+						else
+							. = FALSE
+				else
+					. = FALSE
+
+		if("set_value")
+			. = TRUE
+			switch(params["name"])
+				if("eventsEnabled")
+					src.events_enabled = params["new_data"]
+				if("announce")
+					src.announce_events = params["new_data"]
+				if("minPopulation")
+					src.minimum_population = params["new_data"]
+				if("aliveAntagonistThreshold")
+					src.alive_antags_threshold = params["new_data"]
+				if("deadPlayersThreshold")
+					src.dead_players_threshold = params["new_data"]
+				else
+					. = FALSE
+
+		if("unschedule_event")
+			var/category = params["category"]
+			var/queued_id = params["id"]
+			if(category in random_events.queued_events)
+				random_events.queued_events[category] -= queued_id
+				. = TRUE
+		else
+			tgui_process.close_uis(src)
+			. = TRUE
+
