@@ -53,6 +53,34 @@ const QueuedEvent = (props: QueuedEventData, key:string) => {
   );
 };
 
+const QueuedSection = (props: Array<QueuedEventData>) => {
+  const sortEventQueue = (
+    a: QueuedEventData,
+    b: QueuedEventData,
+  ) => a.time-b.time;
+
+  const sortedQueue: Array<QueuedEventData> = Object.keys(props).map((index) => props[index]).sort(sortEventQueue);
+
+  return (
+    <Section title="Scheduled Events">
+      <Flex direction="column">
+        {sortedQueue.length ? (
+          sortedQueue.map((queuedEvent) => (
+            <Flex.Item
+              mb={1}
+              key={queuedEvent.name}
+              >
+              <QueuedEvent {...queuedEvent} />
+            </Flex.Item>
+          ))
+        ) : (
+          <Flex.Item>None</Flex.Item>
+        )}
+      </Flex>
+      {}
+    </Section>);
+};
+
 interface EventData {
   byondRef: string;
   name: string;
@@ -254,6 +282,11 @@ interface EventControllerData {
 export const EventController = () => {
   const { act, data } = useBackend<EventControllerData>();
 
+  const sortEventQueue = (
+    a: QueuedEventData,
+    b: QueuedEventData,
+  ) => a.time-b.time;
+
   return (
     <Window width={600} height={600}>
       <Window.Content scrollable>
@@ -352,10 +385,13 @@ export const EventController = () => {
             </Stack.Item>
           </Stack>
         </Section>
+
         <Section title="Scheduled Events">
-          <Flex direction="column">
+          <Flex direction="column" >
             {data.queuedEvents.length ? (
-              data.queuedEvents.map((queuedEvent) => (
+              data.queuedEvents
+              .sort(sortEventQueue)
+              .map((queuedEvent) => (
                 <Flex.Item
                   mb={1}
                   key={queuedEvent.name}
@@ -369,6 +405,8 @@ export const EventController = () => {
           </Flex>
           {}
         </Section>
+
+        <QueuedSection {...data.queuedEvents} />
 
         <Flex direction="column">
           {data.eventData.map((eventCat) => (
