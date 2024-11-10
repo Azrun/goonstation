@@ -221,6 +221,7 @@
 #include "code\datums\components\disposing_confetti.dm"
 #include "code\datums\components\drop_loot_on_death.dm"
 #include "code\datums\components\energy_shield.dm"
+#include "code\datums\components\equipment_fault.dm"
 #include "code\datums\components\explode_on_touch.dm"
 #include "code\datums\components\extradimensional_storage.dm"
 #include "code\datums\components\floor_slime.dm"
