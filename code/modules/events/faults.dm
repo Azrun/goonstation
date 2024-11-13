@@ -85,6 +85,3 @@ ABSTRACT_TYPE(/datum/random_event/major/fault)
 				possible_doors -= D
 
 				D.add_component
-
-
-		/obj/machinery/door/airlock/pyro/external

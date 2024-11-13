@@ -5,6 +5,7 @@
 /datum/component/equipment_fault
 	//tool flags to clear
 	var/interactions = 0
+	var/fault_delay = 5 SECONDS
 	var/static/list/tool_to_repair_type = list("[TOOL_CUTTING|TOOL_SNIPPING]"=list(/datum/contextAction/repair/cut, "You cut some vestigial wires from \the %target%.", 'sound/items/Wirecutter.ogg'),
 											   "[TOOL_PRYING]"=list(/datum/contextAction/repair/pry, "You pry things back into place on \the %target% with all your might.", 'sound/items/Crowbar.ogg'),
 											   "[TOOL_PULSING]"=list(/datum/contextAction/repair/pulse, "You pulse \the %target%. In a general sense.", 'sound/items/penclick.ogg'),
@@ -41,7 +42,9 @@ TYPEINFO(/datum/component/equipment_fault)
 	ef_perform_fault(M)
 
 /datum/component/equipment_fault/proc/ef_perform_fault(obj/O)
-	return
+	SHOULD_CALL_PARENT(TRUE)
+	if(!ON_COOLDOWN(O, "equip_fault_[ref(src)]",src.fault_delay))
+		. = TRUE
 
 /datum/component/equipment_fault/proc/ef_attackby(obj/O, obj/item/I, mob/user = null)
 	var/attempt = FALSE
@@ -72,12 +75,14 @@ TYPEINFO(/datum/component/equipment_fault)
 			null, null, src), user)
 	else
 		showContextActions(user)
+		ef_perform_fault(O)
 
 	return TRUE
 
 /datum/component/equipment_fault/proc/ef_attackhand(obj/O, mob/user)
 	if(showContextActions(user))
 		boutput(user, SPAN_ALERT("You need to use some tools on \the [O] before it can be fixed."))
+		ef_perform_fault(O)
 	else
 		boutput(user, SPAN_ALERT("You feel as though \the [O] isn't working right..."))
 	return TRUE
@@ -251,24 +256,35 @@ TYPEINFO(/datum/component/equipment_fault)
 				if (ispulsingtool(I))
 					return ..(target, user, I)
 
+/datum/component/equipment_fault/grumble
+	var/static/list/sounds_malfunction = list('sound/machines/engine_grump1.ogg','sound/machines/engine_grump2.ogg','sound/machines/engine_grump3.ogg',
+	'sound/machines/glitch1.ogg','sound/machines/glitch2.ogg','sound/machines/glitch3.ogg','sound/impact_sounds/Metal_Clang_1.ogg','sound/impact_sounds/Metal_Hit_Heavy_1.ogg','sound/machines/romhack1.ogg','sound/machines/romhack3.ogg')
+	var/static/list/text_flipout_adjective = list("an awful","a terrible","a loud","a horrible","a nasty","a horrendous")
+	var/static/list/text_flipout_noun = list("noise","racket","ruckus","clatter","commotion","din")
 
-
+/datum/component/equipment_fault/grumble/ef_perform_fault(obj/O, mult)
+	if(..())
+		animate_shake(O, 5, rand(3,8),rand(3,8))
+		O.visible_message(SPAN_ALERT("[O] makes [pick(src.text_flipout_adjective)] [pick(src.text_flipout_noun)]!"))
+		playsound(O, pick(src.sounds_malfunction), 50, 2)
 
 /datum/component/equipment_fault/elecflash
-/datum/component/equipment_fault/elecflash/ef_perform_fault(obj/machinery/M, mult)
-	elecflash(M)
+/datum/component/equipment_fault/elecflash/ef_perform_fault(obj/O, mult)
+	if(..())
+		elecflash(O)
 
 /datum/component/equipment_fault/smoke
-/datum/component/equipment_fault/smoke/ef_perform_fault(obj/machinery/M, mult)
-	var/datum/effects/system/harmless_smoke_spread/smoke = new /datum/effects/system/harmless_smoke_spread()
-	smoke.set_up(1, 0, M.loc)
-	smoke.start()
-
+/datum/component/equipment_fault/smoke/ef_perform_fault(obj/O, mult)
+	if(..())
+		var/datum/effects/system/harmless_smoke_spread/smoke = new /datum/effects/system/harmless_smoke_spread()
+		smoke.set_up(1, 0, O.loc)
+		smoke.start()
 
 
 /datum/component/equipment_fault/shorted
 /datum/component/equipment_fault/shorted/ef_process(obj/machinery/M, mult)
 	. = TRUE
+	animate_little_spark(M)
 	if (M.power_usage)
 		if (machines_may_use_wired_power)
 			M.power_change()
@@ -284,5 +300,35 @@ TYPEINFO(/datum/component/equipment_fault)
 			if (zamus_dumb_power_popups)
 				new /obj/maptext_junk/power(get_turf(M), change = -M.power_usage * mult, channel = M.power_channel)
 
+/datum/component/equipment_fault/faulty_wiring
+	fault_delay = 45 SECONDS
 
+/datum/component/equipment_fault/faulty_wiring/ef_perform_fault(obj/O, mult)
+	var/wire = pick(APCWireColorToIndex)
+	if(..())
+		animate_little_spark(O)
 
+		if(istype(O, /obj/machinery/door/airlock))
+			var/obj/machinery/door/airlock/target_airlock = O
+			wire = pick(airlockWireColorToIndex)
+			if(!target_airlock.isWireColorCut(wire))
+				target_airlock.pulse(wire)
+		else if(istype(O, /obj/machinery/manufacturer))
+			var/obj/machinery/manufacturer/target_manufacturer = O
+			target_manufacturer.pulse(null, wire)
+		else if(istype(O, /obj/machinery/vending))
+			var/obj/machinery/vending/target_vending = O
+			if(target_vending.isWireColorCut(wire))
+				target_vending.pulse(wire)
+		else if(istype(O, /obj/machinery/weapon_stand))
+			var/obj/machinery/weapon_stand/target_weapon_stand = O
+			if(!target_weapon_stand.isWireColorCut(wire))
+				target_weapon_stand.pulse(wire)
+		else if(istype(O, /obj/submachine/seed_vendor))
+			var/obj/submachine/seed_vendor/target_seed_vendor = O
+			if(!target_seed_vendor.isWireColorCut(wire))
+				target_seed_vendor.pulse(wire, null)
+		else if(istype(O, /obj/machinery/power/apc))
+			var/obj/machinery/power/apc/target_apc = O
+			if(!target_apc.isWireColorCut(wire))
+				target_apc.pulse(wire)
