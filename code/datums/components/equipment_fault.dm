@@ -282,6 +282,12 @@ TYPEINFO(/datum/component/equipment_fault)
 
 
 /datum/component/equipment_fault/shorted
+
+/datum/component/equipment_fault/shorted/Initialize(tool_flags)
+	. = COMPONENT_INCOMPATIBLE
+	if(istype(parent, /obj/machinery))
+		. = ..()
+
 /datum/component/equipment_fault/shorted/ef_process(obj/machinery/M, mult)
 	. = TRUE
 	animate_little_spark(M)
@@ -300,8 +306,21 @@ TYPEINFO(/datum/component/equipment_fault)
 			if (zamus_dumb_power_popups)
 				new /obj/maptext_junk/power(get_turf(M), change = -M.power_usage * mult, channel = M.power_channel)
 
+
 /datum/component/equipment_fault/faulty_wiring
 	fault_delay = 45 SECONDS
+	var/static/list/supported_types = list(/obj/machinery/door/airlock,
+										   /obj/machinery/manufacturer,
+										   /obj/machinery/vending,
+										   /obj/machinery/weapon_stand,
+										   /obj/submachine/seed_vendor,
+										   /obj/machinery/power/apc)
+
+/datum/component/equipment_fault/faulty_wiring/Initialize(tool_flags)
+	. = COMPONENT_INCOMPATIBLE
+	for(var/type in src.supported_types)
+		if(istype(parent, type))
+			. = ..()
 
 /datum/component/equipment_fault/faulty_wiring/ef_perform_fault(obj/O, mult)
 	var/wire = pick(APCWireColorToIndex)
