@@ -2,20 +2,20 @@
 	name = "Teleportitis"
 	max_stages = 1
 	spread = "Non-Contagious"
-	cure = "Electric Shock"
+	cure_flags = CURE_ELEC_SHOCK
 	associated_reagent = "liquid spacetime"
 	affected_species = list("Human")
 
-/datum/ailment/disease/teleportitis/stage_act(var/mob/living/affected_mob,var/datum/ailment_data/D)
+/datum/ailment/disease/teleportitis/stage_act(var/mob/living/affected_mob, var/datum/ailment_data/D, mult)
 	if (..())
 		return
-	if(prob(5))
+	if(probmult(5))
 		affected_mob.emote("hiccup")
-	if(prob(15))
+	if(probmult(15))
 		if (!isturf(affected_mob.loc))
 			return
 		if (isrestrictedz(affected_mob.z))
-			boutput(affected_mob, "<span class='notice'>You feel a bit strange. Almost... guilty?</span>")
+			boutput(affected_mob, SPAN_NOTICE("You feel a bit strange. Almost... guilty?"))
 			return
 
 		var/list/randomturfs = new/list()
@@ -23,7 +23,9 @@
 			if(istype(T, /turf/space) || T.density)
 				continue
 			randomturfs.Add(T)
-		if(randomturfs.len > 0)
-			boutput(affected_mob, "<span class='alert'>You are suddenly zapped away elsewhere!</span>")
-			affected_mob.set_loc(pick(randomturfs))
+		if(length(randomturfs) > 0)
+			boutput(affected_mob, SPAN_ALERT("You are suddenly zapped away elsewhere!"))
+			var/turf/destination = pick(randomturfs)
+			logTheThing(LOG_COMBAT, affected_mob, "was teleported by Teleportitis from [log_loc(affected_mob)] to [log_loc(destination)].")
+			affected_mob.set_loc(destination)
 			elecflash(affected_mob)

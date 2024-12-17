@@ -21,7 +21,7 @@
 	var/antisight = 0
 	var/centerlight = null
 	var/centerlight_color = "#ffffff"
-	var/see_invisible = 2
+	var/see_invisible = INVIS_CLOAK
 	var/scanning = 0
 	var/atom/tracking_target = null
 	var/const/SENSOR_REFRESH_RATE = 10
@@ -43,7 +43,7 @@
 		M.sight &= ~SEE_MOBS
 		M.sight &= ~SEE_OBJS
 		M.see_in_dark = initial(M.see_in_dark)
-		M.see_invisible = 0
+		M.see_invisible = INVIS_NONE
 		end_tracking()
 		scanning = 0
 
@@ -54,12 +54,12 @@
 
 		var/dat = "<B>[src] Console</B><BR><HR><BR>"
 		if(src.active)
-			dat += build_html_gps_form(src, false, src.tracking_target)
+			dat += build_html_gps_form(src, FALSE, src.tracking_target)
 			dat += {"<HR><BR><A href='?src=\ref[src];scan=1'>Scan Area</A>"}
 			dat += {"<HR><B>[beacons] Beacons Nearby:</B><BR>"}
 			if(beaconlist.len)
 				for(var/obj/B in beaconlist)
-					dat += {"<HR><a href=\"byond://?src=\ref[src];dest_cords=1;x=[B.x];y=[B.y];z=[B.z]\">[B.name]</a>~[round(get_dist(src.ship, B), 25)]M [dir_name(get_dir(src.ship, B))]"}
+					dat += {"<HR><a href=\"byond://?src=\ref[src];dest_cords=1;x=[B.x];y=[B.y];z=[B.z]\">[B.name]</a>~[round(GET_DIST(src.ship, B), 25)]M [dir_name(get_dir(src.ship, B))]"}
 			dat += {"<HR><B>[ships] Ships Detected:</B><BR>"}
 			if(shiplist.len)
 				for(var/obj/V in shiplist)
@@ -84,7 +84,7 @@
 			if (href_list["scan"] && !scanning)
 				scan(usr)
 			if(href_list["getcords"])
-				boutput(usr, "<span class='notice'>Located at: <b>X</b>: [src.ship.x], <b>Y</b>: [src.ship.y]</span>")
+				boutput(usr, SPAN_NOTICE("Located at: <b>X</b>: [src.ship.x], <b>Y</b>: [src.ship.y]"))
 				return
 			if (href_list["tracking_ship"] && !scanning)
 				end_tracking()
@@ -128,12 +128,12 @@
 				var/obj/item/shipcomponent/sensor/target_sensor = target_pod.sensors
 				if (istype(target_sensor))
 					target_sensor.whos_tracking_me -= src.ship
-					if (islist(target_sensor.whos_tracking_me) && target_sensor.whos_tracking_me.len == 0)
+					if (islist(target_sensor.whos_tracking_me) && length(target_sensor.whos_tracking_me) == 0)
 						target_pod.myhud.sensor_lock.icon_state = "off"
 						target_pod.myhud.sensor_lock.mouse_opacity = 0
 
 		src.tracking_target = null
-		src.ship.myhud.tracking.set_dir(1)
+		src.ship.myhud.tracking.set_dir(NORTH)
 		animate(src.ship.myhud.tracking, transform = null, time = 10, loop = 0)
 
 		src.ship.myhud.tracking.icon_state = "off"
@@ -149,7 +149,7 @@
 	process()
 		if (src.tracking_target && src.ship && src.ship.myhud && src.ship.myhud.tracking)
 			same_z_level = (src.ship.z == src.tracking_target.z)
-			cur_dist = get_dist(src.ship,src.tracking_target)
+			cur_dist = GET_DIST(src.ship,src.tracking_target)
 			trackable_range = adjust_seekrange(src.tracking_target)
 			//change position and icon dir based on direction to target. And make sure it's using the dots.
 			//must be within range and be on the same z-level
@@ -166,8 +166,8 @@
 				if (!same_z_level || ( !tracking_gps_coord && cur_dist > trackable_range*2 ))
 					end_tracking()
 					for(var/mob/M in ship)
-						boutput(M, "<span class='alert'>Tracking signal lost.</span>")
-					playsound(src.loc, "sound/machines/whistlebeep.ogg", 50, 1)
+						boutput(M, SPAN_ALERT("Tracking signal lost."))
+					playsound(src.loc, 'sound/machines/whistlebeep.ogg', 50, 1)
 
 			// sleep(SENSOR_REFRESH_RATE)
 
@@ -189,7 +189,7 @@
 			return
 		var/ang = get_angle(src.ship, target)
 		//Was maybe thinking about having it get further out or something the further the target is, but no.
-		//var/dist = get_dist(src.ship, target)
+		//var/dist = GET_DIST(src.ship, target)
 		//var/number = round(ang/(45-(50-dist)))*(45-(50-dist))
 		var/matrix/M = matrix()
 		M = M.Turn(ang)
@@ -203,16 +203,16 @@
 			return
 		scanning = 1
 		src.tracking_target = O
-		boutput(usr, "<span class='notice'>Attempting to pinpoint energy source...</span>")
-		playsound(ship.loc, "sound/machines/signal.ogg", 50, 0)
+		boutput(usr, SPAN_NOTICE("Attempting to pinpoint energy source..."))
+		playsound(ship.loc, 'sound/machines/signal.ogg', 50, 0)
 		sleep(1 SECOND)
-		if (src.tracking_target && get_dist(src,src.tracking_target) <= seekrange)
+		if (src.tracking_target && GET_DIST(src,src.tracking_target) <= seekrange)
 			scanning = 0		//remove this if we want to force the user to manually stop tracking before trying to track something else
-			boutput(usr, "<span class='notice'>Tracking target: [src.tracking_target.name]</span>")
-			SPAWN_DBG(0)		//Doing this to redraw the scanner window after the topic call that uses this fires.
+			boutput(usr, SPAN_NOTICE("Tracking target: [src.tracking_target.name]"))
+			SPAWN(0)		//Doing this to redraw the scanner window after the topic call that uses this fires.
 				begin_tracking(0)
 		else
-			boutput(usr, "<span class='notice'>Unable to locate target.</span>")
+			boutput(usr, SPAN_NOTICE("Unable to locate target."))
 			src.tracking_target = null
 		scanning = 0
 
@@ -221,8 +221,8 @@
 		if (!O)
 			return
 		src.tracking_target = O
-		boutput(usr, "<span class='notice'>Tracking target: [src.tracking_target.name]</span>")
-		SPAWN_DBG(0)
+		boutput(usr, SPAN_NOTICE("Tracking target: [src.tracking_target.name]"))
+		SPAWN(0)
 			begin_tracking(0)
 		for(var/mob/M in ship)
 			if (M.using_dialog_of(src))
@@ -235,28 +235,28 @@
 		scanning = 1
 		if (href_list["dest_cords"])
 			tracking_target = null
-			var/x = text2num(href_list["x"])
-			var/y = text2num(href_list["y"])
-			var/z = text2num(href_list["z"])
+			var/x = text2num_safe(href_list["x"])
+			var/y = text2num_safe(href_list["y"])
+			var/z = text2num_safe(href_list["z"])
 			if (!x || !y/* || !z*/)
-				boutput(usr, "<span class='alert'>'0' is an invalid gps coordinate. Try again.</span>")
+				boutput(usr, SPAN_ALERT("'0' is an invalid gps coordinate. Try again."))
 				return
 			//Using -1 as the default value
 			if (z == DEFAULT_Z_VALUE)
 				if (src.loc)
 					z = src.loc.z
 
-			boutput(usr, "<span class='notice'>Attempting to pinpoint: <b>X</b>: [x], <b>Y</b>: [y], Z</b>: [z]</span>")
-			playsound(ship.loc, "sound/machines/signal.ogg", 50, 0)
+			boutput(usr, SPAN_NOTICE("Attempting to pinpoint: <b>X</b>: [x], <b>Y</b>: [y], Z</b>: [z]"))
+			playsound(ship.loc, 'sound/machines/signal.ogg', 50, 0)
 			sleep(1 SECOND)
 			var/turf/T = locate(x,y,z)
 
 			//Set located turf to be the tracking_target
 			if (isturf(T))
 				src.tracking_target = T
-				boutput(usr, "<span class='notice'>Now tracking: <b>X</b>: [T.x], <b>Y</b>: [T.y]</span>")
+				boutput(usr, SPAN_NOTICE("Now tracking: <b>X</b>: [T.x], <b>Y</b>: [T.y]"))
 				scanning = 0		//remove this if we want to force the user to manually stop tracking before trying to track something else
-				SPAWN_DBG(0)		//Doing this to redraw the scanner window after the topic call that uses this fires.
+				SPAWN(0)		//Doing this to redraw the scanner window after the topic call that uses this fires.
 					begin_tracking(1)
 		sleep(1 SECOND)
 		scanning = 0
@@ -300,22 +300,22 @@
 		shiplist = list()
 		beaconlist = list()
 		for(var/mob/living/carbon/human/M in ship)
-			M << sound('sound/machines/signal.ogg')
+			M.playsound_local_not_inworld('sound/machines/signal.ogg', vol=100)
 		ship.visible_message("<b>[ship] begins a sensor sweep of the area.</b>")
-		boutput(user, "<span class='notice'>Scanning...</span>")
+		boutput(user, SPAN_NOTICE("Scanning..."))
 		sleep(3 SECONDS)
-		boutput(user, "<span class='notice'>Scan complete.</span>")
+		boutput(user, SPAN_NOTICE("Scan complete."))
 		for (var/mob/living/M in mobs)
 			if (!isturf(M.loc))	// || ship.Find(M)
 				continue
-			if ((ship.z == M.z) && get_dist(ship.loc, M) <= src.seekrange)
-				if(!isdead(M))
+			if ((ship.z == M.z) && GET_DIST(ship.loc, M) <= src.seekrange)
+				if(!isdead(M) && !isintangible(M))
 #ifdef UNDERWATER_MAP
 					if (istype(M,/mob/living/critter/aquatic/fish)) continue
 #endif
 					lifeforms++
 					//Add direction to mob if close. Who cares about doing it for non-drone critters and npc's...
-					if (get_dist(ship.loc, M) <= src.seekrange/2)
+					if (GET_DIST(ship.loc, M) <= src.seekrange/2)
 						lifelist += "[M.name] - [dir_name(get_dir(ship, M))]"
 						continue
 					lifelist += M.name
@@ -333,12 +333,12 @@
 
 		for (var/obj/machinery/vehicle/V in by_cat[TR_CAT_PODS_AND_CRUISERS]) //ignoring cruisers, they barely exist, sue me.
 			if(V != ship)
-				if ((ship.z == V.z) && get_dist(ship.loc, V) <= src.seekrange)
+				if ((ship.z == V.z) && GET_DIST(ship.loc, V) <= src.seekrange)
 					ships++
 					shiplist[V] = "[dir_name(get_dir(ship, V))]"
 
 		for (var/obj/critter/C in range(src.seekrange,ship.loc))
-			if ((ship.z == C.z) && get_dist(ship.loc, C) <= src.seekrange)
+			if ((ship.z == C.z) && GET_DIST(ship.loc, C) <= src.seekrange)
 				if(C.alive)
 					if (istype(C,/obj/critter/gunbot))
 						ships++
@@ -347,7 +347,7 @@
 						lifeforms++
 						lifelist += C.name
 		for_by_tcl(O, /obj/storage)
-			if ((ship.z == O.z) && get_dist(ship.loc, O) <= src.seekrange/2)
+			if ((ship.z == O.z) && GET_DIST(ship.loc, O) <= src.seekrange/2)
 				for (var/mob/living/M in O.contents)
 					lifeforms++
 					lifelist += "Obscure Life Sign"
@@ -415,7 +415,7 @@ proc/build_html_gps_form(var/atom/A, var/show_Z=0, var/atom/target)
 /obj/item/shipcomponent/sensor/ecto
 	name = "Ecto-Sensor 900"
 	desc = "The number one choice for reasearchers of the supernatural."
-	see_invisible = 15
+	see_invisible = INVIS_GHOST
 	power_used = 40
 	icon_state = "sensor-g"
 

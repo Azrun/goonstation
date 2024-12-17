@@ -8,7 +8,7 @@
 	heal_amt = 1
 	labeled = 1
 	initial_volume = 50
-	initial_reagents = list("methamphetamine"=3,"VHFCS"=10,"cola"=17)
+	initial_reagents = list("methamphetamine"=5,"VHFCS"=10,"cola"=15)
 
 /obj/item/reagent_containers/food/drinks/bottle/soda/blue
 	name = "Grife-O"
@@ -60,7 +60,7 @@
 
 	New()
 		if (prob(10))
-			src.initial_reagents["grognardium"] = 5
+			src.initial_reagents["rum"] = 5
 		..()
 
 /obj/item/reagent_containers/food/drinks/bottle/soda/bottledwater
@@ -92,7 +92,7 @@
 		switch(rand(1,16))
 			if (1)
 				src.name += "Crunchy Kidney Stone Lemonade flavor"
-				src.initial_reagents["urine"] = 10
+				src.initial_reagents["ammonia"] = 10
 			if (2)
 				src.name += "Radical Roadkill Rampage flavor"
 				src.initial_reagents["bloodc"] = 10 // heh
@@ -138,7 +138,7 @@
 			if (15)
 				src.name += "Hearty Hellburn Brew flavor" //by Eagletanker
 				src.initial_reagents += (list("oxygen"=18, "plasma"=8, "ghostchilijuice"=1, "carbon"=3))
-				src.desc = "9/10 Engineers prefered Grones Hearty Hellburn, find out why yourself!"
+				src.desc = "9/10 Engineers preferred Grones Hearty Hellburn, find out why yourself!"
 				src.label = "engine"
 			if (16)
 				src.name += "Citrus Circus Catastrophe flavor" //by Coolvape
@@ -177,17 +177,47 @@
 /obj/item/reagent_containers/food/drinks/water
 	name = "water bottle"
 	desc = "I wonder if this is still fresh?"
-	icon = 'icons/obj/items/items.dmi'
-	icon_state = "bottlewater"
-	item_state = "contliquid"
-	initial_volume = 50
+	icon_state = "water"
+	item_state = "water"
+	initial_volume = 25
 	initial_reagents = "water"
+
+/obj/item/reagent_containers/food/drinks/mate
+	name = "mate gourd"
+	desc = "A gourd and a straw for drinking mate"
+	icon_state = "mate_empty"
+	initial_volume = 20
+	var/yerba_left = 0
+	var/water_amount
+
+	on_reagent_change()
+		if((yerba_left > 1) && reagents.get_reagent_amount("water") > 0)
+			changetomate()
+		if((yerba_left < 1) && !reagents.get_reagent_amount("mate"))
+			yerba_left = 0
+			icon_state = "mate_empty"
+		..()
+
+	proc/changetomate()
+		water_amount = src.reagents.get_reagent_amount("water")
+		src.reagents.remove_reagent("water", water_amount)
+		src.reagents.add_reagent("mate", water_amount)
+		yerba_left -= water_amount
+		return
+
+	attackby(obj/item/W, mob/user)
+		if (istype(W, /obj/item/reagent_containers/food/snacks/ingredient/yerba))
+			src.icon_state = "mate"
+			yerba_left = 100
+			boutput(user, SPAN_NOTICE("You add [W] to [src]!"))
+			qdel (W)
+		else ..()
 
 /obj/item/reagent_containers/food/drinks/tea
 	name = "tea"
 	desc = "A fine cup of tea.  Possibly Earl Grey.  Temperature undetermined."
 	icon_state = "tea0"
-	item_state = "coffee"
+	item_state = "tea"
 	initial_volume = 50
 	initial_reagents = "tea"
 
@@ -205,19 +235,6 @@
 	heal_amt = 1
 	initial_volume = 50
 	initial_reagents = list("coffee"=30)
-	module_research = list("vice" = 5)
-
-/obj/item/reagent_containers/food/drinks/eggnog
-	name = "Egg Nog"
-	desc = "A festive beverage made with eggs. Please eat the eggs. Eat the eggs up."
-	icon_state = "nog"
-	heal_amt = 1
-	festivity = 1
-	rc_flags = RC_FULLNESS
-	initial_volume = 50
-	initial_reagents = list("eggnog"=40)
-	module_research = list("vice" = 5)
-	module_research_type = /obj/item/reagent_containers/food/drinks/bottle/beer
 
 /obj/item/reagent_containers/food/drinks/chickensoup
 	name = "Chicken Soup"
@@ -228,6 +245,52 @@
 	initial_volume = 50
 	can_recycle = FALSE
 	initial_reagents = list("chickensoup"=30)
+
+/obj/item/reagent_containers/food/drinks/fruitmilk
+	name = "Creaca's Fruit Milk "
+	desc = "Milk and 'fruit' of undetermined origin; finally, together at last."
+	icon_state = "fruitmilk"
+	initial_volume = 50
+	can_recycle = FALSE
+	initial_reagents = list("milk"=20)
+
+	New()
+		switch(rand(1,10))
+			if (1)
+				src.name += "Synthetic Tropical Dawn flavor"
+				src.initial_reagents["juice_pineapple"] = 30
+			if (2)
+				src.name += "Changing Cherry Red flavor"
+				src.initial_reagents["juice_cherry"] = 30
+			if (3)
+				src.name += "Curdled Lemon Twist flavor"
+				src.initial_reagents["juice_lemon"] = 30
+			if (4)
+				src.name += "Earth Dreamer Lime flavor"
+				src.initial_reagents["juice_lime"] = 30
+			if (5)
+				src.name += "Odyssey Orange flavor"
+				src.initial_reagents["juice_orange"] = 30
+			if (6)
+				src.name += "Strawberry and Cream flavor"
+				src.initial_reagents["juice_strawberry"] = 30
+			if (7)
+				src.name += "Seasonal Peach Blossom flavor"
+				src.initial_reagents["juice_peach"] = 30
+			if (8)
+				src.name += "Surprise Mystery flavor"
+				src.initial_reagents["juice_pickle"] = 20
+				src.initial_reagents["neurodepressant"] = 5
+				src.initial_reagents["msg"] = 5
+			if (9)
+				src.name += "Little Soups flavor"
+				src.initial_reagents["juice_tomato"] = 30
+			if (10)
+				src.name += "Artifical Autumn flavor"
+				src.initial_reagents["juice_pumpkin"] = 30
+
+		..()
+
 
 /obj/item/reagent_containers/food/drinks/weightloss_shake
 	name = "Weight-Loss Shake"
@@ -242,32 +305,47 @@
 	name = "space cola"
 	desc = "Cola. in space."
 	icon = 'icons/obj/foodNdrink/can.dmi'
-	icon_state = "cola-1"
+	icon_state = "cola-1-small"
 	item_state = "cola-1"
 	heal_amt = 1
 	rc_flags = RC_FULLNESS
 	initial_volume = 50
+	can_chug = 0
+	splash_all_contents = FALSE
+	incompatible_with_chem_dispensers = TRUE
+	amount_per_transfer_from_this = 0
 	initial_reagents = list("cola"=20,"VHFCS"=10)
-	var/is_sealed = 1 //can you drink out of it?
+	is_sealed = TRUE
 	var/standard_override //is this a random cola or a standard cola (for crushed icons)
+	var/shaken = FALSE //sets to TRUE on *twirl emote
 
 	New()
 		..()
-		if (prob(50))
-			src.icon_state = "cola-2"
+		setup_soda()
 
-	attack(mob/M as mob, mob/user as mob)
+	attack(mob/target, mob/user, def_zone, is_special = FALSE, params = null)
 		if (is_sealed)
-			boutput(user, "<span class='alert'>You can't drink out of a sealed can!</span>") //idiot
+			boutput(user, SPAN_ALERT("You can't drink out of a sealed can!")) //idiot
 			return
 		..()
 
 	attack_self(mob/user as mob)
 		var/drop_this_shit = 0 //i promise this is useful
 		if (src.is_sealed)
-			user.visible_message("[user] pops the tab on \the [src]!", "You pop \the [src] open!")
 			is_sealed = 0
-			playsound(src.loc, "sound/items/can_open.ogg", 50, 1)
+			src.set_open_container(TRUE)
+			can_chug = 1
+			splash_all_contents = TRUE
+			incompatible_with_chem_dispensers = FALSE
+			amount_per_transfer_from_this = 5
+			playsound(src.loc, 'sound/items/can_open.ogg', 50, 1)
+			if (src.shaken)
+				src.reagents.reaction(user)
+				src.reagents.clear_reagents()
+				playsound(src.loc, 'sound/impact_sounds/Slimy_Splat_1.ogg', 50, 1)
+				user.visible_message(SPAN_NOTICE("[user] pops the tab on \the [src] and is sprayed with the contents!"), SPAN_NOTICE("You pop \the [src] open and are immediatly sprayed with it's contents. [pick("FUCK", "DAMMIT", "SHIT")]!"))
+			else
+				user.visible_message("[user] pops the tab on \the [src]!", "You pop \the [src] open!")
 			return
 		if (!src.reagents || !src.reagents.total_volume)
 			var/zone = user.zone_sel.selecting
@@ -286,10 +364,19 @@
 				user.put_in_hand_or_drop(C)
 			qdel(src)
 
+	is_open_container()
+		return !is_sealed
+
+
+	proc/setup_soda() // made to be overridden, so that the Spess-Pepsi/Space-Coke debacle can continue
+		if (prob(50)) // without having to change the Space-Cola path
+			src.icon_state = "cola-2-small"
+
 /obj/item/crushed_can
 	name = "crushed can"
 	desc = "This can's been totally crushed!"
 	icon = 'icons/obj/foodNdrink/can.dmi'
+	w_class = W_CLASS_TINY
 
 	proc/crush_can(var/name, var/icon_state)
 		src.name = "crushed [name]"
@@ -304,7 +391,7 @@
 		src.icon_state = "crushed-[iconsplit[2]]"
 
 /obj/item/reagent_containers/food/drinks/cola/random
-	name = "space cola"
+	name = "off-brand space cola"
 	desc = "You don't recognise this cola brand at all."
 	icon = 'icons/obj/foodNdrink/can.dmi'
 	heal_amt = 1
@@ -320,6 +407,34 @@
 		reagents.add_reagent("VHFCS, 10")
 		reagents.add_reagent(pick_string("chemistry_tools.txt", "COLA_flavors"), 5, 3)
 
+/obj/item/storage/box/random_colas
+	name = "bulk-purchase space cola"
+	desc = "A box of dubiously sourced carbonated drinks."
+	icon_state = "beer"
+	spawn_contents = list(/obj/item/reagent_containers/food/drinks/cola/random = 7)
+
+/obj/item/reagent_containers/food/drinks/cola/custom
+	name = "beverage can"
+	desc = "An aluminium can with custom branding."
+	icon = 'icons/obj/foodNdrink/can.dmi'
+	heal_amt = 1
+	icon_state = "cola-13"
+	rc_flags = RC_FULLNESS
+	initial_reagents = null
+	initial_volume = 50
+
+	New()
+		..()
+
+	setup_soda()
+		return
+
+	small
+		icon_state = "cola-13-small"
+		initial_volume = 30
+
+
+
 /obj/item/reagent_containers/food/drinks/peach
 	name = "Delightful Dan's Peachy Punch"
 	desc = "A vibrantly colored can of 100% all natural peach juice."
@@ -332,69 +447,58 @@
 /obj/item/reagent_containers/food/drinks/milk
 	name = "Creaca's Space Milk"
 	desc = "A bottle of fresh space milk from happy, free-roaming space cows."
-	icon_state = "milk"
+	icon = 'icons/obj/foodNdrink/bartending_glassware.dmi'
+	icon_state = "milk_bottle"
 	item_state = "milk"
-	var/icon_style = "milk"
-	var/glass_style = "milk"
 	rc_flags = RC_FULLNESS | RC_VISIBLE | RC_SPECTRO
 	heal_amt = 1
 	initial_volume = 50
 	initial_reagents = "milk"
-	var/canbequilty = 1
-
-	var/image/fluid_image
-
-	on_reagent_change()
-		src.update_icon()
-
-	proc/update_icon()
-		src.underlays = null
-		if (reagents.total_volume)
-			var/fluid_state = round(clamp((src.reagents.total_volume / src.reagents.maximum_volume * 3 + 1), 1, 3))
-			if (!src.fluid_image)
-				src.fluid_image = image(src.icon, "fluid-milk[fluid_state]", -1)
-			else
-				src.fluid_image.icon_state = "fluid-milk[fluid_state]"
-			src.icon_state = "milk[fluid_state]"
-			var/datum/color/average = reagents.get_average_color()
-			src.fluid_image.color = average.to_rgba()
-			src.underlays += fluid_image
-		else
-			src.icon_state = "milk"
+	var/canberandom = TRUE
 
 	New()
-		..()
-		if(canbequilty == 1)
-			if( prob(10))
-				name = "Quilty Farms Milk"
-				desc = "For ages 1[pick("0","8")] and under."
-				icon_state = "milk_quilty"
+		. = ..()
+
+		if (src.canberandom && prob(10))
+			src.name = "Mootimer's Calcium Drink"
+			src.desc = "Blue-ribbon winning secret family recipe."
+			src.icon = 'icons/obj/foodNdrink/drinks.dmi'
+			src.icon_state = "milk_calcium"
+
+		else
+			src.AddComponent( \
+				/datum/component/reagent_overlay, \
+				reagent_overlay_icon = 'icons/obj/foodNdrink/bartending_glassware.dmi', \
+				reagent_overlay_icon_state = "milk_bottle", \
+				reagent_overlay_states = 14, \
+				reagent_overlay_scaling = RC_REAGENT_OVERLAY_SCALING_LINEAR, \
+			)
 
 /obj/item/reagent_containers/food/drinks/milk/rancid
 	name = "Rancid Space Milk"
 	desc = "A bottle of rancid space milk. Better not drink this stuff."
-	icon_state = "milk"
+	icon_state = "milk_bottle"
 	heal_amt = 1
 	initial_volume = 50
-	initial_reagents = list("milk"=25,"toxin"=25)
+	initial_reagents = list("yoghurt"=25,"yuck"=25)
 
 /obj/item/reagent_containers/food/drinks/milk/clownspider
 	name = "Honkey Gibbersons - Clownspider Milk"
-	desc = "A bottle of really - really colorful milk? The smell is sweet and looking at this envokes the same thrill as wanting to drink paint!"
-	icon_state = "milk"
+	desc = "A bottle of really - really colorful milk? The smell is sweet and looking at this evokes the same thrill as wanting to drink paint!"
+	icon_state = "milk_bottle"
 	heal_amt = 1
 	initial_volume = 50
 	initial_reagents = list("rainbow fluid" = 7, "milk" = 19)
-	canbequilty = 0
+	canberandom = 0
 
 /obj/item/reagent_containers/food/drinks/milk/cluwnespider
 	name = "Honkey Gibbersons - Cluwnespider Milk"
 	desc = "A bottle of ... oh no! Do not look at it! Better never drink this colorful milk?!"
-	icon_state = "milk"
+	icon_state = "milk_bottle"
 	heal_amt = 1
 	initial_volume = 50
 	initial_reagents = list("painbow fluid" = 13, "milk" = 20)
-	canbequilty = 0
+	canberandom = 0
 
 /obj/item/reagent_containers/food/drinks/milk/soy
 	name = "Creaca's Space Soy Milk"
@@ -414,9 +518,9 @@ obj/item/reagent_containers/food/drinks/covfefe
 			reagents.add_reagent("cryostylane", 5)
 		reagents.add_reagent("water", 25)
 		reagents.add_reagent("VHFCS", 5)
-		reagents.add_reagent(pick("methamphetamine", "crank", "space_drugs", "cat_drugs", "coffee"), 5)
+		reagents.add_reagent(pick("methamphetamine", "crank", "space_drugs", "catdrugs", "coffee"), 5)
 		for(var/i=0; i<3; i++)
-			reagents.add_reagent(pick("beff","ketchup","eggnog","yuck","chocolate","vanilla","cleaner","capsaicin","toxic_slurry","luminol","urine","nicotine","weedkiller","venom","jenkem","ectoplasm"), 5)
+			reagents.add_reagent(pick("beff","ketchup","eggnog","yuck","chocolate","vanilla","cleaner","capsaicin","toxic_slurry","luminol","nicotine","weedkiller","cytotoxin","ectoplasm"), 5)
 
 /obj/item/reagent_containers/food/drinks/bottle/soda/contest
 	name = "Grones Soda Call 1-800-IMCODER flavour"
@@ -444,4 +548,129 @@ obj/item/reagent_containers/food/drinks/covfefe
 		"vanilla"=1, "harlow"=1, "espressomartini"=1, "ectocooler"=1, "bread"=1, "sarsaparilla"=1, "eggnog"=1,
 		"chocolate"=1, "guacamole"=1, "salt"=1, "gravy"=1, "mashedpotatoes"=1, "msg"=1, "mugwort"=1, "juice_cran"=1,
 		"juice_blueberry"=1, "juice_grapefruit"=1, "juice_pickle"=1, "worcestershire_sauce"=1, "fakecheese"=1,
-		"capsaicin"=1, "urine"=1, "paper"=1, "chalk"=1)) //pain; a little of everything
+		"capsaicin"=1, "paper"=1, "chalk"=1)) //pain; a little of everything
+
+/obj/item/reagent_containers/food/drinks/ddpumpkinspicelatte
+	name = "Discount Dan's Pumped-Up Pumpkin Spice Latte "
+	desc = {"\"Pump up your pumpkin spice latte game with this limited-run libation from Discount Dan's!
+			Each and every one of our handcrafted 13 flavors is guaranteed to spice up your fall season!\""}
+	icon_state = "coffee_fall"
+	initial_volume = 50
+	initial_reagents = list("pumpkinspicelatte"=15, "VHFCS"=10)
+
+	New()
+		switch(rand(1,13))
+			if (1)
+				src.name += "- Monster's Mash"
+				src.initial_reagents["spiders"] = 5
+				src.initial_reagents["ants"] = 5
+				src.initial_reagents["bee"] = 5
+				src.initial_reagents["krokodil"] = 3
+				src.initial_reagents["hunchback"] = 3
+				src.initial_reagents["fishoil"] = 2
+				src.initial_reagents["blood"] = 2
+			if (2)
+				src.name += "- Jack-O-Lantern Juice"
+				src.initial_reagents["lumen"] = 10
+				src.initial_reagents["radium"] = 5
+				src.initial_reagents["bojack"] = 5
+				src.initial_reagents["ectocooler"] = 5
+			if (3)
+				src.name += "- Fall I Want for Spacemas"
+				src.initial_reagents["eggnog"] = 10
+				src.initial_reagents["spacemas_spirit"] = 5
+				src.initial_reagents["chocolate"] = 5
+				src.initial_reagents["colors"] = 2.5
+				src.initial_reagents["cryostylane"] = 2.5
+			if (4)
+				src.name += "- Divine Daniel's Soul Cleansing Refresheverage"
+				src.desc = {"\"The fall and winter seasons are prime for festivities,
+							but many ignore the dangers of the restless spirits and wicked demons.
+							To help ward off seasonal fiends, we are proud to present this blessed brew!\""}
+				src.initial_reagents["water_holy"] = 10
+				src.initial_reagents["wolfsbane"] = 7
+				src.initial_reagents["lavender_essence"] = 5
+				src.initial_reagents["salt"] = 2
+				src.initial_reagents["mutadone"] = 0.5
+				src.initial_reagents["calomel"] = 0.5
+			if (5)
+				src.name += "- Sure, Grandpa"
+				src.desc = "\"Named for what you'll be saying after your pumpkin spice-hating old-timer takes a sip of this fine swill.\""
+				src.initial_reagents["pumpkinspicelatte"] = 20
+				src.initial_reagents["ageinium"] = 6
+				src.initial_reagents["caledonium"] = 2
+				src.initial_reagents["essenceofelvis"] = 2
+				src.initial_reagents["quebon"] = 2
+				src.initial_reagents["suomium"] = 2
+				src.initial_reagents["swedium"] = 2
+				src.initial_reagents["innitium"] = 2
+				src.initial_reagents["worcestershire_sauce"] = 2
+			if (6)
+				src.name += "- SUPER SPICED Pumpkin Latte"
+				src.desc = {"\"Discount Dan's is not responsible for any ignition, incineration,
+							or loss of life caused by the extreme heat of SUPER SPICED Pumpkin Latte.\""}
+				src.initial_reagents["capsaicin"] = 10
+				src.initial_reagents["silver_sulfadiazine"] = 10
+				src.initial_reagents["phlogiston"] = 4
+				src.initial_reagents["dbreath"] = 0.5
+				src.initial_reagents["death_spice"] = 0.5
+			if (7)
+				src.name += "- Back 2 School Latte"
+				src.initial_reagents["chalk"] = 10
+				src.initial_reagents["paper"] = 10
+				src.initial_reagents["mannitol"] = 2
+				src.initial_reagents["cold_medicine"] = 3
+			if (8)
+				src.name += "- Pumpkin Spice Supper"
+				src.initial_reagents["porktonium"] = 5
+				src.initial_reagents["gravy"] = 5
+				src.initial_reagents["bread"] = 5
+				src.initial_reagents["butter"] = 5
+				src.initial_reagents["capulettium"] = 5
+			if (9)
+				src.name += "- Genescan Dan's Pumpkin Splice Latte"
+				src.desc = "An ill-advised novelty coffee drink that MAY have temporary consequences for the integrity of your DNA."
+				src.initial_reagents["mutini"] =  10
+				src.initial_reagents["banana_milk"] = 8
+				src.initial_reagents["cinnamon"] = 5
+				src.initial_reagents["threemileislandicedtea"] = 2
+			if (10)
+				src.name += "- Important Message"
+				src.initial_reagents["bojack"] = 5
+				src.initial_reagents["curacao"] = 5
+				src.initial_reagents["sonic"] = 5
+				src.initial_reagents["reversium"] = 5
+				src.initial_reagents["cosmo"] = 5
+			if (11)
+				src.name += "- Howling Dan's Full Moon Latte"
+				src.initial_reagents["hairgrownium"] = 10
+				src.initial_reagents["triplepissed"] = 7
+				src.initial_reagents["moonshine"] = 3
+				src.initial_reagents["negroni"] = 2
+				src.initial_reagents["ectoplasm"] = 3
+			if (12)
+				src.name += "- Pumpkin Space Latte"
+				src.desc = {"\"Are you being constantly chased by ghouls? Spooked by skeletons? Ambushed by vampires?
+							Don't worry, escape to space with Discount Dan's coolest pumpkin spice flavor!\""}
+				src.initial_reagents["ldmatter"] = 6
+				src.initial_reagents["yobihodazine"] = 6
+				src.initial_reagents["teporone"] = 6
+				src.initial_reagents["salbutamol"] = 5
+				src.initial_reagents["lexorin"] = 2
+			if (13)
+				src.name += "- Pumpkin Ice Latte"
+				src.initial_reagents["mint_tea"] = 5
+				src.initial_reagents["cryostylane"] = 10
+				src.initial_reagents["cryoxadone"] = 5
+				src.initial_reagents["nicotine"] = 2
+				src.initial_reagents["freeze"] = 1
+		..()
+
+/obj/item/reagent_containers/food/drinks/drinkingglass/shot/syndie/pumpinspies
+	name = "Pumpin' Spies Latte"
+	desc = "How did this get in the coffee machine? It doesn't look safe. There's not even a lid!"
+#ifdef SECRETS_ENABLED
+	initial_reagents = list("pumpkinspicelatte"=15, "VHFCS"=10, "strychnine"=7, "orange_crime"=18)
+#else
+	initial_reagents = list("pumpkinspicelatte"=15, "VHFCS"=10, "strychnine"=7, "juice_orange"=18)
+#endif

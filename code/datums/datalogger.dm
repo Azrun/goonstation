@@ -10,6 +10,9 @@ var/global/datum/datalogger/game_stats
 		stats["prayers"] = 0
 		stats["deaths"] = 0
 		stats["playerdeaths"] = 0
+		stats["firstdeath"] = null	// players only
+		stats["lastdeath"] = null		// players only
+		stats["alldeaths"] = list()		// all player deaths
 		stats["monkeydeaths"] = 0
 		stats["clones"] = 0
 		stats["sleeper"] = 0
@@ -33,6 +36,12 @@ var/global/datum/datalogger/game_stats
 		stats["players"] = 0
 		stats["admins"] = 0
 		stats["gunfire"] = 0
+		stats["grass_touched"] = 0
+		stats["slips"] = 0
+		stats["hydro_harvests"] = 0
+		stats["hydro_produce"] = 0
+		stats["mail_opened"] = 0
+		stats["mail_fraud"] = 0
 	proc
 		Increment(var/p)
 			if(!(p in stats))
@@ -40,11 +49,20 @@ var/global/datum/datalogger/game_stats
 			stats[p]++
 			//DEBUG_MESSAGE("[p] = [stats[p]]")
 			return 1
+		IncrementBy(var/p, var/amt)
+			if(!(p in stats))
+				return null
+			stats[p] += amt
+			return 1
 		Decrement(var/p)
 			if(!(p in stats))
 				return null
 			stats[p]--
-//			boutput(world, "[p] = [stats[p]]")
+			return 1
+		DecrementBy(var/p, var/amt)
+			if(!(p in stats))
+				return null
+			stats[p] -= amt
 			return 1
 		SetValue(var/p, var/val)
 			if(!(p in stats))
@@ -98,6 +116,28 @@ var/global/datum/datalogger/game_stats
 			if(!(index in stats))
 				return null
 			return stats[index]
+
+		AddDeath(var/mobName, var/mobCkey, var/where, var/health)
+			// Stores player deaths.
+
+			var/turf/whereT = get_turf(where)
+			var/list/death = list(
+				"name" = mobName,
+				"ckey" = mobCkey,
+				"health" = health,
+				"where" = whereT,
+				"whereText" = "[whereT.loc] ([whereT.x], [whereT.y], [whereT.z])",
+				)
+
+			if (!stats["firstdeath"])
+				stats["firstdeath"] = death
+			stats["lastdeath"] = death
+			stats["alldeaths"] += list(death)
+			stats["playerdeaths"]++
+
+			return 1
+
+
 //	Disabled for the sake of what I wanted to do with this, left write to file code commented.
 //		WriteToFile(var/filetxt)
 //			var/stats_file = null

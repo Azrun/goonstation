@@ -2,20 +2,21 @@
 	name = "cardboard box"
 	desc = "A pretty large box, made of cardboard. Looks a bit worn out."
 	icon = 'icons/obj/clothing/overcoats/item_suit_cardboard.dmi'
-	wear_image_icon = 'icons/mob/overcoats/worn_suit_cardboard.dmi'
+	wear_image_icon = 'icons/mob/clothing/overcoats/worn_suit_cardboard.dmi'
 	icon_state = "c_box"
 	item_state = "c_box"
 	density = 1
-	see_face = 0
+	see_face = FALSE
 	over_hair = 1
-	wear_layer = MOB_OVERLAY_BASE
+	wear_layer = MOB_LAYER_OVER_FUCKING_EVERYTHING_LAYER
 	c_flags = COVERSEYES | COVERSMOUTH
 	body_parts_covered = HEAD|TORSO|LEGS|ARMS
-	permeability_coefficient = 0.8
+	hides_from_examine = C_UNIFORM|C_GLOVES|C_SHOES|C_EARS|C_GLASSES|C_MASK
 	var/eyeholes = FALSE
 	var/accessory = FALSE
 	var/face = null
 	block_vision = 1
+	material_amt = 0.2
 
 	New()
 		..()
@@ -29,21 +30,22 @@
 		setProperty("coldprot", 33)
 		setProperty("heatprot", 33)
 		setProperty("meleeprot", 1)
+		setProperty("chemprot", 10)
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if (user.a_intent == INTENT_HARM)
-			user.visible_message("<span class='notice'>[user] taps [src].</span>",\
-			"<span class='notice'>You tap [src].</span>")
+			user.visible_message(SPAN_NOTICE("[user] taps [src]."),\
+			SPAN_NOTICE("You tap [src]."))
 		else
 			return ..()
 
 	attackby(obj/item/W, mob/user)
 		if (issnippingtool(W))
 			if (src.eyeholes)
-				boutput(user, "<span class='notice'>[src] already has eyeholes cut out of it!</span>")
+				boutput(user, SPAN_NOTICE("[src] already has eyeholes cut out of it!"))
 			else
-				user.visible_message("<span class='notice'>[user] begins cutting eyeholes out of [src].</span>",\
-				"<span class='notice'>You begin cutting eyeholes out of [src].</span>")
+				user.visible_message(SPAN_NOTICE("[user] begins cutting eyeholes out of [src]."),\
+				SPAN_NOTICE("You begin cutting eyeholes out of [src]."))
 				if (!do_after(user, 2 SECONDS))
 					user.show_text("You were interrupted!", "red")
 					return
@@ -51,15 +53,17 @@
 				block_vision = 0
 				src.UpdateOverlays(image(src.icon, "eyeholes"), "eyeholes")
 				src.wear_image.overlays += image(src.wear_image_icon, "eyeholes")
-				playsound(src, "sound/items/Scissor.ogg", 100, 1)
-				user.visible_message("<span class='notice'>[user] cuts eyeholes out of [src].</span>",\
-				"<span class='notice'>You cut eyeholes out of [src].</span>")
+				playsound(src, 'sound/items/Scissor.ogg', 100, TRUE)
+				user.visible_message(SPAN_NOTICE("[user] cuts eyeholes out of [src]."),\
+				SPAN_NOTICE("You cut eyeholes out of [src]."))
 		else if (istype(W, /obj/item/pen/crayon))
 			if (src.face)
-				boutput(user, "<span class='notice'>[src] already has a face!</span>")
+				boutput(user, SPAN_NOTICE("[src] already has a face!"))
 			else
 				var/obj/item/pen/crayon/C = W
-				var/emotion = alert("What face would you like to draw on [src]?",,"happy","angry","sad")
+				var/emotion = tgui_alert(user, "What face would you like to draw on [src]?", "Pick face", list("happy", "angry", "sad"))
+				if (!emotion)
+					return
 				src.face = emotion
 				var/image/item_image = image(src.icon, "face-[face]")
 				item_image.color = C.font_color
@@ -67,17 +71,17 @@
 				var/image/worn_image = image(src.wear_image_icon, "face-[face]")
 				worn_image.color = C.font_color
 				src.wear_image.overlays += worn_image
-				user.visible_message("<span class='notice'>[user] draws a [emotion] face on [src].</span>",\
-				"<span class='notice'>You draw a [emotion] face on [src].</span>")
+				user.visible_message(SPAN_NOTICE("[user] draws a [emotion] face on [src]."),\
+				SPAN_NOTICE("You draw a [emotion] face on [src]."))
 		else if (istype(W, /obj/item/clothing/mask/moustache))
 			if (src.accessory)
-				boutput(user, "<span class='notice'>[src] already has an accessory!</span>")
+				boutput(user, SPAN_NOTICE("[src] already has an accessory!"))
 			else
 				src.accessory = TRUE
 				src.UpdateOverlays(image(src.icon, "moustache"), "accessory")
 				src.wear_image.overlays += image(src.wear_image_icon, "moustache")
-				user.visible_message("<span class='notice'>[user] adds [W] to [src]!</span>",\
-				"<span class='notice'>You add [W] to [src]!</span>")
+				user.visible_message(SPAN_NOTICE("[user] adds [W] to [src]!"),\
+				SPAN_NOTICE("You add [W] to [src]!"))
 				user.u_equip(W)
 				qdel(W)
 		else
@@ -91,16 +95,21 @@
 
 	New()
 		..()
+		START_TRACKING_CAT(TR_CAT_HEAD_SURGEON)
 		if (prob(50))
 			new /obj/machinery/bot/medbot/head_surgeon(src.loc)
 			qdel(src)
 
+	disposing()
+		STOP_TRACKING_CAT(TR_CAT_HEAD_SURGEON)
+		. = ..()
+
 	proc/speak(var/message)
 		if (!message)
 			return
-		src.audible_message("<span class='game say'><span class='name'>[src]</span> [pick("rustles", "folds", "womps", "boxes", "foffs", "flaps")], \"[message]\"")
+		src.audible_message(SPAN_SAY("[SPAN_NAME("[src]")] [pick("rustles", "folds", "womps", "boxes", "foffs", "flaps")], \"[message]\""))
 		if (src.text2speech)
-			var/audio = dectalk("\[:nk\][message]")
+			var/audio = dectalk("\[:nk\][message]", BOTTALK_VOLUME)
 			if (audio["audio"])
 				for (var/mob/O in hearers(src, null))
 					if (!O.client)
@@ -124,3 +133,8 @@
 	name = "cardboard box - 'Clown'"
 	desc = "Much like a real clown car, it's more spacious on the inside. Must be, to fit the clown."
 	face = "clown"
+
+/obj/item/clothing/suit/cardboard_box/ai
+	name = "cardboard box - 'AI'"
+	desc = "It can probably still open doors!"
+	face = "ai"

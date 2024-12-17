@@ -56,7 +56,7 @@ proc/getGlobalFlag(var/client/C, var/flag="")
 			var/datum/dialogueNode/N = locate(href_list["link"])
 			var/client/C = locate(href_list["client"])
 			if(maxDistance >= 0)
-				if(get_dist(C.mob, master) > maxDistance)
+				if(GET_DIST(C.mob, master) > maxDistance)
 					boutput(C.mob, "You are too far away for that.")
 					return
 			if(N != null && N.canShow(C)) //The order of the stuff below is very important. You might break things if you change it.
@@ -89,7 +89,7 @@ proc/getGlobalFlag(var/client/C, var/flag="")
 							if (floatingText)
 								chat_text = make_chat_maptext(master, N.getNodeText(C), floating_text_style)
 							for(var/mob/O in all_hearers(5, master.loc))
-								O.show_message("<span class='name'>[master.name]</span> [objectDialogueVerb], <span class='message'>\"[N.getNodeText(C)]\"</span>",2, assoc_maptext = chat_text)
+								O.show_message("[SPAN_NAME("[master.name]")] [objectDialogueVerb], [SPAN_MESSAGE("\"[N.getNodeText(C)]\"")]", 2, assoc_maptext = chat_text)
 		return
 
 	proc/setFlag(var/client/C, var/flag="", var/value="") //Sets flag to value for this client in this dialogue master.

@@ -4,10 +4,13 @@
 var/johnbill_shuttle_fartnasium_active = 0
 var/fartcount = 0
 
+TYPEINFO(/area/diner/tug)
+	valid_bounty_area = FALSE
 /area/diner/tug
 	icon_state = "green"
 	name = "Big Yank's Cheap Tug"
-
+TYPEINFO(/area/diner/juicer_trader)
+	valid_bounty_area = FALSE
 /area/diner/jucer_trader
 	icon_state = "green"
 	name = "Placeholder Paul's $STORE_NAME.shuttle"
@@ -25,17 +28,15 @@ var/fartcount = 0
 
 /obj/item/clothing/shoes/thong
 	name = "garbage flip-flops"
-	desc = "These cheap sandals don't even look legal."
 	icon_state = "thong"
 	protective_temperature = 0
-	permeability_coefficient = 1
 	var/possible_names = list("sandals", "flip-flops", "thongs", "rubber slippers", "jandals", "slops", "chanclas")
 	var/stapled = FALSE
 
 	examine()
 		. = ..()
 		if(stapled)
-			. += "Two thongs stapled together, to make a MEGA VELOCITY boomarang."
+			. += "Two thongs stapled together, to make a MEGA VELOCITY boomerang."
 		else
 			. += "These cheap [pick(possible_names)] don't even look legal."
 
@@ -45,7 +46,7 @@ var/fartcount = 0
 			boutput(user, "You staple the [src] together to create a mighty thongarang.")
 			name = "thongarang"
 			icon_state = "thongarang"
-			throwforce = 5
+			throwforce = 0
 			throw_range = 10
 			throw_return = 1
 		else
@@ -56,12 +57,14 @@ var/fartcount = 0
 		setProperty("coldprot", 0)
 		setProperty("heatprot", 0)
 		setProperty("conductivity", 1)
+		delProperty("chemprot")
 
 
 
-/obj/machinery/vending/meat //MEAT VENDING MACHINE
-	name = "Meat4cash"
-	desc = "An exotic meat vendor."
+ABSTRACT_TYPE(/obj/machinery/vending/meat)
+/obj/machinery/vending/meat //MEAT VENDING MACHINE ((parent because we need more than 1 kind))
+	name = "ABSTRACT MEAT VENDOR"
+	desc = "YOU SHOULD NOT BE SEEING THIS OH NO"
 	icon_state = "steak"
 	icon_panel = "standard-panel"
 	icon_off = "monkey-off"
@@ -79,16 +82,37 @@ var/fartcount = 0
 	light_g = 0.1
 	light_b = 0.1
 
-	create_products()
+	create_products(restocked)
 		..()
-		product_list += new/datum/data/vending_product(/obj/item/reagent_containers/food/snacks/ingredient/meat/mysterymeat, 10, cost=PAY_UNTRAINED/4)
-		product_list += new/datum/data/vending_product(/obj/item/reagent_containers/food/snacks/ingredient/meat/monkeymeat, 10, cost=PAY_UNTRAINED/5)
-		product_list += new/datum/data/vending_product(/obj/item/reagent_containers/food/snacks/ingredient/meat/synthmeat, 20, cost=PAY_UNTRAINED/6)
 
-		product_list += new/datum/data/vending_product(/obj/item/reagent_containers/food/snacks/ingredient/meat/humanmeat, 2, cost=PAY_UNTRAINED, hidden=1)
+/obj/machinery/vending/meat/prefab_grill
+	name = "Meat4cash"
+	desc = "An exotic meat vendor."
 
+	create_products(restocked)
+		..()
+		product_list += new/datum/data/vending_product(/obj/item/reagent_containers/food/snacks/ingredient/meat/mysterymeat, 10, cost=PAY_UNTRAINED/4) // 30
+		product_list += new/datum/data/vending_product(/obj/item/reagent_containers/food/snacks/ingredient/meat/monkeymeat, 10, cost=PAY_UNTRAINED/5) // 24
+		product_list += new/datum/data/vending_product(/obj/item/reagent_containers/food/snacks/ingredient/meat/synthmeat, 20, cost=PAY_UNTRAINED/6) // 20
 
+		product_list += new/datum/data/vending_product(/obj/item/reagent_containers/food/snacks/ingredient/meat/humanmeat, 2, cost=PAY_UNTRAINED, hidden=1) // 120
 
+/// This is currently unused as it was intended for use in PR 6684, but it was removed upon request. This might be a temporary removal, so it's staying here.
+/obj/machinery/vending/meat/station
+	// too much meat trivializes the fine art of monkey butchering, gotta have one with less meat
+	name = "FreshFlesh"
+	desc = "All of its branding and identification tags have been scratched or peeled off. What the fuck is this?"
+
+	create_products(restocked)
+		..()
+		// prices here are triple of the prefab_grill version where applicable
+		product_list += new/datum/data/vending_product(/obj/item/reagent_containers/food/snacks/ingredient/meat/mysterymeat, 3, cost=PAY_UNTRAINED/5)
+		product_list += new/datum/data/vending_product(/obj/item/reagent_containers/food/snacks/ingredient/meat/mysterymeat/nugget, 5, cost=PAY_TRADESMAN)
+		product_list += new/datum/data/vending_product(/obj/item/reagent_containers/food/snacks/ingredient/meat/fish, 3, cost=PAY_TRADESMAN)
+		product_list += new/datum/data/vending_product(/obj/item/reagent_containers/food/snacks/ingredient/meat/synthmeat, 6, cost=PAY_UNTRAINED/3)
+		product_list += new/datum/data/vending_product(/obj/item/reagent_containers/food/snacks/ingredient/meat/monkeymeat, 3, cost=PAY_UNTRAINED/2)
+
+		product_list += new/datum/data/vending_product(/obj/item/reagent_containers/food/snacks/ingredient/meat/humanmeat, 5, cost=PAY_DOCTORATE, hidden=1)
 
 // all of john's area specific lines here
 /area/var/john_talk = null
@@ -128,8 +152,13 @@ var/fartcount = 0
 // bus driver
 /mob/living/carbon/human/john
 	real_name = "John Bill"
+#ifdef IN_MAP_EDITOR
+	icon = 'icons/mob/map_mob.dmi'
+	icon_state = "john_bill"
+#endif
 	interesting = "Found in a coffee can at age fifteen. Went to jail for fraud. Recently returned to the can."
 	gender = MALE
+	is_npc = TRUE
 	var/talk_prob = 7
 	var/greeted_murray = 0
 	var/list/snacks = null
@@ -144,26 +173,25 @@ var/fartcount = 0
 		START_TRACKING_CAT(TR_CAT_JOHNBILLS)
 		if(nude)
 			return
-		src.equip_new_if_possible(/obj/item/clothing/shoes/thong, slot_shoes)
-		src.equip_new_if_possible(/obj/item/clothing/under/color/orange, slot_w_uniform)
-		src.equip_new_if_possible(/obj/item/clothing/mask/cigarette/john, slot_wear_mask)
-		src.equip_new_if_possible(/obj/item/clothing/suit/labcoat, slot_wear_suit)
-		src.equip_new_if_possible(/obj/item/clothing/head/paper_hat/john, slot_head)
+		src.equip_new_if_possible(/obj/item/clothing/shoes/thong, SLOT_SHOES)
+		src.equip_new_if_possible(/obj/item/clothing/under/color/orange, SLOT_W_UNIFORM)
+		src.equip_new_if_possible(/obj/item/clothing/mask/cigarette/john, SLOT_WEAR_MASK)
+		src.equip_new_if_possible(/obj/item/clothing/suit/labcoat, SLOT_WEAR_SUIT)
+		src.equip_new_if_possible(/obj/item/clothing/head/paper_hat/john, SLOT_HEAD)
 
-		var/obj/item/implant/access/infinite/shittybill/implant = new /obj/item/implant/access/infinite/shittybill(src)
-		implant.implanted(src, src)
+		new /obj/item/implant/access/infinite/shittybill(src)
 
 	disposing()
 		STOP_TRACKING_CAT(TR_CAT_JOHNBILLS)
 		..()
 
 	initializeBioholder()
-		bioHolder.mobAppearance.customization_first = new /datum/customization_style/beard/tramp
-		bioHolder.mobAppearance.customization_first_color = "#281400"
-		bioHolder.mobAppearance.customization_second = new /datum/customization_style/hair/short/pomp
-		bioHolder.mobAppearance.customization_second_color = "#241200"
-		bioHolder.mobAppearance.customization_third = new /datum/customization_style/beard/trampstains
-		bioHolder.mobAppearance.customization_third_color = "#663300"
+		bioHolder.mobAppearance.customizations["hair_bottom"].style =  new /datum/customization_style/hair/gimmick/shitty_beard
+		bioHolder.mobAppearance.customizations["hair_bottom"].color = "#281400"
+		bioHolder.mobAppearance.customizations["hair_middle"].style =  new /datum/customization_style/hair/short/pomp
+		bioHolder.mobAppearance.customizations["hair_middle"].color = "#241200"
+		bioHolder.mobAppearance.customizations["hair_top"].style =  new /datum/customization_style/hair/gimmick/shitty_beard_stains
+		bioHolder.mobAppearance.customizations["hair_top"].color = "#663300"
 		bioHolder.age = 63
 		bioHolder.bloodType = "A+"
 		bioHolder.mobAppearance.gender = "male"
@@ -182,7 +210,7 @@ var/fartcount = 0
 
 			var/mob/living/carbon/human/john/newbody = new()
 			newbody.set_loc(target_turf)
-			newbody.overlays += image('icons/misc/32x64.dmi',"halo")
+			newbody.setStatus("in_afterlife", INFINITE_STATUS, newbody)
 			if(inafterlifebar(src))
 				qdel(src)
 			return
@@ -197,17 +225,17 @@ var/fartcount = 0
 			if(target)
 				if(isdead(target))
 					target = null
-				if(get_dist(src, target) > 1)
+				if(BOUNDS_DIST(src, target) > 0)
 					step_to(src, target, 1)
-				if(get_dist(src, target) <= 1 && !LinkBlocked(src.loc, target.loc))
+				if(BOUNDS_DIST(src, target) == 0 && !LinkBlocked(src.loc, target.loc))
 					var/obj/item/W = src.equipped()
 					if (!src.restrained())
 						if(W)
 							W.attack(target, src, ran_zone("chest"))
 						else
-							target.attack_hand(src)
+							target.Attackhand(src)
 			else if(ai_aggressive)
-				a_intent = INTENT_HARM
+				set_a_intent(INTENT_HARM)
 				for(var/mob/M in oview(5, src))
 					if(M == src)
 						continue
@@ -223,7 +251,7 @@ var/fartcount = 0
 			if(prob(20) && src.canmove && isturf(src.loc))
 				step(src, pick(NORTH, SOUTH, EAST, WEST))
 			if(prob(2))
-				SPAWN_DBG(0) emote(JOHN_PICK("emotes"))
+				SPAWN(0) emote(JOHN_PICK("emotes"))
 			if(prob(15))
 				snacktime()
 			var/area/A = get_area(src)
@@ -234,29 +262,29 @@ var/fartcount = 0
 		snacks = list()
 		for(var/obj/item/reagent_containers/food/snacks/S in src)
 			snacks += S
-		if(snacks.len > 0)
+		if(length(snacks) > 0)
 			var/obj/item/reagent_containers/food/snacks/snacc = pick(snacks)
 			if(istype(snacc, /obj/item/reagent_containers/food/snacks/bite))
 				if(prob(75))
 					return
 				else
-					src.visible_message("<span class='alert'>[src] horks up a lump from his stomach... </span>")
+					src.visible_message(SPAN_ALERT("[src] horks up a lump from his stomach... "))
 			snacc.Eat(src,src,1)
 
 	proc/pacify()
-		src.a_intent = INTENT_HELP
+		src.set_a_intent(INTENT_HELP)
 		src.target = null
-		src.ai_state = 0
+		src.ai_set_state(AI_PASSIVE)
 		src.ai_target = null
 
 	proc/speak()
 		if(nude)
 			return // nude john is for looking at, not listening to.
-		SPAWN_DBG(0)
+		SPAWN(0)
 			var/list/grills = list()
 
 			var/obj/machinery/bot/guardbot/old/tourguide/murray = pick(by_type[/obj/machinery/bot/guardbot/old/tourguide])
-			if (murray && get_dist(src,murray) > 7)
+			if (murray && GET_DIST(src,murray) > 7)
 				murray = null
 			if (istype(murray))
 				if (!findtext(murray.name, "murraycompliment"))
@@ -277,12 +305,12 @@ var/fartcount = 0
 					grills.Add(G)
 
 			if (A.john_talk && prob(90))
-				SPAWN_DBG(5 SECONDS)
+				SPAWN(5 SECONDS)
 					var/area/john_area = get_area(src)
 					say(pick(john_area.john_talk))
 					john_area.john_talk = null
 
-			else if (grills.len > 0)
+			else if (length(grills) > 0)
 				var/obj/machinery/shitty_grill/G = pick(grills)
 				if (G.grillitem)
 					switch(G.cooktime)
@@ -307,11 +335,11 @@ var/fartcount = 0
 			else if(prob(40) && length(dead_mobs))
 				var/mob/M = pick(dead_mobs)
 				say("[JOHN_PICK("deadguy")] [M.name]...")
-			else if (alive_mobs.len > 0)
+			else if (length(alive_mobs) > 0)
 				if (murray && !greeted_murray)
 					greeted_murray = 1
 					say("[JOHN_PICK("greetings")] Murray! How's it [JOHN_PICK("verbs")]?")
-					SPAWN_DBG(rand(20,40))
+					SPAWN(rand(20,40))
 						if (murray?.on && !murray.idle)
 							murray.speak("Hi, John! It's [JOHN_PICK("murraycompliment")] to see you here, of all places.")
 
@@ -358,7 +386,7 @@ var/fartcount = 0
 							say("I think my [JOHN_PICK("friends")] [JOHN_PICK("friendsactions")].")
 
 					if (prob(25) && length(by_cat[TR_CAT_SHITTYBILLS]))
-						SPAWN_DBG(3.5 SECONDS)
+						SPAWN(3.5 SECONDS)
 							var/mob/living/carbon/human/biker/MB = pick(by_cat[TR_CAT_SHITTYBILLS])
 							switch (speech_type)
 								if (4)
@@ -385,15 +413,15 @@ var/fartcount = 0
 	attackby(obj/item/W, mob/M)
 		if (istype(W, /obj/item/paper/tug/invoice))
 			if(ON_COOLDOWN(src, "attackby_chatter", 3 SECONDS)) return
-			boutput(M, "<span class='notice'><b>You show [W] to [src]</b> </span>")
-			SPAWN_DBG(1 SECOND)
+			boutput(M, SPAN_NOTICE("<b>You show [W] to [src]</b> "))
+			SPAWN(1 SECOND)
 				say("One of them [JOHN_PICK("people")] folks from the station helped us raise the cash. Lil bro been dreamin bout it fer years.")
 			return
 		#ifdef SECRETS_ENABLED
 		if (istype(W, /obj/item/paper/grillnasium/fartnasium_recruitment))
 			if(ON_COOLDOWN(src, "attackby_chatter", 3 SECONDS)) return
-			boutput(M, "<span class='notice'><b>You show [W] to [src]</b> </span>")
-			SPAWN_DBG(1 SECOND)
+			boutput(M, SPAN_NOTICE("<b>You show [W] to [src]</b> "))
+			SPAWN(1 SECOND)
 				say("Well hot dog! [JOHN_PICK("insults")], you wouldn't believe it but I use to work there!")
 				johnbill_shuttle_fartnasium_active = 1
 				sleep(2 SECONDS)
@@ -403,14 +431,14 @@ var/fartcount = 0
 		#endif
 		if (istype(W, /obj/item/reagent_containers/food/snacks) || (istype(W, /obj/item/clothing/mask/cigarette/cigarillo) && !gotsmokes))
 			if(ON_COOLDOWN(src, "attackby_chatter", 3 SECONDS)) return
-			boutput(M, "<span class='notice'><b>You offer [W] to [src]</b> </span>")
+			boutput(M, SPAN_NOTICE("<b>You offer [W] to [src]</b> "))
 			M.u_equip(W)
 			W.set_loc(src)
-			W.dropped()
+			W.dropped(M)
 			src.drop_item()
 			src.put_in_hand_or_drop(W)
 
-			SPAWN_DBG(1 DECI SECOND)
+			SPAWN(1 DECI SECOND)
 				say("Oh? [W] eh?")
 				say(pick("No kiddin' fer me?","I guess I could go fer a quick one yeah!","Oh dang dang dang! Haven't had one of these babies in a while!","Well I never get tired of those!","You're offering this to me? Don't mind if i do, [JOHN_PICK("people")]"))
 				pacify()
@@ -421,10 +449,10 @@ var/fartcount = 0
 					say(pick("Listen bud, I don't know who sold you these, but they ain't your pal.","Y'know these ain't legal in any NT facilities, right?","Maybe you ain't so dumb as ya look, brud."))
 					var/obj/item/clothing/mask/cigarette/cigarillo/juicer/J = W
 					src.u_equip(wear_mask)
-					src.equip_if_possible(J, slot_wear_mask)
+					src.equip_if_possible(J, SLOT_WEAR_MASK)
 					J.cant_other_remove = 0
 					sleep(3 SECONDS)
-					J.light(src, "<span class='alert'><b>[src]</b> casually lights [J] and takes a long draw.</span>")
+					J.light(src, SPAN_ALERT("<b>[src]</b> casually lights [J] and takes a long draw."))
 					sleep(5 SECONDS)
 #if BUILD_TIME_DAY >= 28 // this block controls whether or not it is the right time to smoke a fat doink with Big J
 					say("You know a little more than you let on, don't you?")
@@ -452,9 +480,9 @@ var/fartcount = 0
 					say(pick("Well this ain't my usual brand, but...", "Oh actually, got any... uh nah you've probably never even seen one of those.","Wait a second, this ain't a real 'Rillo."))
 					var/obj/item/clothing/mask/cigarette/cig = W
 					src.u_equip(wear_mask)
-					src.equip_if_possible(cig, slot_wear_mask)
+					src.equip_if_possible(cig, SLOT_WEAR_MASK)
 					sleep(3 SECONDS)
-					cig.light(src, "<span class='alert'><b>[src]</b> cautiously lights [cig] and takes a short draw.</span>")
+					cig.light(src, SPAN_ALERT("<b>[src]</b> cautiously lights [cig] and takes a short draw."))
 					sleep(5 SECONDS)
 					say(pick("Yeah that's ol' Dan's stuff...","But hey, thanks for the smokes, bruddo.","Smooth. Too smooth."))
 			return
@@ -464,38 +492,38 @@ var/fartcount = 0
 		. = ..()
 		if (special) //vamp or ling
 			src.target = M
-			src.ai_state = AI_ATTACKING
+			src.ai_set_state(AI_ATTACKING)
 			src.ai_threatened = world.timeofday
 			src.ai_target = M
-			src.a_intent = INTENT_HARM
+			src.set_a_intent(INTENT_HARM)
 			src.ai_set_active(1)
 
 		for (var/mob/SB in by_cat[TR_CAT_SHITTYBILLS])
 			var/mob/living/carbon/human/biker/S = SB
-			if (get_dist(S,src) <= 7)
+			if (GET_DIST(S,src) <= 7)
 				if(!(S.ai_active) || (prob(25)))
 					S.say("That's my brother, you [JOHN_PICK("insults")]!")
 					M.add_karma(-1)
 				S.target = M
 				S.ai_set_active(1)
-				S.a_intent = INTENT_HARM
+				S.set_a_intent(INTENT_HARM)
 
 
 
 
 
-obj/decal/fakeobjects/thrust
+/obj/fakeobject/thrust
 	icon = 'icons/effects/effects.dmi'
 	icon_state = "shieldsparkles"
 	name = "ionized exhaust"
 	desc = "Thankfully harmless, to registered employees anyway."
 
-obj/decal/fakeobjects/thrust/flames
+/obj/fakeobject/thrust/flames
 	icon_state = "engineshit"
-obj/decal/fakeobjects/thrust/flames2
+/obj/fakeobject/thrust/flames2
 	icon_state = "engineshit2"
 
-obj/item/paper/tug/invoice
+/obj/item/paper/tug/invoice
 	name = "Big Yank's Space Tugs, Limited."
 	desc = "Looks like a bill of sale."
 	info = {"<b>Client:</b> Bill, John
@@ -506,7 +534,7 @@ obj/item/paper/tug/invoice
 			<br><b>Total Charge:</b> 17,440 paid in full with value-added meat.
 			<br>Big Yank's Cheap Tug"}
 
-obj/item/paper/tug/warehouse
+/obj/item/paper/tug/warehouse
 	name = "Big Yank's Space Tugs, Limited."
 	desc = "Looks like a bill of sale. It is blank"
 	info = {"<b>Client:</b>
@@ -557,7 +585,7 @@ obj/item/paper/tug/warehouse
 /turf/simulated/wall/r_wall/afterbar
 	name = "wall"
 	desc = null
-	attackby(obj/item/W as obj, mob/user as mob, params)
+	attackby(obj/item/W, mob/user, params)
 		return
 
 
@@ -591,14 +619,14 @@ Urs' Hauntdog critter
 		..()
 
 	proc/flip()
-		src.visible_message("<b>[src]</b> does a flip!",2)
+		src.visible_message("<b>[src]</b> does a flip!")
 		flick("hauntdog-flip",src)
 		sleep(1.3 SECONDS)
 
 	CritterDeath()
 		if (!src.alive) return
 		..()
-		src.visible_message("<b>[src]</b> stops moving.",2)
+		src.visible_message("<b>[src]</b> stops moving.")
 		var/obj/item/reagent_containers/food/snacks/hotdog/H = new /obj/item/reagent_containers/food/snacks/hotdog(get_turf(src))
 
 		H.bun = 5
@@ -608,7 +636,7 @@ Urs' Hauntdog critter
 		H.food_effects = list("food_all","food_brute")
 		if (H.reagents)
 			H.reagents.add_reagent("ectoplasm", 10)
-		H.update_icon()
+		H.UpdateIcon()
 
 		qdel(src)
 
@@ -617,19 +645,16 @@ Urs' Hauntdog critter
 	real_name = "hogg vorbis"
 	desc = "the hogg vorbis."
 	icon_state = "hogg"
-	icon_state_dead = "pig-dead"
-	density = 1
+	icon_state_dead = "hogg-dead"
 	speechverb_say = "screams!"
 	speechverb_exclaim = "screams!"
-	meat_type = /obj/item/reagent_containers/food/snacks/ingredient/meat/bacon
-	name_the_meat = 0
 
 	specific_emotes(var/act, var/param = null, var/voluntary = 0)
 		if(act == "scream" && src.emote_check(voluntary, 50))
 			var/turf/T = get_turf(src)
-			var/hogg = pick("sound/voice/hagg_vorbis.ogg","sound/voice/hogg_vorbis.ogg","sound/voice/hogg_vorbis_the.ogg","sound/voice/hogg_vorbis_screams.ogg","sound/voice/hogg_with_scream.ogg","sound/voice/hoooagh2.ogg","sound/voice/hoooagh.ogg",)
-			playsound(T, hogg, 60, 1, channel=VOLUME_CHANNEL_EMOTE)
-			return "<span class='emote'><b>[src]</b> screeeams!</span>"
+			var/hogg = pick('sound/voice/hagg_vorbis.ogg','sound/voice/hogg_vorbis.ogg','sound/voice/hogg_vorbis_the.ogg','sound/voice/hogg_vorbis_screams.ogg','sound/voice/hogg_with_scream.ogg','sound/voice/hoooagh2.ogg','sound/voice/hoooagh.ogg',)
+			playsound(T, hogg, 60, TRUE, channel=VOLUME_CHANNEL_EMOTE)
+			return SPAN_EMOTE("<b>[src]</b> screeeams!")
 		return null
 
 	specific_emote_type(var/act)
@@ -641,12 +666,12 @@ Urs' Hauntdog critter
 	on_pet(mob/user)
 		if (..())
 			return 1
-		if (prob(ASS_JAM?50:25))
+		if (prob(25))
 			var/turf/T = get_turf(src)
 			src.visible_message("[src] screams![prob(5) ? " ...uh?" : null]",\
 			"You screams!")
-			var/hogg = pick("sound/voice/hagg_vorbis.ogg","sound/voice/hogg_vorbis.ogg","sound/voice/hogg_vorbis_the.ogg","sound/voice/hogg_vorbis_screams.ogg","sound/voice/hogg_with_scream.ogg","sound/voice/hoooagh2.ogg","sound/voice/hoooagh.ogg",)
-			playsound(T, hogg, 60, 1)
+			var/hogg = pick('sound/voice/hagg_vorbis.ogg','sound/voice/hogg_vorbis.ogg','sound/voice/hogg_vorbis_the.ogg','sound/voice/hogg_vorbis_screams.ogg','sound/voice/hogg_with_scream.ogg','sound/voice/hoooagh2.ogg','sound/voice/hoooagh.ogg',)
+			playsound(T, hogg, 60, TRUE)
 			user.add_karma(1.5)
 
 // ########################
@@ -677,14 +702,13 @@ Urs' Hauntdog critter
 	is_npc = 1
 	uses_mobai = 1
 	real_name = "Juicer Gene"
-	gender = NEUTER
 	max_health = 50
 
 	New()
 		..()
 		src.ai = new /datum/aiHolder/human/geneticist(src)
-		src.equip_new_if_possible(/obj/item/clothing/shoes/dress_shoes, slot_shoes)
-		src.equip_new_if_possible(/obj/item/clothing/under/rank/geneticist, slot_w_uniform)
-		src.equip_new_if_possible(/obj/item/clothing/suit/labcoat/pathology, slot_wear_suit)
+		src.equip_new_if_possible(/obj/item/clothing/shoes/dress_shoes, SLOT_SHOES)
+		src.equip_new_if_possible(/obj/item/clothing/under/rank/geneticist, SLOT_W_UNIFORM)
+		src.equip_new_if_possible(/obj/item/clothing/suit/labcoat/pathology, SLOT_WEAR_SUIT)
 		if(prob(50))
-			src.equip_new_if_possible(/obj/item/clothing/glasses/regular, slot_glasses)
+			src.equip_new_if_possible(/obj/item/clothing/glasses/regular, SLOT_GLASSES)

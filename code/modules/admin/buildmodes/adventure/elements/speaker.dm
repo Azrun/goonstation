@@ -2,7 +2,7 @@
 	name = "AB CREATE: Speaker"
 	var/speaker_name
 	var/speaker_type
-	var/speaker_anchored = 1
+	var/speaker_anchored = ANCHORED
 	var/color_rgb = ""
 	var/message
 
@@ -14,7 +14,7 @@
 			speaker_anchored = (anchstr == "yes") ? 1 : 0
 			color_rgb = input("Color", "Color", "#ffffff") as color
 		message = input("Speaker message", "Speaker message") as text
-		boutput(usr, "<span class='notice'>Left click to place speaker, right click to simulate message. Ctrl+click anywhere to finish.</span>")
+		boutput(usr, SPAN_NOTICE("Left click to place speaker, right click to simulate message. Ctrl+click anywhere to finish."))
 
 	build_click(var/mob/user, var/datum/buildmode_holder/holder, var/list/pa, var/atom/object)
 		if ("left" in pa)
@@ -31,9 +31,9 @@
 				speaker.anchored = speaker_anchored
 				speaker.message = message
 				if (speaker_type == "invisible")
-					speaker.invisibility = 20
+					speaker.invisibility = INVIS_ADVENTURE
 				else
-					SPAWN_DBG(1 SECOND)
+					SPAWN(1 SECOND)
 						speaker.color = color_rgb
 		else if ("right" in pa)
 			if (istype(object, /obj/adventurepuzzle/triggerable/speaker))
@@ -42,7 +42,7 @@
 /obj/adventurepuzzle/triggerable/speaker
 	name = "speaker"
 	desc = "A strange device that emits sound, truly the future."
-	anchored = 1
+	anchored = ANCHORED
 	var/speaker_type
 	var/message
 	var/floating_text = FALSE
@@ -65,7 +65,7 @@
 		if (floating_text)
 			chat_text = make_chat_maptext(src, message, floating_text_style)
 		for (var/mob/O in all_hearers(5, src.loc))
-			O.show_message("<span class='game say bold'><span class='name'>[name]</span> says, <span class='message'>\"[message]\"</span></span>", 2, assoc_maptext = chat_text)
+			O.show_message("<span class='say bold'>[SPAN_NAME("[name]")] says, [SPAN_MESSAGE("\"[message]\"")]</span>", 2, assoc_maptext = chat_text)
 
 	serialize(var/savefile/F, var/path, var/datum/sandbox/sandbox)
 		..()
@@ -77,4 +77,4 @@
 		F["[path].message"] >> message
 		F["[path].speaker_type"] >> speaker_type
 		if (speaker_type == "invisible")
-			src.invisibility = 20
+			src.invisibility = INVIS_ADVENTURE

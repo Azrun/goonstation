@@ -1,139 +1,155 @@
 /obj/machinery/atmospherics/unary/outlet_injector
 	icon = 'icons/obj/atmospherics/outlet_injector.dmi'
-	icon_state = "off"
+	icon_state = "off-map"
 	layer = PIPE_MACHINE_LAYER
 	plane = PLANE_NOSHADOW_BELOW //They're supposed to be embedded in the floor.
-
 	name = "Air Injector"
 	desc = "Has a valve and pump attached to it"
 
-	var/on = 0
-	var/injecting = 0
-
+	/// Are we doing anything?
+	var/on = FALSE
+	/// Are we injecting air at this current moment?
+	var/injecting = FALSE
+	/// Volume of air to output.
 	var/volume_rate = 50
-//
-	var/frequency = 0
+	/// Radio frequency to operate on.
+	var/frequency = FREQ_FREE
+	/// Radio ID we respond to for multicast.
 	var/id = null
-	var/datum/radio_frequency/radio_connection
+	/// Radio ID that refers to specifically us.
+	var/net_id = null
 
-	level = 1
+	level = UNDERFLOOR
 
-	update_icon()
-		if(node)
-			if(on)
-				icon_state = "[level == 1 && istype(loc, /turf/simulated) ? "h" : "" ]on"
-			else
-				icon_state = "[level == 1 && istype(loc, /turf/simulated) ? "h" : "" ]off"
-		else
-			icon_state = "exposed"
-			on = 0
+/obj/machinery/atmospherics/unary/outlet_injector/New()
+	..()
+	if (src.frequency)
+		src.net_id = generate_net_id(src)
+		MAKE_DEFAULT_RADIO_PACKET_COMPONENT(src.net_id, null, src.frequency)
 
-		return
+/obj/machinery/atmospherics/unary/outlet_injector/update_icon()
+	var/turf/T = get_turf(src)
+	src.hide(T.intact)
 
-	process()
-		..()
-		injecting = 0
+/obj/machinery/atmospherics/unary/outlet_injector/process()
+	..()
+	injecting = FALSE
 
-		if(!on)
-			return 0
+	if(!on)
+		return FALSE
 
-		if(air_contents.temperature > 0)
-			var/transfer_moles = (MIXTURE_PRESSURE(air_contents))*volume_rate/(air_contents.temperature * R_IDEAL_GAS_EQUATION)
+	if(air_contents.temperature > 0)
+		var/transfer_moles = (MIXTURE_PRESSURE(air_contents))*volume_rate/(air_contents.temperature * R_IDEAL_GAS_EQUATION)
 
-			var/datum/gas_mixture/removed = air_contents.remove(transfer_moles)
+		var/datum/gas_mixture/removed = air_contents.remove(transfer_moles)
 
-			loc.assume_air(removed)
+		loc.assume_air(removed)
 
-			if(network)
-				network.update = 1
+		network?.update = TRUE
 
-		return 1
+	return TRUE
 
-	proc/inject()
-		if(on || injecting)
-			return 0
+/// Injects gas into the environment once.
+/obj/machinery/atmospherics/unary/outlet_injector/proc/inject()
+	if(on || injecting)
+		return FALSE
 
-		injecting = 1
+	injecting = TRUE
 
-		if(air_contents.temperature > 0)
-			var/transfer_moles = (MIXTURE_PRESSURE(air_contents))*volume_rate/(air_contents.temperature * R_IDEAL_GAS_EQUATION)
+	if(air_contents.temperature > 0)
+		var/transfer_moles = (MIXTURE_PRESSURE(air_contents))*volume_rate/(air_contents.temperature * R_IDEAL_GAS_EQUATION)
 
-			var/datum/gas_mixture/removed = air_contents.remove(transfer_moles)
+		var/datum/gas_mixture/removed = air_contents.remove(transfer_moles)
 
-			loc.assume_air(removed)
+		loc.assume_air(removed)
 
-			if(network)
-				network.update = 1
+		network?.update = TRUE
 
-		flick("inject", src)
+	flick("inject", src)
 
-	proc
-		set_frequency(new_frequency)
-			radio_controller.remove_object(src, "[frequency]")
-			frequency = new_frequency
-			if(frequency)
-				radio_connection = radio_controller.add_object(src, "[frequency]")
+/obj/machinery/atmospherics/unary/outlet_injector/proc/broadcast_status()
+	var/datum/signal/signal = get_free_signal()
+	signal.transmission_method = TRANSMISSION_RADIO
+	signal.source = src
 
-		broadcast_status()
-			if(!radio_connection)
-				return 0
+	signal.data["tag"] = src.id
+	signal.data["sender"] = src.net_id
+	signal.data["device"] = "AO"
+	signal.data["power"] = src.on
+	signal.data["volume_rate"] = src.volume_rate
 
-			var/datum/signal/signal = get_free_signal()
-			signal.transmission_method = 1 //radio signal
-			signal.source = src
+	SEND_SIGNAL(src, COMSIG_MOVABLE_POST_RADIO_PACKET, signal)
 
-			signal.data["tag"] = id
-			signal.data["device"] = "AO"
-			signal.data["power"] = on
-			signal.data["volume_rate"] = volume_rate
+	return TRUE
 
-			radio_connection.post_signal(src, signal)
+/obj/machinery/atmospherics/unary/outlet_injector/receive_signal(datum/signal/signal)
+	if(!((signal.data["tag"] && (signal.data["tag"] == src.id)) || (signal.data["address_1"] == src.net_id)))
+		if(signal.data["command"] != "broadcast_status")
+			return FALSE
 
-			return 1
+	switch(signal.data["command"])
+		if("power_on")
+			src.on = TRUE
+			. = TRUE
 
-	initialize()
-		..()
+		if("power_off")
+			src.on = FALSE
+			. = TRUE
 
-		set_frequency(frequency)
+		if("power_toggle")
+			src.on = !on
+			. = TRUE
 
-	disposing()
-		radio_controller.remove_object(src, "[frequency]")
-		..()
+		if("inject")
+			SPAWN(0)
+				src.inject()
+			. = TRUE
 
-	receive_signal(datum/signal/signal)
-		if(signal.data["tag"] && (signal.data["tag"] != id))
-			return 0
+		if("set_volume_rate")
+			var/number = text2num_safe(signal.data["parameter"])
+			number = clamp(number, 0, air_contents.volume)
 
-		switch(signal.data["command"])
-			if("power_on")
-				on = 1
+			src.volume_rate = number
+			. = TRUE
 
-			if("power_off")
-				on = 0
+		if("broadcast_status")
+			SPAWN(0.5 SECONDS)
+				broadcast_status()
 
-			if("power_toggle")
-				on = !on
+		if("help")
+			var/datum/signal/help = get_free_signal()
+			help.transmission_method = TRANSMISSION_RADIO
+			help.source = src
 
-			if("inject")
-				SPAWN_DBG(0) inject()
+			help.data["info"] = "Command help. \
+									broadcast_status - Broadcasts info about self. \
+									power_on - Turns on injector. \
+									power_off - Turns off injector. \
+									power_toggle - Toggles injector. \
+									inject - Injects gas into environment. \
+									set_volume_rate (parameter: Number) - Sets rate in liters to parameter. Max at [src.air_contents.volume] L."
 
-			if("set_volume_rate")
-				var/number = text2num(signal.data["parameter"])
-				number = min(max(number, 0), air_contents.volume)
+			SEND_SIGNAL(src, COMSIG_MOVABLE_POST_RADIO_PACKET, help)
 
-				volume_rate = number
+	if(.)
+		src.UpdateIcon()
+		flick("alert", src)
+		playsound(src, 'sound/machines/chime.ogg', 25)
 
-		if(signal.data["tag"])
-			SPAWN_DBG(0.5 SECONDS) broadcast_status()
-		update_icon()
+/obj/machinery/atmospherics/unary/outlet_injector/hide(var/intact) //to make the little pipe section invisible, the icon changes.
+	var/hide_pipe = CHECKHIDEPIPE(src)
+	if (!node)
+		src.on = FALSE
+	src.icon_state = src.on ? "on" : "off"
+	SET_PIPE_UNDERLAY(src.node, src.dir, "long", issimplepipe(src.node) ?  src.node.color : null, hide_pipe)
 
-	hide(var/i) //to make the little pipe section invisible, the icon changes.
-		if(node)
-			if(on)
-				icon_state = "[i == 1 && istype(loc, /turf/simulated) ? "h" : "" ]on"
-			else
-				icon_state = "[i == 1 && istype(loc, /turf/simulated) ? "h" : "" ]off"
-		else
-			icon_state = "[i == 1 && istype(loc, /turf/simulated) ? "h" : "" ]exposed"
-			on = 0
-		return
+/obj/machinery/atmospherics/unary/outlet_injector/active
+	icon_state = "on-map"
+	on = TRUE
+
+/obj/machinery/atmospherics/unary/outlet_injector/overfloor
+	level = OVERFLOOR
+
+/obj/machinery/atmospherics/unary/outlet_injector/overfloor/active
+	icon_state = "on-map"
+	on = TRUE

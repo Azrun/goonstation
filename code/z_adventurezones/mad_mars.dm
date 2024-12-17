@@ -77,8 +77,8 @@
 
 	Entered(mob/living/carbon/M as mob )
 		..()
-		SPAWN_DBG(0.8)
-			if(ishuman(M))
+		if(ishuman(M))
+			SPAWN(0.8)
 				var/image/F = image('icons/misc/mars_outpost.dmi', icon_state = "footprint", dir = M.dir)
 				src.overlays += F
 				sleep(20 SECONDS)
@@ -86,13 +86,13 @@
 
 	ex_act(severity)
 		switch(severity)
-			if(3.0)
+			if(3)
 				src.icon_state = "placeholder-ex1"
 				return
-			if(2.0)
+			if(2)
 				src.icon_state = "placeholder-ex2"
 				return
-			if(1.0)
+			if(1)
 				src.icon_state = "placeholder-ex3"
 				return
 		return
@@ -147,44 +147,44 @@
 
 // Kingsway Systems
 
-/obj/decal/fakeobjects/robot/servotron
+/obj/fakeobject/robot/servotron
 	name = "servotron statue"
 	desc = "A statue of Kingsway Systems' Servotron"
 	icon = 'icons/misc/mars_outpost.dmi'
 	icon_state = "statue_robot"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 
-/obj/decal/fakeobjects/robot/servotron/old
+/obj/fakeobject/robot/servotron/old
 	name = "servotron statue"
 	desc = "A statue of Kingsway Systems' Servotron"
 	icon = 'icons/misc/mars_outpost.dmi'
 	icon_state = "statue_oldrobot"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 
-/obj/decal/fakeobjects/robot/servotron/older
+/obj/fakeobject/robot/servotron/older
 	name = "servotron statue"
 	desc = "A statue of Kingsway Systems' Servotron"
 	icon = 'icons/misc/mars_outpost.dmi'
 	icon_state = "statue_olderrobot"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 
 
-/obj/decal/fakeobjects/robotpedestal
+/obj/fakeobject/robotpedestal
 	name = "pedestal"
 	icon = 'icons/misc/mars_outpost.dmi'
 	icon_state = "statue_pedestal"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 
 
-/obj/decal/fakeobjects/robotarm
+/obj/fakeobject/robotarm
 	name = "robot arm"
 	icon = 'icons/obj/large/64x64.dmi'
 	icon_state = "marsfactory_arm"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 	pixel_x = -22
 	pixel_y = 5
@@ -198,7 +198,7 @@
 	density = 1
 	var/has_beeped = 0
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if(has_beeped)
 			return ..()
 		else
@@ -244,25 +244,25 @@
 	desc = "Hey, it's not red at all!"
 	icon = 'icons/turf/walls.dmi'
 	icon_state = "mars"
-	blocks_air = 1
+	gas_impermeable = 1
 	opacity = 1
 	density = 1
 	fullbright = 0
 
 
-/obj/decal/fakeobjects/mule_xl
+/obj/fakeobject/mule_xl
 	name = "Mulebot XL"
 	desc = "If you thought getting run over by a mulebot was bad, get a load of his big brother! No pun intended."
 	icon = 'icons/effects/64x64.dmi'
 	icon_state = "mule-xl"
 	pixel_x = -16
 
-/obj/decal/fakeobjects/mars_billboard
+/obj/fakeobject/mars_billboard
 	name = "Billboard"
 	desc = "A billboard for some backwater planetary outpost. How old is this?"
 	icon = 'icons/effects/96x96.dmi'
 	icon_state = "mars_sign1"
-	anchored = 1
+	anchored = ANCHORED
 	density = 0
 	pixel_x = -32
 
@@ -270,7 +270,7 @@
 	name = "dirt"
 	desc = "That isn't any old pile of dirt, it's martian dirt!"
 	density = 0
-	anchored = 1
+	anchored = ANCHORED
 	icon = 'icons/misc/worlds.dmi'
 	icon_state = "mars_dirt"
 
@@ -281,16 +281,16 @@
 	desc = "A suit designed to withstand intense dust storms."
 	icon_state = "mars_blue"
 	icon = 'icons/obj/clothing/overcoats/item_suit_hazard.dmi'
-	wear_image_icon = 'icons/mob/overcoats/worn_suit_hazard.dmi'
+	wear_image_icon = 'icons/mob/clothing/overcoats/worn_suit_hazard.dmi'
 	item_state = "mars_blue"
 	c_flags = SPACEWEAR
-	permeability_coefficient = 0.1
 	protective_temperature = 700
 
 	setupProperties()
 		..()
 		setProperty("coldprot", 20)
 		setProperty("heatprot", 80)
+		setProperty("chemprot", 20)
 
 /obj/item/clothing/head/helmet/mars
 	name = "ME-3 Helmet "
@@ -298,12 +298,12 @@
 	icon_state = "mars"
 	item_state = "mars"
 	c_flags = SPACEWEAR | COVERSEYES | COVERSMOUTH
-	see_face = 0.0
-
+	see_face = TRUE
 
 /obj/critter/marsrobot
 	name = "Inactive Robot"
 	desc = "It looks like it hasn't been in service for decades."
+	icon = 'icons/mob/critter/robotic/mars_bot.dmi'
 	icon_state = "mars_bot"
 	death_text = "%src% collapses!"
 	density = 1
@@ -325,7 +325,7 @@
 
 	seek_target()
 		if(active)
-			src.anchored = 0
+			src.anchored = UNANCHORED
 			for (var/mob/living/C in hearers(src.seekrange,src))
 				if ((C.name == src.oldtarget_name) && (world.time < src.last_found + 100)) continue
 				if (iscarbon(C) && !src.atkcarbon) continue
@@ -340,14 +340,14 @@
 					src.target = C
 					src.oldtarget_name = C.name
 					if(startup)
-						src.visible_message("<span class='combat'>The <b>[src]</b> suddenly turns on!</span>")
+						src.visible_message(SPAN_COMBAT("The <b>[src]</b> suddenly turns on!"))
 						name = "malfunctioning robot"
 						src.speak("Lev##LLl 7 SEV-s-E infraAAAAAaction @leRT??!")
 						src.visible_message("The <b>[src]</b> points at [C.name]!")
 						playsound(src.loc, 'sound/voice/screams/robot_scream.ogg', 50, 1, channel=VOLUME_CHANNEL_EMOTE)
 						startup = 0
 						wanderer = 1
-					src.visible_message("<span class='alert'>The <b>[src]</b> charges at [C:name]!</span>")
+					src.visible_message(SPAN_ALERT("The <b>[src]</b> charges at [C:name]!"))
 					src.speak(pick("DooN'T Wor##y I'M hERE!!!","LawwSS UpdAA&$.A.!!.!","CANIHELPYO&£%SIR","REsREACH!!!!!","NATAS&$%LIAHLLA ERROR CODE #736"))
 					playsound(src.loc, 'sound/machines/glitch3.ogg', 50, 1)
 					icon_state = "mars_bot"
@@ -357,15 +357,15 @@
 					continue
 
 	ChaseAttack(mob/M)
-		src.visible_message("<span class='combat'>The <B>[src]</B> launches itself towards [M]!</span>")
+		src.visible_message(SPAN_COMBAT("The <B>[src]</B> launches itself towards [M]!"))
 		if (prob(20)) M.changeStatus("stunned", 2 SECONDS)
 		random_brute_damage(M, rand(2,5),1)
 
 	CritterAttack(mob/M)
 		src.attacking = 1
-		src.visible_message("<span class='combat'>The <B>[src]</B> slams itself against [src.target]!</span>")
+		src.visible_message(SPAN_COMBAT("The <B>[src]</B> slams itself against [src.target]!"))
 		random_brute_damage(src.target, rand(7,17), 1)
-		SPAWN_DBG(1 SECOND)
+		SPAWN(1 SECOND)
 			src.attacking = 0
 
 
@@ -376,13 +376,13 @@
 
 	proc/speak(var/message)
 		for(var/mob/O in hearers(src, null))
-			boutput(O, "<span class='game say'><span class='name'>[src]</span> beeps, \"[message]\"")
+			boutput(O, SPAN_SAY("[SPAN_NAME("[src]")] beeps, \"[message]\""))
 		return
 
-	attackby(obj/item/W as obj, mob/living/user as mob)
+	attackby(obj/item/W, mob/living/user)
 		if(active) ..()
 
-	attack_hand(var/mob/user as mob)
+	attack_hand(var/mob/user)
 		if(active) ..()
 
 	CritterDeath()
@@ -397,41 +397,41 @@
 	icon_state = "rover_puzzle_base"
 	desc = "It looks like this rover was never finished."
 	density = 1
-	anchored = 1
+	anchored = ANCHORED
 	var/wheel = 0
 	var/oxy = 0
 	var/battery = 0
 	var/glass = 0
 	var/motherboard = 0
 
-	attackby(obj/item/P as obj, mob/user as mob)
+	attackby(obj/item/P, mob/user)
 		if (istype(P, /obj/item/mars_roverpart))
 			if ((istype(P, /obj/item/mars_roverpart/wheel))&&(!wheel))
-				boutput(user, "<span class='notice'>You attach the wheel to the rover's chassis.</span>")
+				boutput(user, SPAN_NOTICE("You attach the wheel to the rover's chassis."))
 				overlays += image('icons/misc/worlds.dmi', "rover_puzzle_wheel")
 				wheel = 1
 			if ((istype(P, /obj/item/mars_roverpart/oxy))&&(!oxy))
-				boutput(user, "<span class='notice'>You connect the life support module to the rover.</span>")
+				boutput(user, SPAN_NOTICE("You connect the life support module to the rover."))
 				overlays += image('icons/misc/worlds.dmi', "rover_puzzle_oxy")
 				oxy = 1
 			if ((istype(P, /obj/item/mars_roverpart/glass))&&(!glass))
-				boutput(user, "<span class='notice'>You attach the glass to the rover.</span>")
+				boutput(user, SPAN_NOTICE("You attach the glass to the rover."))
 				overlays += image('icons/misc/worlds.dmi', "rover_puzzle_window")
 				glass = 1
 			if ((istype(P, /obj/item/mars_roverpart/battery))&&(!battery))
-				boutput(user, "<span class='notice'>You wire the battery to the rover.</span>")
+				boutput(user, SPAN_NOTICE("You wire the battery to the rover."))
 				overlays += image('icons/misc/worlds.dmi', "rover_puzzle_cell")
 				battery = 1
 			if ((istype(P, /obj/item/mars_roverpart/motherboard))&&(!motherboard))
-				boutput(user, "<span class='notice'>You wire the motherboard to the rover.</span>")
+				boutput(user, SPAN_NOTICE("You wire the motherboard to the rover."))
 				motherboard = 1
-			playsound(user, 'sound/items/Deconstruct.ogg', 65, 1)
+			playsound(user, 'sound/items/Deconstruct.ogg', 65, TRUE)
 			qdel(P)
 			if((wheel)&&(oxy)&&(battery)&&(glass)&&(motherboard))
 				var/obj/vehicle/marsrover/R = new /obj/vehicle/marsrover(loc)
 				R.set_dir(WEST)
 				playsound(src.loc, 'sound/machines/rev_engine.ogg', 50, 1)
-				boutput(user, "<span class='notice'>The rover has been completed!</span>")
+				boutput(user, SPAN_NOTICE("The rover has been completed!"))
 				qdel(src)
 
 /obj/item/mars_roverpart
@@ -463,12 +463,15 @@
 		pickup(mob/user)
 			..()
 			if(!pickedup)
-				boutput(user, "<span class='alert'>Uh oh.</span>")
+				boutput(user, SPAN_ALERT("Uh oh."))
 				for(var/obj/critter/marsrobot/M in oview(4,src))
 					M.active = 1
 					M.seek_target()
 				pickedup = 1
 
+
+TYPEINFO(/obj/vehicle/marsrover)
+	mats = 8
 
 /obj/vehicle/marsrover
 	name = "Rover"
@@ -477,7 +480,6 @@
 	rider_visible = 0
 	layer = MOB_LAYER + 1
 	sealed_cabin = 1
-	mats = 8
 
 /obj/vehicle/marsrover/proc/update()
 	if(rider)
@@ -485,7 +487,7 @@
 	else
 		icon_state = "marsrover"
 
-/obj/vehicle/marsrover/eject_rider(var/crashed, var/selfdismount)
+/obj/vehicle/marsrover/eject_rider(var/crashed, var/selfdismount, ejectall=TRUE)
 	var/mob/rider = src.rider
 	..()
 	rider.pixel_y = 0
@@ -497,13 +499,13 @@
 	if(crashed)
 		if(crashed == 2)
 			playsound(src.loc, 'sound/impact_sounds/Generic_Hit_Heavy_1.ogg', 40, 1)
-		boutput(rider, "<span class='combat'><B>You are flung over the [src]'s handlebars!</B></span>")
+		boutput(rider, SPAN_COMBAT("<B>You are flung over the [src]'s handlebars!</B>"))
 		rider.changeStatus("stunned", 8 SECONDS)
-		rider.changeStatus("weakened", 5 SECONDS)
+		rider.changeStatus("knockdown", 5 SECONDS)
 		for (var/mob/C in AIviewers(src))
 			if(C == rider)
 				continue
-			C.show_message("<span class='combat'><B>[rider] is flung over the [src]'s handlebars!</B></span>", 1)
+			C.show_message(SPAN_COMBAT("<B>[rider] is flung over the [src]'s handlebars!</B>"), 1)
 		var/turf/target = get_edge_target_turf(src, src.dir)
 		rider.throw_at(target, 5, 1)
 		rider.buckled = null
@@ -512,7 +514,7 @@
 		update()
 		return
 	if(selfdismount)
-		boutput(rider, "<span class='notice'>You dismount from the [src].</span>")
+		boutput(rider, SPAN_NOTICE("You dismount from the [src]."))
 		for (var/mob/C in AIviewers(src))
 			if(C == rider)
 				continue
@@ -526,17 +528,17 @@
 	icon_state = "marsrover2"
 
 /obj/vehicle/marsrover/MouseDrop_T(mob/living/carbon/human/target, mob/user)
-	if (rider || !istype(target) || target.buckled || LinkBlocked(target.loc,src.loc) || get_dist(user, src) > 1 || is_incapacitated(user) || isAI(user))
+	if (rider || !istype(target) || target.buckled || LinkBlocked(target.loc,src.loc) || BOUNDS_DIST(user, src) > 0 || is_incapacitated(user) || isAI(user))
 		return
 
 	var/msg
 
 	if(target == user && !user.stat)	// if drop self, then climbed in
 		msg = "[user.name] climbs onto the [src]."
-		boutput(user, "<span class='notice'>You climb onto the [src].</span>")
+		boutput(user, SPAN_NOTICE("You climb onto the [src]."))
 	else if(target != user && !user.restrained())
 		msg = "[user.name] helps [target.name] onto the [src]!"
-		boutput(user, "<span class='notice'>You help [target.name] onto the [src]!</span>")
+		boutput(user, SPAN_NOTICE("You help [target.name] onto the [src]!"))
 	else
 		return
 
@@ -566,7 +568,7 @@
 		eject_rider(0, 1)
 	return
 
-/obj/vehicle/marsrover/attack_hand(mob/living/carbon/human/M as mob)
+/obj/vehicle/marsrover/attack_hand(mob/living/carbon/human/M)
 	if(!M || !rider)
 		..()
 		return
@@ -574,17 +576,17 @@
 		if("harm", "disarm")
 			if(prob(60))
 				playsound(src.loc, 'sound/impact_sounds/Generic_Shove_1.ogg', 50, 1, -1)
-				src.visible_message("<span class='combat'><B>[M] has shoved [rider] off of the [src]!</B></span>")
-				rider.changeStatus("weakened", 2 SECONDS)
+				src.visible_message(SPAN_COMBAT("<B>[M] has shoved [rider] off of the [src]!</B>"))
+				rider.changeStatus("knockdown", 2 SECONDS)
 				eject_rider()
 			else
 				playsound(src.loc, 'sound/impact_sounds/Generic_Swing_1.ogg', 25, 1, -1)
-				src.visible_message("<span class='combat'><B>[M] has attempted to shove [rider] off of the [src]!</B></span>")
+				src.visible_message(SPAN_COMBAT("<B>[M] has attempted to shove [rider] off of the [src]!</B>"))
 	return
 
 /obj/vehicle/marsrover/disposing()
 	if(rider)
-		boutput(rider, "<span class='combat'><B>Your rover is destroyed!</B></span>")
+		boutput(rider, SPAN_COMBAT("<B>Your rover is destroyed!</B>"))
 		eject_rider()
 	..()
 	return
@@ -592,65 +594,35 @@
 /area/marsoutpost
 	name = "Abandoned Outpost"
 	icon_state = "red"
-	var/sound/mysound = null
 	sound_group = "mars"
+	sound_loop = 'sound/ambience/loop/Mars_Interior.ogg'
+	sound_loop_vol = 60
+	area_parallax_render_source_group = /datum/parallax_render_source_group/area/mars
+	occlude_foreground_parallax_layers = TRUE
 
-	New()
-		..()
-		var/sound/S = new/sound()
-		mysound = S
-		S.file = 'sound/ambience/loop/Mars_Interior.ogg'
-		S.repeat = 1
-		S.wait = 0
-		S.channel = 123
-		S.volume = 60
-		S.priority = 255
-		S.status = SOUND_UPDATE
-		SPAWN_DBG(1 SECOND) process()
+/area/marsoutpost/New()
+	. = ..()
+	START_TRACKING_CAT(TR_CAT_AREA_PROCESS)
 
-	Entered(atom/movable/Obj,atom/OldLoc)
-		..()
-		if(ismob(Obj))
-			if(Obj:client)
-				mysound.status = SOUND_UPDATE
-				Obj << mysound
-		return
+/area/marsoutpost/disposing()
+	STOP_TRACKING_CAT(TR_CAT_AREA_PROCESS)
+	. = ..()
 
-	Exited(atom/movable/Obj)
-		..()
-		if(ismob(Obj))
-			if(Obj:client)
-				mysound.status = SOUND_PAUSED | SOUND_UPDATE
-				Obj << mysound
+/area/marsoutpost/area_process()
+	if(prob(20))
+		src.sound_fx_2 = pick(
+			'sound/ambience/nature/Mars_Rockslide1.ogg',\
+			'sound/ambience/industrial/MarsFacility_MovingEquipment.ogg',\
+			'sound/ambience/nature/Mars_Rockslide2.ogg',\
+			'sound/ambience/industrial/MarsFacility_Glitchy.ogg')
 
-	proc/process()
-		var/sound/S = null
-		var/sound_delay = 0
-		while(current_state < GAME_STATE_FINISHED)
-			sleep(6 SECONDS)
-			if (current_state == GAME_STATE_PLAYING)
-				if(prob(10))
-					S = sound(file=pick('sound/ambience/nature/Mars_Rockslide1.ogg','sound/ambience/industrial/MarsFacility_MovingEquipment.ogg','sound/ambience/nature/Mars_Rockslide2.ogg','sound/ambience/industrial/MarsFacility_Glitchy.ogg'), volume=100)
-					sound_delay = rand(0, 50)
-				else
-					S = null
-					continue
-
-				for(var/mob/living/carbon/human/H in src)
-					if(H.client)
-						mysound.status = SOUND_UPDATE
-						H << mysound
-						if(S)
-							SPAWN_DBG(sound_delay)
-								H << S
+		for(var/mob/living/carbon/human/H in src)
+			H.client?.playAmbience(src, AMBIENCE_FX_2, 60)
 
 /area/marsoutpost/duststorm
 	name = "Barren Planet"
 	icon_state = "yellow"
-
-	New()
-		..()
-		overlays += image(icon = 'icons/turf/areas.dmi', icon_state = "dustverlay", layer = EFFECTS_LAYER_BASE)
+	occlude_foreground_parallax_layers = FALSE
 
 	Entered(atom/movable/O)
 		..()
@@ -659,7 +631,7 @@
 			if (!isdead(jerk))
 				if((istype(jerk:wear_suit, /obj/item/clothing/suit/armor/mars))&&(istype(jerk:head, /obj/item/clothing/head/helmet/mars))) return
 				random_brute_damage(jerk, 100)
-				jerk.changeStatus("weakened", 40 SECONDS)
+				jerk.changeStatus("knockdown", 40 SECONDS)
 				step(jerk,EAST)
 				if(prob(50))
 					playsound(src.loc, 'sound/impact_sounds/Flesh_Stab_2.ogg', 50, 1)
@@ -668,13 +640,13 @@
 
 
 /area/marsoutpost/vault
+	name = "Abandoned Vault"
 	icon_state = "red"
 
 /obj/critter/gunbot/heavy
 	name = "security robot"
 	desc = "A 2030's-era security robot. Uh oh."
-	icon = 'icons/misc/critter.dmi'
-	icon_state = "mars_sec_bot"
+	icon_state = "gunbot"
 	opensdoors = OBJ_CRITTER_OPENS_DOORS_NONE
 	atksilicon = 1
 	var/overheat = 0
@@ -710,13 +682,13 @@
 				processedMessage += pick("%","##A","-","- - -","ERROR")
 
 		for(var/mob/O in hearers(src, null))
-			O.show_message("<span class='game say'><span class='name'>[src]</span> blares, \"<B>[processedMessage]</B>\"",2)
+			O.show_message(SPAN_SAY("[SPAN_NAME("[src]")] blares, \"<B>[processedMessage]</B>\""), 2)
 
 		return
 
 
 	seek_target()
-		src.anchored = 0
+		src.anchored = UNANCHORED
 		if(overheat == 10)
 			speak("WARNING : OVERHEATING")
 			sleep(5 SECONDS)
@@ -733,12 +705,12 @@
 
 					src.target = C
 					src.oldtarget_name = C.name
-					src.visible_message("<span class='combat'><b>[src]</b> rapidly fires at [src.target]!</span>")
+					src.visible_message(SPAN_COMBAT("<b>[src]</b> rapidly fires at [src.target]!"))
 
 
 					playsound(src.loc, 'sound/weapons/ak47shot.ogg', 50, 1)
 					var/tturf = get_turf(target)
-					SPAWN_DBG(0.2 SECONDS)
+					SPAWN(0.2 SECONDS)
 						Shoot(tturf, src.loc, src)
 						src.pixel_x += rand(-3,3)
 						src.pixel_y += rand(-3,3)
@@ -747,7 +719,7 @@
 						var/glitchsound = pick('sound/machines/romhack1.ogg', 'sound/machines/romhack2.ogg', 'sound/machines/romhack3.ogg','sound/machines/glitch1.ogg','sound/machines/glitch2.ogg','sound/machines/glitch3.ogg','sound/machines/glitch4.ogg','sound/machines/glitch5.ogg')
 						playsound(src.loc, glitchsound, 50, 1)
 					if(prob(75))
-						SPAWN_DBG(0) step_to(src,target)
+						SPAWN(0) step_to(src,target)
 					src.attack = 0
 					return
 				else continue
@@ -759,7 +731,7 @@
 		if (!start) //Wire: fix for Cannot read null.y (start was null somehow)
 			return
 
-		shoot_projectile_ST(src, my_bullet, target)
+		shoot_projectile_ST_pixel_spread(src, my_bullet, target)
 
 /obj/machinery/computer/mars_vault
 	name = "Vault Console"
@@ -768,7 +740,7 @@
 	pixel_y = 8
 	var/triggered = 0
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if (..() || (status & (NOPOWER|BROKEN)))
 			return
 
@@ -799,10 +771,15 @@
 					LAGCHECK(LAG_LOW)
 				for_by_tcl(P, /obj/machinery/door/poddoor)
 					if (P.id == "mars_vault")
-						SPAWN_DBG(0)
+						SPAWN(0)
 							P.open()
 				for_by_tcl(M, /obj/item/storage/secure/ssafe/marsvault)
 					M.disabled = 0
+
+				if (istype(get_area(src), /area/marsoutpost/vault))
+					for (var/mob/living/L in range(3, src))
+						if (!isintangible(L))
+							L.unlock_medal("Where are the Ghosts?", TRUE)
 
 				playsound(src.loc, 'sound/machines/engine_alert1.ogg', 50, 1)
 

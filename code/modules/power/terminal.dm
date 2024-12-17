@@ -4,20 +4,20 @@
 // using this solves the problem of having the APC in a wall yet also inside an area
 
 /obj/machinery/power/terminal
-	name = "terminal"
+	name = "power terminal"
 	icon_state = "term"
 	desc = "An underfloor wiring terminal for power equipment"
 	level = 1
 	layer = FLOOR_EQUIP_LAYER1
 	plane = PLANE_NOSHADOW_BELOW
-	var/obj/machinery/power/master = null
-	anchored = 1
+	var/obj/machinery/master = null
+	anchored = ANCHORED
 	directwired = 0		// must have a cable on same turf connecting to terminal
 
 /obj/machinery/power/terminal/New(var/new_loc)
 	..()
 	var/turf/T = new_loc
-	if(istype(T) && level==1) hide(T.intact)
+	if(istype(T) && level==UNDERFLOOR) hide(T.intact)
 
 /obj/machinery/power/terminal/disposing()
 	if (src.powernet && src.powernet.data_nodes)
@@ -30,7 +30,7 @@
 	..()
 
 /obj/machinery/power/terminal/hide(var/i)
-	invisibility = i ? 101 : 0
+	invisibility = i ? INVIS_ALWAYS : INVIS_NONE
 	alpha = invisibility ? 128 : 255
 
 //A regular terminal that can ferry signals between the network and the connected APC.
@@ -64,6 +64,7 @@
 			for (var/obj/machinery/power/device as anything in src.powernet.data_nodes)
 				if(device != src)
 					device.receive_signal(signal, TRANSMISSION_WIRE)
+				LAGCHECK(LAG_MED)
 
 			//qdel(signal)
 			return
@@ -72,6 +73,9 @@
 //It sends wired /datum/signal information between its master obj and other
 //data terminals in its powernet's nodes.
 
+TYPEINFO(/obj/machinery/power/data_terminal)
+	mats = 5
+
 /obj/machinery/power/data_terminal //The data terminal is remarkably similar to a regular terminal
 	name = "data terminal"
 	icon_state = "dterm"
@@ -79,18 +83,17 @@
 	level = 1
 	layer = FLOOR_EQUIP_LAYER1
 	plane = PLANE_NOSHADOW_BELOW
-	anchored = 1
+	anchored = ANCHORED
 	directwired = 0
 	use_datanet = 1
-	mats = 5
 	deconstruct_flags = DECON_SCREWDRIVER | DECON_CROWBAR | DECON_WELDER | DECON_WIRECUTTERS | DECON_MULTITOOL
 	var/obj/master = null //It can be any obj that can use receive_signal
 
 	ex_act()
-		if (master)
-			return
-
-		return ..()
+		SPAWN(1)
+			if (master)
+				return
+			..()
 
 /obj/machinery/power/data_terminal
 
@@ -99,7 +102,7 @@
 
 		var/turf/T = new_loc
 
-		if(level==1 && istype(T)) hide(T.intact)
+		if(level==UNDERFLOOR && istype(T)) hide(T.intact)
 
 	disposing()
 		master = null
@@ -133,16 +136,51 @@
 			for (var/obj/machinery/power/device as anything in src.powernet.data_nodes)
 				if(device != src)
 					device.receive_signal(signal, TRANSMISSION_WIRE)
+				LAGCHECK(LAG_MED)
 
-			if (signal)
-				if (!reusable_signals || reusable_signals.len > 10)
-					signal.dispose()
-				else
-					signal.wipe()
-					if (!(signal in reusable_signals))
-						reusable_signals += signal
-			return
+			if(signal)
+				qdel(signal)
 
 	hide(var/i)
-		invisibility = i ? 101 : 0
+		invisibility = i ? INVIS_ALWAYS : INVIS_NONE
 		alpha = invisibility ? 128 : 255
+
+TYPEINFO(/obj/machinery/power/data_terminal/cable_tray)
+	mats = 0 // uh no thanks
+
+/obj/machinery/power/data_terminal/cable_tray
+	name = "cable tray"
+	desc = "A connector that goes off into somewhere..."
+	icon_state = "vterm"
+
+	New()
+		..()
+		var/turf/T = get_turf(src)
+		if(!src.netnum && !length(T.connections) )
+			//Re-attempt connection to power nets due to delayed disjoint connections
+			SPAWN(0.2 SECONDS)
+				src.netnum = 0
+				if(makingpowernets)
+					return
+				for(var/obj/machinery/power/data_terminal/cable_tray/CT in src.get_connections())
+					if(src.netnum == 0 && CT.netnum != 0)
+						src.netnum = CT.netnum
+				for(var/obj/cable/C in src.get_connections())
+					if(src.netnum == 0 && C.netnum != 0)
+						src.netnum = C.netnum
+					else if(C.netnum != 0 && C.netnum != src.netnum)
+						makepowernets()
+						return
+				if(src.netnum)
+					src.powernet = powernets[src.netnum]
+					src.powernet.nodes += src
+					if(src.use_datanet)
+						src.powernet.data_nodes += src
+
+/obj/machinery/power/data_terminal/cable_tray/get_connections(unmarked = 0)
+	. = ..()
+	var/turf/T = get_turf(src)
+	for(var/obj/machinery/power/data_terminal/cable_tray/C in T.get_disjoint_objects_by_type(DISJOINT_TURF_CONNECTION_POWERNETS, /obj/machinery/power/data_terminal/cable_tray))
+		if(C.netnum && unmarked)
+			continue
+		. |= C

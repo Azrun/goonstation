@@ -21,6 +21,8 @@
 	var/headers
 	/// URL that the request is being sent to
 	var/url
+	/// If present response body will be saved to this file.
+	var/output_file
 	/// The raw response, which will be decoeded into a [/datum/http_response]
 	var/_raw_response
 
@@ -34,8 +36,9 @@
   * * _url - The URL to send the request to
   * * _body - The body of the request, if applicable
   * * _headers - Associative list of HTTP headers to send, if applicable
+  * * _output_file - If present response body will be saved to this file.
   */
-/datum/http_request/proc/prepare(_method, _url, _body = "", list/_headers)
+/datum/http_request/proc/prepare(_method, _url, _body = "", list/_headers, _output_file)
 	if(!length(_headers))
 		_headers = ""
 	else
@@ -45,6 +48,7 @@
 	url = _url
 	body = _body
 	headers = _headers
+	output_file = _output_file
 
 /**
   * Blocking executor
@@ -66,13 +70,24 @@
 	if(in_progress)
 		CRASH("Attempted to re-use a request object.")
 
-	id = rustg_http_request_async(method, url, body, headers)
+	id = rustg_http_request_async(method, url, body, headers, build_options())
 
 	if(isnull(text2num(id)))
 		_raw_response = "Proc error: [id]"
 		CRASH("Proc error: [id]")
 	else
 		in_progress = TRUE
+
+/**
+  * Options builder
+  *
+  * Builds a set of request options
+  * Apparently this is only currently used for output_file purposes
+  */
+/datum/http_request/proc/build_options()
+	if(output_file)
+		return json_encode(list("output_filename"=output_file,"body_filename"=null))
+	return "{}"
 
 /**
   * Async completion checker
@@ -142,3 +157,56 @@
 	var/errored = FALSE
 	/// Raw response if we errored
 	var/error
+
+
+// Code lovingly made by ZephyrTFA of /tg/station
+// And adapted for Goonstation use by ZeWaka
+
+#define REQUEST_FAIL_BAD_URL "!!URL!!"
+#define REQUEST_FAIL_NOT_POSSIBLE "!!NP!!"
+
+/**
+ * Datum used to manage the functionality and cache for the cobalt.tools API.
+ */
+/datum/cobalt_tools
+	/// The base API url to use.
+	var/base_url = "https://cobalt-api.kwiatekmiki.com" // api.cobalt.tools
+
+/**
+ * Sends a request to the cobalt.tools API to fetch a tunnel for the audio file we want.
+ *
+ * Returns list(filename, url) if successful, otherwise crashes.
+ */
+/datum/cobalt_tools/proc/request_tunnel(normalized_url, request_type = "audio")
+	var/static/headers = json_encode(list(
+		"Accept" = "application/json",
+		"Content-Type" = "application/json",
+	))
+
+	var/body = json_encode(list(
+		"url" = normalized_url,
+		"downloadMode" = request_type,
+		"filenameStyle" = "basic",
+	))
+
+	var/response_raw = rustg_http_request_blocking(RUSTG_HTTP_METHOD_POST, base_url, body, headers, null)
+	var/list/response
+	try
+		response = json_decode(response_raw)
+		if(!("body" in response))
+			. = REQUEST_FAIL_BAD_URL
+			CRASH("Failed to perform cobalt.tools API request: Response lacks body.")
+		response = json_decode(response["body"])
+	catch
+		. = REQUEST_FAIL_BAD_URL
+		CRASH("Failed to perform cobalt.tools API request: Failed to decode response.")
+
+	var/static/list/valid_status = list("redirect", "tunnel")
+	var/status = response["status"]
+	if(!(status in valid_status))
+		. = REQUEST_FAIL_NOT_POSSIBLE
+		CRASH("Failed to perform cobalt.tools API request: [json_encode(response)]")
+	return list(response["filename"], response["url"])
+
+#undef REQUEST_FAIL_BAD_URL
+#undef REQUEST_FAIL_NOT_POSSIBLE

@@ -20,76 +20,43 @@ var/global/Z4_ACTIVE = 0 //Used for mob processing purposes
 	icon_state = "purple"
 	requires_power = 0
 	sound_environment = 4
-	teleport_blocked = 1
+	teleport_blocked = 2
 	skip_sims = 1
 	sims_score = 25
 	sound_group = "centcom"
 	filler_turf = "/turf/unsimulated/nicegrass/random"
 	is_centcom = 1
+	var/static/list/entered_ckeys = list()
+
+	Entered(atom/movable/A, atom/oldloc)
+		. = ..()
+		if (current_state < GAME_STATE_FINISHED)
+			if(istype(A, /mob/living))
+				var/mob/living/M = A
+				if(!M.client)
+					return
+				if(M.client.holder)
+					return
+				if(M.client.ckey in entered_ckeys)
+					return
+				entered_ckeys += M.client.ckey
+				logTheThing(LOG_DEBUG, M, "entered Centcom before round end [log_loc(M)].")
 
 /area/centcom/outside
 	name = "Earth"
 	icon_state = "nothing_earth"
 	//force_fullbright = 1
+	ambient_light = CENTCOM_LIGHT
 
-// HIGHLY SCIENTIFIC NUMBERS PULLED OUT OF MY ASS
-// Loosely based on color temperatures during daylight hours
-// and random bullshit for night hours
-// would love to have this at runtime but
-// i do not think that is possible in a way that isnt shit. maybe. idk
-#if BUILD_TIME_HOUR == 0
-	ambient_light = rgb(255 * 0.01, 255 * 0.01, 255 * 0.01)	// night time
-#elif BUILD_TIME_HOUR == 1
-	ambient_light = rgb(255 * 0.005, 255 * 0.005, 255 * 0.01)	// night time
-#elif BUILD_TIME_HOUR == 2
-	ambient_light = rgb(255 * 0.00, 255 * 0.00, 255 * 0.005)	// night time
-#elif BUILD_TIME_HOUR == 3
-	ambient_light = rgb(255 * 0.00, 255 * 0.00, 255 * 0.00)	// night time
-#elif BUILD_TIME_HOUR == 4
-	ambient_light = rgb(255 * 0.02, 255 * 0.02, 255 * 0.02)	// night time
-#elif BUILD_TIME_HOUR == 5
-	ambient_light = rgb(255 * 0.05, 255 * 0.05, 255 * 0.05)	// night time
-#elif BUILD_TIME_HOUR == 6
-	ambient_light = rgb(181 * 0.25, 205 * 0.25, 255 * 0.25)	// 17000
-#elif BUILD_TIME_HOUR == 7
-	ambient_light = rgb(202 * 0.60, 218 * 0.60, 255 * 0.60)	// 10000
-#elif BUILD_TIME_HOUR == 8
-	ambient_light = rgb(221 * 0.95, 230 * 0.95, 255 * 0.95)	// 8000 (sunrise)
-#elif BUILD_TIME_HOUR == 9
-	ambient_light = rgb(210 * 1.00, 223 * 1.00, 255 * 1.00)	// 11000
-#elif BUILD_TIME_HOUR == 10
-	ambient_light = rgb(196 * 1.00, 214 * 1.00, 255 * 1.00)	// 10000
-#elif BUILD_TIME_HOUR == 11
-	ambient_light = rgb(221 * 1.00, 230 * 1.00, 255 * 1.00)	// 8000
-#elif BUILD_TIME_HOUR == 12
-	ambient_light = rgb(230 * 1.00, 235 * 1.00, 255 * 1.00)	// 7500-ish
-#elif BUILD_TIME_HOUR == 13
-	ambient_light = rgb(243 * 1.00, 242 * 1.00, 255 * 1.00)	// 7000
-#elif BUILD_TIME_HOUR == 14
-	ambient_light = rgb(255 * 1.00, 250 * 1.00, 244 * 1.00)	// 6250-ish
-#elif BUILD_TIME_HOUR == 15
-	ambient_light = rgb(255 * 1.00, 243 * 1.00, 231 * 1.00)	// 5800-ish
-#elif BUILD_TIME_HOUR == 16
-	ambient_light = rgb(255 * 1.00, 232 * 1.00, 213 * 1.00)	// 5200-ish
-#elif BUILD_TIME_HOUR == 17
-	ambient_light = rgb(255 * 0.95, 206 * 0.95, 166 * 0.95)	// 4000
-#elif BUILD_TIME_HOUR == 18
-	ambient_light = rgb(255 * 0.90, 146 * 0.90,  39 * 0.90)	// 2200 (sunset), "golden hour"
-#elif BUILD_TIME_HOUR == 19
-	ambient_light = rgb(196 * 0.50, 214 * 0.50, 255 * 0.50)	// 10000
-#elif BUILD_TIME_HOUR == 20
-	ambient_light = rgb(191 * 0.21, 211 * 0.20, 255 * 0.30)	// 12000 (moon / stars), "blue hour"
-#elif BUILD_TIME_HOUR == 21
-	ambient_light = rgb(218 * 0.10, 228 * 0.10, 255 * 0.13)	// 8250
-#elif BUILD_TIME_HOUR == 22
-	ambient_light = rgb(221 * 0.04, 230 * 0.04, 255 * 0.05)	// 8000
-#elif BUILD_TIME_HOUR == 23
-	ambient_light = rgb(243 * 0.01, 242 * 0.01, 255 * 0.02)	// 7000
-#else
-	ambient_light = rgb(255 * 1.00, 255 * 1.00, 255 * 1.00)	// uhhhhhh
-#endif
+/area/meadow
+	name = "Meadow"
+	icon_state = "nothing_earth"
+	ambient_light = CENTCOM_LIGHT
+	sanctuary = TRUE
 
-
+/area/centcom/gallery
+	name = "NT Art Gallery"
+	icon_state = "green"
 
 /area/centcom/offices
 	name = "NT Offices"
@@ -106,18 +73,34 @@ var/global/Z4_ACTIVE = 0 //Used for mob processing purposes
 	aibm
 		ckey = "angriestibm"
 		name = "Office of AngriestIBM"
+	angel
+		ckey = "hauntmachine"
+		name = "Office of Angel"
 	aphtonites
 		ckey = ""
 		name = "Office of Aphtonites"
 	atomicthumbs
 		ckey = ""
 		name = "Office of Atomicthumbs"
+	azrun
+		ckey = "azrun"
+		name = "Office of Azrun"
+	beejail
+		ckey = ""
+		name = "Bee Jail"
+	bilo
+		ckey = "bilo216"
+		name = "Office of Bilo"
 	bubs
 		ckey = "insanoblan"
 		name = "Office of bubs"
 	burntcornmuffin
 		ckey = ""
 		name = "Office of BurntCornMuffin"
+	cal
+		ckey = "mexicat"
+		name = "Office of Cal"
+		active = 2
 	cogwerks
 		ckey = "drcogwerks"
 		name = "Office of Cogwerks"
@@ -163,6 +146,9 @@ var/global/Z4_ACTIVE = 0 //Used for mob processing purposes
 	grayshift
 		ckey = "grayshift"
 		name = "Office of Grayshift"
+	grifflez
+		ckey = "grifflez"
+		name = "Office of Grifflez"
 	hazoflabs
 		// ckey = ""
 		name = "Shared Office Space of Gerhazo and Flaborized"
@@ -178,9 +164,18 @@ var/global/Z4_ACTIVE = 0 //Used for mob processing purposes
 	ines
 		ckey = "hokie"
 		name = "Office of Ines"
+	janantilles
+		ckey = "janantilles"
+		name = "Office of Fleur DeLaCreme"
+	katzen
+		ckey = "flappybat"
+		name = "Office of Katzen"
 	kyle
 		ckey = "kyle2143"
 		name = "Office of Kyle"
+	leah
+		ckey = "leahthetech"
+		name = "Office of Leah"
 	lyra
 		ckey = "lison"
 		name = "Office of Lyra"
@@ -253,6 +248,7 @@ var/global/Z4_ACTIVE = 0 //Used for mob processing purposes
 	tarmunora
 		ckey = "tarmunora"
 		name = "Office of yass"
+		active = 2
 	tterc
 		ckey = "tterc"
 		name = "Office of Caroline Audibert"
@@ -262,12 +258,12 @@ var/global/Z4_ACTIVE = 0 //Used for mob processing purposes
 	varshie
 		ckey = "varshie"
 		name = "Office of Varshie"
-	virvatuli
-		ckey = "virvatuli"
-		name = "Office of Virvatuli"
-		New()
-			..()
-			overlays += image(icon = 'icons/turf/areas.dmi', icon_state = "snowverlay", layer = EFFECTS_LAYER_BASE)
+	walpvrgis
+		ckey = "walpvrgis"
+		name = "Office of Walpvrgis"
+	wander
+		ckey = "rogerclementine"
+		name = "Office of Wander"
 	wire
 		ckey = "wirewraith"
 		name = "Office of Wire"
@@ -306,6 +302,11 @@ var/global/Z4_ACTIVE = 0 //Used for mob processing purposes
 /area/retentioncenter
 	name = "NT Retention Center"
 	icon_state = "dk_yellow"
+
+/area/retentioncenter/teleblocked
+	name = "NT Retention Center (teleblocked)"
+	icon_state = "death"
+	teleport_blocked = 2
 
 /area/retentioncenter/depot
 	name = "NT Retention Center (depot)"
@@ -351,6 +352,10 @@ var/global/Z4_ACTIVE = 0 //Used for mob processing purposes
 	name = "NT Retention Center (office)"
 	icon_state = "orange"
 
+/area/retentioncenter/recycling
+	name = "NT Retention Center (Recycling)"
+	icon_state = "pink"
+
 ////////////////////////////
 
 /turf/unsimulated/outdoors
@@ -364,10 +369,13 @@ var/global/Z4_ACTIVE = 0 //Used for mob processing purposes
 		icon_state = "grass_snow"
 	grass
 		name = "grass"
+		icon_state = "grass"
 		New()
 			..()
+		#ifdef SEASON_AUTUMN
+			try_set_icon_state(src.icon_state + "_autumn", src.icon)
+		#endif
 			set_dir(pick(cardinal))
-		icon_state = "grass"
 		dense
 			name = "dense grass"
 			desc = "whoa, this is some dense grass. wow."
@@ -396,11 +404,13 @@ var/global/Z4_ACTIVE = 0 //Used for mob processing purposes
 //adhara office
 
 //adhara herself....?
-/obj/critter/cat/cathara
+/mob/living/critter/small_animal/cat/cathara
 	name = "Cathara"
 	desc = "...is this really her?? Do they let cats be admins??"
 	icon_state = "cat1"
-	randomize_cat = 0
+	random_name = FALSE
+	random_look = FALSE
+	player_can_spawn_with_pet = FALSE
 
 	New()
 		..()
@@ -524,31 +534,32 @@ var/global/Z4_ACTIVE = 0 //Used for mob processing purposes
 
 	equipped(var/mob/user)
 		..()
-		boutput(user, "<span class='alert'>You can feel a proud and angry presence probing your mind...</span>")
-		src.cant_self_remove = true
-		src.cant_other_remove = true
-		sleep(1 SECOND)
-		if (user.bioHolder && user.bioHolder.HasEffect("accent_scots"))
-			boutput(user, "<span class='notice'>YE AR' ALREADY BLESSED!!!</span>")
-		else if (prob(50) && user.bioHolder && !src.rejected_mobs.Find(user))
-			boutput(user, "<span class='notice'>OCH, CAN YE 'EAR TH' HIELAN WINDS WHISPERIN' MY NAME??</span>")
-			sleep(1 SECOND)
-			boutput(user, "<span class='notice'>I AM ADA O'HARA! MA SPIRIT IS INDOMITABLE! I'LL MAKE YE INDOMITABLE TAE...</span>")
-			sleep(1 SECOND)
-			user.bioHolder.AddEffect("accent_scots")
-			boutput(user, "<span class='notice'>HEED FORTH, AYE? FECHT LANG AN' HAURD!!</span>")
-		else
-			boutput(user, "<span class='alert'>YE AR' NO' WORTHY OF ADA O'HARA'S BLESSIN'! FECK AFF!!!!</span>")
-			src.rejected_mobs.Add(user)
-		src.cant_self_remove = true
-		src.cant_other_remove = false
+		boutput(user, SPAN_ALERT("You can feel a proud and angry presence probing your mind..."))
+		src.cant_self_remove = TRUE
+		src.cant_other_remove = TRUE
+		SPAWN(1 SECOND)
+			if (user.bioHolder && user.bioHolder.HasEffect("accent_scots"))
+				boutput(user, SPAN_NOTICE("YE AR' ALREADY BLESSED!!!"))
+			else if (prob(50) && user.bioHolder && !src.rejected_mobs.Find(user))
+				boutput(user, SPAN_NOTICE("OCH, CAN YE 'EAR TH' HIELAN WINDS WHISPERIN' MY NAME??"))
+				sleep(1 SECOND)
+				boutput(user, SPAN_NOTICE("I AM ADA O'HARA! MA SPIRIT IS INDOMITABLE! I'LL MAKE YE INDOMITABLE TAE..."))
+				sleep(1 SECOND)
+				user.bioHolder.AddEffect("accent_scots")
+				boutput(user, SPAN_NOTICE("HEED FORTH, AYE? FECHT LANG AN' HAURD!!"))
+			else
+				boutput(user, SPAN_ALERT("YE AR' NO' WORTHY OF ADA O'HARA'S BLESSIN'! FECK AFF!!!!"))
+				src.rejected_mobs.Add(user)
+			src.cant_self_remove = TRUE
+			src.cant_other_remove = FALSE
 
 
 /area/centcom/offices/enakai
 	Entered(atom/movable/Obj,atom/OldLoc)
+		. = ..()
 		if (isliving(Obj))
 			var/mob/living/L = Obj
-			if (L.ckey == "enakai" || L.ckey == "rodneydick")		//The aussies are immune due to constant exposure
+			if (down_under_verification(L))		//The aussies are immune due to constant exposure
 				return
 			var/matrix/M = L.transform
 			animate(L, transform = matrix(M, 90, MATRIX_ROTATE | MATRIX_MODIFY), time = 3)
@@ -557,8 +568,107 @@ var/global/Z4_ACTIVE = 0 //Used for mob processing purposes
 	Exited(atom/movable/Obj, atom/newloc)
 		if (isliving(Obj))
 			var/mob/living/L = Obj
-			if (L.ckey == "enakai" || L.ckey == "rodneydick")
+			if (down_under_verification(L))
 				return
 			var/matrix/M = L.transform
 			animate(L, transform = matrix(M, -90, MATRIX_ROTATE | MATRIX_MODIFY), time = 3)
 			animate( transform = matrix(M, -90, MATRIX_ROTATE | MATRIX_MODIFY), time = 3)
+
+	proc/down_under_verification(var/mob/living/L)
+		return L.ckey in list("enakai", "rodneydick", "walpvrgis", "chrisb340")
+
+
+
+proc/get_centcom_mob_cloner_spawn_loc()
+	RETURN_TYPE(/turf)
+	if(length(landmarks[LANDMARK_CHARACTER_PREVIEW_SPAWN]))
+		shuffle_list(landmarks[LANDMARK_CHARACTER_PREVIEW_SPAWN])
+		for(var/turf/T in landmarks[LANDMARK_CHARACTER_PREVIEW_SPAWN])
+			if(isnull(locate(/mob/living) in T))
+				return T
+
+/obj/centcom_clone_wrapper
+	density = 1
+	anchored = UNANCHORED
+	mouse_opacity = 0
+	var/bumping = FALSE
+
+	New(atom/loc, mob/living/clone)
+		..()
+		src.vis_contents += clone
+
+	set_loc(newloc)
+		. = ..()
+		if(isnull(newloc) && !QDELETED(src))
+			src.vis_contents = null
+			qdel(src)
+
+	bump(atom/O)
+		. = ..()
+		if(bumping || !ismovable(O))
+			return
+		var/atom/movable/AM = O
+		bumping = TRUE
+		var/t = get_dir(src, AM)
+		AM.animate_movement = SYNC_STEPS
+		AM.glide_size = src.glide_size
+		step(AM, t)
+		step(src, t)
+		bumping = FALSE
+
+proc/put_mob_in_centcom_cloner(mob/living/L, indirect=FALSE)
+	var/atom/movable/clone = indirect ? new/obj/centcom_clone_wrapper(get_centcom_mob_cloner_spawn_loc(), L) : L
+	clone.name = L.name
+	var/area/AR = get_area(clone)
+	if(!istype(AR, /area/centcom/reconstitutioncenter))
+		clone.set_loc(get_centcom_mob_cloner_spawn_loc())
+	if(!indirect)
+		L.set_density(TRUE)
+		L.set_a_intent(INTENT_HARM)
+		L.dir_locked = TRUE
+	playsound(clone, 'sound/machines/ding.ogg', 50, TRUE)
+	clone.visible_message(SPAN_NOTICE("[L.name || "A clone"] pops out of the cloner."))
+	var/static/list/obj/machinery/conveyor/conveyors = null
+	var/static/conveyor_running_count = 0
+	if(isnull(conveyors))
+		conveyors = list()
+		for(var/obj/machinery/conveyor/C as anything in machine_registry[MACHINES_CONVEYORS])
+			if(C.id == "centcom cloning")
+				conveyors += C
+	if(conveyor_running_count == 0)
+		for(var/obj/machinery/conveyor/conveyor as anything in conveyors)
+			conveyor.operating = 1
+			conveyor.setdir()
+	conveyor_running_count++
+	SPAWN(8 SECONDS)
+		conveyor_running_count--
+		if(conveyor_running_count == 0)
+			for(var/obj/machinery/conveyor/conveyor as anything in conveyors)
+				conveyor.operating = 0
+				conveyor.setdir()
+
+/obj/item/reagent_containers/food/drinks/drinkingglass/shot/normal
+	name = "very normal drink"
+	desc = "Will not blow your leg off."
+	gulp_size = 25
+	initial_volume = 25
+
+	New()
+		. = ..()
+		src.create_reagents(src.initial_volume)
+		src.reagents.add_reagent("ice", 5, temp_new = T0C - 1)
+		src.reagents.add_reagent("potassium", 5, temp_new = T0C - 1)
+		src.reagents.add_reagent("LSD", 15, temp_new = T0C - 1)
+
+/obj/item/reagent_containers/food/drinks/drinkingglass/pitcher/gnesis
+	initial_reagents = "flockdrone_fluid"
+	default_material = "gnesisglass"
+
+/mob/living/critter/small_animal/crab/responsive
+
+
+/obj/item/reagent_containers/food/drinks/cola/efrem
+	#ifdef SECRETS_ENABLED
+	initial_reagents = list("cola"=10, "VHFCS"=10, "crime"=10)
+	#endif
+	name = "Bebop Cola"

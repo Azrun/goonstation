@@ -1,39 +1,32 @@
-/obj/line_obj/railgun
-	name = "Energy"
-	desc = ""
-	anchored = 1
+/obj/line_obj
+	anchored = ANCHORED
 	density = 0
 	opacity = 0
 
-	unpooled(var/pool)
-		name = initial(name)
-		desc = initial(desc)
-		anchored = initial(anchored)
-		density = initial(density)
-		opacity = initial(opacity)
-		icon = initial(icon)
-		icon_state = initial(icon_state)
-		layer = initial(layer)
-		pixel_x = initial(pixel_x)
-		pixel_y = initial(pixel_y)
-		..()
+/obj/line_obj/railgun
+	name = "Energy"
+	desc = ""
+	anchored = ANCHORED
+	density = 0
+	opacity = 0
 
 /obj/railgun_trg_dummy
 	name = ""
 	desc = ""
-	anchored = 1
+	anchored = ANCHORED
 	density = 0
 	opacity = 0
-	invisibility = 99
+	invisibility = INVIS_ALWAYS_ISH
 
 /obj/item/railgun
 	name = "Railgun"
 	desc = "Bzooom"
-	icon = 'icons/obj/items/gun.dmi'
-	inhand_image_icon = 'icons/mob/inhand/hand_weapons.dmi'
+	icon = 'icons/obj/items/guns/energy.dmi'
+	inhand_image_icon = 'icons/mob/inhand/hand_guns.dmi'
 	icon_state = "railgun"
 	item_state = "gun"
-	flags = FPRINT | EXTRADELAY | TABLEPASS | CONDUCT
+	flags = EXTRADELAY | TABLEPASS | CONDUCT
+	health = 10
 	w_class = W_CLASS_SMALL
 
 	afterattack(atom/target as mob|obj|turf, mob/user as mob)
@@ -44,12 +37,12 @@
 		if(isturf(target))
 			target_r = new/obj/railgun_trg_dummy(target)
 
-		playsound(src, "sound/weapons/railgun.ogg", 40, 1)
+		playsound(src, 'sound/weapons/railgun.ogg', 40, TRUE)
 
 		var/list/affected = DrawLine(src.loc, target_r, /obj/line_obj/railgun ,'icons/obj/projectiles.dmi',"WholeRailG",1,1,"HalfStartRailG","HalfEndRailG",OBJ_LAYER,1)
 
 		for(var/obj/O in affected)
-			O.anchored = 1 //Proc wont spawn the right object type so lets do that here.
+			O.anchored = ANCHORED //Proc wont spawn the right object type so lets do that here.
 			O.name = "Energy"
 			var/turf/src_turf = O.loc
 			for(var/atom/A in src_turf)
@@ -58,7 +51,7 @@
 //			var/turf/T = O.loc
 //			for(var/atom/A in T.contents)
 //				boutput(src, "There is a [A.name] at this location.")
-			SPAWN_DBG(0.5 SECONDS) pool(O)
+			SPAWN(0.5 SECONDS) qdel(O)
 
 		if(istype(target_r, /obj/railgun_trg_dummy)) qdel(target_r)
 
@@ -233,7 +226,7 @@ proc/DrawLine(atom/Start,atom/End,LineType,Icon,Whole_Icon_State = "",CenterOfIc
 	var/CoorCounter = Nullspace
 	if(Start.loc != End.loc&&!(Start.loc in orange(1,End.loc)))
 		while(CurrentLoc&&!(((ReturnedDir == NORTH||ReturnedDir == SOUTH)&&CurrentLoc.x == End.x)||((ReturnedDir == EAST||ReturnedDir == WEST)&&CurrentLoc.y == End.y)||(ReturnedDir == null&&CurrentLoc == End.loc)))
-			var/obj/NewLine = unpool(LineType)
+			var/obj/NewLine = new LineType
 			if(!PreloadedIcon)
 				NewLine.icon = I
 				NewLine.icon_state = Whole_Icon_State
@@ -255,7 +248,7 @@ proc/DrawLine(atom/Start,atom/End,LineType,Icon,Whole_Icon_State = "",CenterOfIc
 			CoorCounter += Nullspace
 			CurrentLoc = line_ReturnNextTile(CurrentLoc,Angle)
 	if(CenterOfIconStart == 1)
-		var/obj/NewLineStart = unpool(LineType)
+		var/obj/NewLineStart = new LineType
 		if(!PreloadedIcon)
 			NewLineStart.icon = I
 			NewLineStart.icon_state = HalfStart_Icon_State
@@ -267,7 +260,7 @@ proc/DrawLine(atom/Start,atom/End,LineType,Icon,Whole_Icon_State = "",CenterOfIc
 		NewLineStart.set_loc(Start.loc)
 		LineList.Add(NewLineStart)
 	if(CenterOfIconEnd == 1)
-		var/obj/NewLineEnd = unpool(LineType)
+		var/obj/NewLineEnd = new LineType
 		if(!PreloadedIcon)
 			NewLineEnd.icon = I
 			NewLineEnd.icon_state = HalfEnd_Icon_State
@@ -291,28 +284,28 @@ proc/DrawLine(atom/Start,atom/End,LineType,Icon,Whole_Icon_State = "",CenterOfIc
 		else
 			if(L.pixel_y >= 17)
 				if(ExtraDetection == 1&&L.pixel_y <= 21)
-					var/obj/ExtraLine = unpool(LineType)
+					var/obj/ExtraLine = new LineType
 					ExtraLine.set_loc(L.loc)
 					LineList.Add(ExtraLine)
 				L.pixel_y -= 32
 				L.y++
 			if(L.pixel_y <= -17)
 				if(ExtraDetection == 1&&L.pixel_y >= -21)
-					var/obj/ExtraLine = unpool(LineType)
+					var/obj/ExtraLine = new LineType
 					ExtraLine.set_loc(L.loc)
 					LineList.Add(ExtraLine)
 				L.pixel_y += 32
 				L.y--
 			if(L.pixel_x >= 17)
 				if(ExtraDetection == 1&&L.pixel_x <= 21)
-					var/obj/ExtraLine = unpool(LineType)
+					var/obj/ExtraLine = new LineType
 					ExtraLine.set_loc(L.loc)
 					LineList.Add(ExtraLine)
 				L.pixel_x -= 32
 				L.x++
 			if(L.pixel_x <= -17)
 				if(ExtraDetection == 1&&L.pixel_x >= -21)
-					var/obj/ExtraLine = unpool(LineType)
+					var/obj/ExtraLine = new LineType
 					ExtraLine.set_loc(L.loc)
 					LineList.Add(ExtraLine)
 				L.pixel_x += 32

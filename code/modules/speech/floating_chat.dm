@@ -2,17 +2,44 @@
 	appearance_flags = TILE_BOUND | RESET_COLOR | RESET_ALPHA | RESET_TRANSFORM | KEEP_APART | PIXEL_SCALE
 	mouse_opacity = 0
 	var/list/image/chat_maptext/lines = list() // a queue sure would be nice
+	var/atom/movable/target
+	var/registered = FALSE
+
+	New(loc, atom/movable/target)
+		..()
+		if (isnull(target))
+			CRASH("chat_maptext_holder requires a target")
+		src.target = target
+
+	proc/update_outermost_movable(atom/movable/_target, atom/movable/old_outermost, atom/movable/new_outermost)
+		// use turf for the chat if we are in a disposal pipe and other such underfloor things
+		if (old_outermost.level == UNDERFLOOR && old_outermost.invisibility == INVIS_ALWAYS)
+			old_outermost = old_outermost.loc
+		if (new_outermost.level == UNDERFLOOR && new_outermost.invisibility == INVIS_ALWAYS)
+			new_outermost = new_outermost.loc
+
+		old_outermost?.vis_contents -= src
+		new_outermost?.vis_contents += src
+
+	proc/notify_empty()
+		if(registered)
+			UnregisterSignal(target, XSIG_OUTERMOST_MOVABLE_CHANGED)
+			registered = FALSE
+			vis_locs = null
+
+	proc/notify_nonempty()
+		if(!registered)
+			outermost_movable(target)?.vis_contents += src
+			RegisterSignal(target, XSIG_OUTERMOST_MOVABLE_CHANGED, PROC_REF(update_outermost_movable))
+			registered = TRUE
 
 	disposing()
 		for(var/image/chat_maptext/I in src.lines)
-			pool(I)
+			qdel(I)
 		src.lines = null
-		for(var/A in src.vis_locs)
-			if(isliving(A))
-				var/mob/living/L = A
-				if(L.chat_text == src)
-					L.chat_text = null
-			A:vis_contents -= src
+		if(src.target.chat_text == src)
+			src.target.chat_text = null
+		src.target = null
 		..()
 
 /image/chat_maptext
@@ -30,26 +57,6 @@
 	appearance_flags = PIXEL_SCALE
 	var/unique_id
 	var/measured_height = 8
-
-	unpooled(var/pooltype)
-		..()
-		// for optimization purposes some of these could probably be left out if necessary because they *shouldn't* ever change
-		src.bumped = initial(src.bumped)
-		src.layer = initial(src.layer)
-		src.plane = initial(src.plane)
-		src.maptext_x = initial(src.maptext_x)
-		src.maptext_y = initial(src.maptext_y)
-		src.maptext_width = initial(src.maptext_width)
-		src.maptext_height = initial(src.maptext_height)
-		src.alpha = initial(src.alpha)
-		src.icon = initial(src.icon)
-		src.appearance_flags = initial(src.appearance_flags)
-		src.measured_height = initial(src.measured_height)
-		src.transform = null
-		for(var/client/C in src.visible_to)
-			C.images -= src
-		src.visible_to = list()
-		src.unique_id = TIME
 
 	disposing()
 		if(istype(src.loc, /obj/chat_maptext_holder))
@@ -74,7 +81,7 @@
 		who << src
 		src.visible_to += who
 		/*var/mob/whomob = who.mob
-		if(istype(whomob) && !isunconscious(whomob) && isliving(whomob) && !whomob.sleeping && !whomob.getStatusDuration("paralysis"))
+		if(istype(whomob) && !isunconscious(whomob) && isliving(whomob) && !whomob.sleeping && !whomob.getStatusDuration("unconscious"))
 			for (var/mob/dead/target_observer/observer in whomob:observers)
 				if(!observer.client)
 					continue
@@ -84,32 +91,46 @@
 	proc/measure(var/client/who)
 		var/measured = 8
 		// MeasureText sleeps and that fucks up a lot, removing for now
-		return measured * (1 + round(length(src.maptext_width) / 128))
+		src.measured_height = measured * (1 + round(length(src.maptext) / 80))
 
-proc/make_chat_maptext(atom/target, msg, style = "", alpha = 255, force = 0)
-	var/image/chat_maptext/text = unpool(/image/chat_maptext)
+proc/make_chat_maptext(atom/target, msg, style = "", alpha = 255, force = 0, time = 40)
+	var/image/chat_maptext/text = new /image/chat_maptext
 	animate(text, maptext_y = 28, time = 0.01) // this shouldn't be necessary but it keeps breaking without it
 	if (!force)
-		msg = copytext(msg, 1, 128) // 4 lines, seems fine to me
+		msg = copytext(msg, 1, 256) // 4 lines, seems fine to me
 		text.maptext = "<span class='pixel c ol' style=\"[style]\">[msg]</span>"
 	else
 		// force whatever it is to be shown. for not chat tings. honk.
 		text.maptext = msg
-	if(istype(target, /atom/movable) && target.chat_text)
+
+	var/obj/chat_maptext_holder/holder = target.chat_text
+
+	if(istype(target, /atom/movable) && holder)
 		var/atom/movable/L = target
-		text.loc = L.chat_text
-		if(length(L.chat_text.lines) && L.chat_text.lines[length(L.chat_text.lines)].maptext == text.maptext)
-			L.chat_text.lines[length(L.chat_text.lines)].transform *= 1.05
-			pool(text)
-			return null
-		L.chat_text.lines.Add(text)
-	else // hmm?
+		holder = L.chat_text
+		text.loc = holder
+		if (target.layer > HUD_LAYER)
+			text.layer = target.layer+1
+	else
 		text.loc = target
+
+	if (holder)
+		if(length(holder.lines) && holder.lines[length(holder.lines)].maptext == text.maptext)
+			holder.lines[length(holder.lines)].transform *= 1.05
+			qdel(text)
+			return null
+
+		holder.lines.Add(text)
+
+		holder.notify_nonempty()
+
 	animate(text, alpha = alpha, maptext_y = 34, time = 4, flags = ANIMATION_END_NOW)
 	var/text_id = text.unique_id
-	SPAWN_DBG(4 SECONDS)
+	SPAWN(time)
 		if(text_id == text.unique_id)
 			text.bump_up(invis=1)
 			sleep(0.5 SECONDS)
-			pool(text)
+			qdel(text)
+			if (holder && !length(holder.lines))
+				holder.notify_empty()
 	return text

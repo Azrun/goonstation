@@ -21,12 +21,15 @@
 	3) Done.
 */
 
-obj/machinery/recharger
-	anchored = 1.0
+TYPEINFO(/obj/machinery/recharger)
+	mats = 16
+
+/// Typical powercell recharger
+/obj/machinery/recharger
+	anchored = ANCHORED
 	icon = 'icons/obj/stationobjs.dmi'
 	icon_state = "recharger0"
 	name = "recharger"
-	mats = 16
 	deconstruct_flags = DECON_SCREWDRIVER | DECON_MULTITOOL
 	desc = "An anchored minature recharging device, used to recharge small, hand-held objects that don't require much electrical charge."
 	power_usage = 50
@@ -40,96 +43,98 @@ obj/machinery/recharger
 	var/accepted_types = list( /obj/item/gun/energy, \
 								/obj/item/baton, \
 								/obj/item/cargotele, \
-								/obj/item/mining_tool/power_pick, \
-								/obj/item/mining_tool/powerhammer, \
+								/obj/item/mining_tool/powered/pickaxe, \
+								/obj/item/mining_tool/powered/hammer, \
 								/obj/item/ammo/power_cell, \
-								/obj/item/mining_tool/power_shovel
+								/obj/item/mining_tool/powered/shovel
 								)
 
 	var/obj/item/charging = null
 	var/charge_amount = 0
 	var/charge_status = 0
 
-	//wall rechargers!!
-	wall
-		icon_state = "wall_recharger0"
-		name = "wall mounted recharger"
-		desc = "A recharger, refitted to be mounted onto a wall. Handy!"
-		sprite_empty = "wall_recharger0"
-		sprite_charging = "wall_recharger1"
-		sprite_complete = "wall_recharger2"
-		sprite_error = "wall_recharger3"
+/// wall rechargers!!
+/obj/machinery/recharger/wall
+	icon_state = "wall_recharger0"
+	name = "wall mounted recharger"
+	desc = "A recharger, refitted to be mounted onto a wall. Handy!"
+	sprite_empty = "wall_recharger0"
+	sprite_charging = "wall_recharger1"
+	sprite_complete = "wall_recharger2"
+	sprite_error = "wall_recharger3"
 
-		//this version just autopositions itself onto walls depending what direction it's facing
-		sticky
-			New()
-				..()
-				var/turf/T = null
-				for (var/dir in cardinal)
-					T = get_step(src,dir)
-					if (istype(T,/turf/simulated/wall))
-						src.set_dir(dir)
-						switch(src.dir)
-							if(NORTH)
-								src.pixel_y = 28
-								break
-							if(SOUTH)
-								src.pixel_y = -22
-								break
-							if(EAST)
-								src.pixel_x = 23
-								break
-							if(WEST)
-								src.pixel_x = -23
-								break
+//this version just autopositions itself onto walls depending what direction it's facing
+/obj/machinery/recharger/wall/sticky
+	New()
+		..()
+		var/turf/T = null
+		for (var/dir in cardinal)
+			T = get_step(src,dir)
+			if (istype(T,/turf/simulated/wall))
+				src.set_dir(dir)
+				switch(src.dir)
+					if(NORTH)
+						src.pixel_y = 28
 						break
-				T = null
+					if(SOUTH)
+						src.pixel_y = -22
+						break
+					if(EAST)
+						src.pixel_x = 23
+						break
+					if(WEST)
+						src.pixel_x = -23
+						break
+				break
+		T = null
 
+/obj/machinery/recharger/disposing()
+	src.remove_charging(null)
+	. = ..()
 
-/obj/machinery/recharger/attackby(obj/item/G as obj, mob/user as mob)
-	if (isrobot(user)) return
+/obj/machinery/recharger/attackby(obj/item/G, mob/user)
+	if (isrobot(user))
+		return
 	if (src.charging)
 		return
 
-	//Type validation
-	var/obj/item/to_charge = null
-	for(var/type in accepted_types)
-		if ( istype(G, type) )
-			to_charge = G
-			continue
+	var/ret = SEND_SIGNAL(G, COMSIG_CELL_CAN_CHARGE)
 
-	if(to_charge)
-
-		user.drop_item()
-		to_charge.set_loc(src)
-		if (to_charge.loc == src)
-			src.charging = to_charge
+	if(ret & CELL_UNCHARGEABLE)
+		boutput(user, SPAN_ALERT("[G] is not compatible with \the [src]!"))
+	else if(ret & CELL_CHARGEABLE)
+		user.drop_item(G)
+		G.set_loc(src)
+		if (G.loc == src)
+			src.charging = G
 			charge_status = STATUS_ACTIVE
-			update_icon()
+			UpdateIcon()
 	else
-		boutput(user, "<span class='alert'>That [G.name] won't fit in \the [src]!")
+		boutput(user, SPAN_ALERT("That [G.name] won't fit in \the [src]!"))
 
-/obj/machinery/recharger/attack_hand(mob/user as mob)
+/obj/machinery/recharger/attack_hand(mob/user)
 	src.add_fingerprint(user)
-	remove_charging()
+	remove_charging(user)
 
-/obj/machinery/recharger/proc/remove_charging()
+/obj/machinery/recharger/proc/remove_charging(mob/user)
 	//Remove the currently charging item
 	if (src.charging)
 		try
 			//Some items will want to update their icons after a charge. Try doing so here
-			src.charging:update_icon()
+			src.charging:UpdateIcon()
 		catch
 			//Pass
 
-		src.charging.set_loc(src.loc)
+		if (user)
+			user.put_in_hand_or_eject(src.charging)
+		else
+			src.charging.set_loc(src.loc)
 		src.charging = null
 
-		power_usage = 50
 		charge_status = STATUS_INACTIVE
-		src.update_icon()
+		src.UpdateIcon()
 
-/obj/machinery/recharger/proc/update_icon()
+/obj/machinery/recharger/update_icon()
 	if (status & NOPOWER || charge_status == STATUS_INACTIVE)
 		// No power - show blank machine
 		src.icon_state = sprite_empty
@@ -143,55 +148,43 @@ obj/machinery/recharger
 		// Something wrong with the item we inserted. Report an error
 		src.icon_state = sprite_error
 
+/obj/machinery/recharger/get_desc(dist)
+	. = ..()
+	if(dist > 2)
+		return
+	. += "<br> <span class='notice'> It is currently recharging:"
+	if(charge_status == STATUS_ACTIVE || charge_status == STATUS_COMPLETE)
+		var/list/charge = list();
+		if(SEND_SIGNAL(src.charging, COMSIG_CELL_CHECK_CHARGE, charge) & CELL_RETURNED_LIST)
+			. += "<br> [SPAN_NOTICE(" \The [charging.name]! Progress: [charge["charge"]]/[charge["max_charge"]]PU ")]"
+	else
+		. += "<br>Nothing! </span>"
+	return
 
-/obj/machinery/recharger/process(var/mult)
-	// what the fuck
-	// why
-	// why the fuck
-	// why
-	// WHY
-	// WHYYYYYYYYYYYYYYYYYYYYYYYYYY?Y?Y?Y?Y?Y?Y?Y????!!?G?!G!?
-	// WHO
-	// WHO DID THIS
-	// WHY DID YOU DO THIS
-	// die
+
+/obj/machinery/recharger/process(mult)
 	if(status & NOPOWER)
 		src.icon_state = sprite_empty
-		update_icon()
+		src.remove_charging()
+		UpdateIcon()
 		return
 
-
-	if (src.charging && charge_status != STATUS_INACTIVE)
-		power_usage = ACTIVE_POWER_DRAIN * mult
-	else
-		power_usage = 50 * mult
-
-
 	if(charge_status == STATUS_ACTIVE && src.charging)
-		try
-			//Do the charging - all items to be recharged should implement proc/charge()
-			switch(src.charging:charge(CHARGE_AMOUNT * mult))
-				if(REPORT_FINISH)
-					// Charge complete
-					charge_status = STATUS_COMPLETE
-					playsound(src, 'sound/machines/ping.ogg', 50)
-					update_icon()
-				if(REPORT_ERROR)
-					// Charge failed - the item does not want to be recharged
-					charge_status = STATUS_ERRORED
-					src.visible_message("<span class='alert'>[src.charging] is not compatible with \the [src].</span>")
-					playsound(src, 'sound/machines/buzz-sigh.ogg', 50)
-					update_icon()
-
-		catch
-			//This item was on accepted_items, but didn't have a proc/charge()
-			src.visible_message("<span class='alert'>[src] could not interface with \the [src.charging].</span>")
-			playsound(src, 'sound/machines/buzz-sigh.ogg', 50)
+		var/ret = SEND_SIGNAL(src.charging, COMSIG_CELL_CHARGE, CHARGE_AMOUNT * mult)
+		if(ret & CELL_FULL)
+			// Charge complete
+			charge_status = STATUS_COMPLETE
+			playsound(src, 'sound/machines/ping.ogg', 50)
+			UpdateIcon()
+		else if(ret & CELL_UNCHARGEABLE)
+			// Charge failed - the item does not want to be recharged
 			charge_status = STATUS_ERRORED
-			update_icon()
+			src.visible_message(SPAN_ALERT("[src.charging] is not compatible with \the [src]."))
+			playsound(src, 'sound/machines/buzz-sigh.ogg', 50)
+			UpdateIcon()
 
-
-
+	if(src.charging && charge_status != STATUS_INACTIVE)
+		use_power(ACTIVE_POWER_DRAIN)
 	..()
 
 #undef CHARGE_AMOUNT

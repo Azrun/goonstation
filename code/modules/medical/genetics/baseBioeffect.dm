@@ -35,15 +35,14 @@ ABSTRACT_TYPE(/datum/bioEffect)
 	var/list/mob_exclusion = list() // this bio-effect won't occur in the pools of mob types in this list
 	var/mob_exclusive = null // bio-effect will only occur in this mob type
 
-	var/mob/owner = null  //Mob that owns this effect.
-	var/datum/bioHolder/holder = null //Holder that contains this effect.
+	var/tmp/mob/owner = null  //Mob that owns this effect.
+	var/tmp/datum/bioHolder/holder = null //Holder that contains this effect.
 
 	var/msgGain = "" //Message shown when effect is added.
 	var/msgLose = "" //Message shown when effect is removed.
 
 	var/timeLeft = -1//Time left for temporary effects.
 
-	var/variant = 1  //For effects with different variants.
 	var/cooldown = 0 //For effects that come with verbs
 	var/can_reclaim = 1 // Can this gene be turned into mats with the reclaimer?
 	var/can_scramble = 1 // Can this gene be scrambled with the emitter?
@@ -53,13 +52,21 @@ ABSTRACT_TYPE(/datum/bioEffect)
 	var/req_mut_research = null // If set, need to research the mutation before you can do anything w/ this one
 	var/reclaim_mats = 10 // Materials returned when this gene is reclaimed
 	var/reclaim_fail = 5 // Chance % for a reclamation of this gene to fail
-	var/curable_by_mutadone = 1
+	var/curable_by_mutadone = TRUE //! if 0/FALSE, we cant mutadone this - reinforced, magic genes and anti-toxins use this
+	var/is_magical = FALSE //! only for trait genes/similar, we really dont want to lose this
 	var/stability_loss = 0
-	var/activated_from_pool = 0
+	var/tmp/activated_from_pool = 0
 	var/altered = 0
 	var/add_delay = 0
 	var/wildcard = 0
+	var/power = 1
+	var/safety = 0
 	var/degrade_to = null // what this mutation turns into if stability is too low
+	///if this mutation should degrade after timing out
+	var/degrade_after = FALSE
+
+	///groups of mutually exclusive bioeffects
+	var/effect_group = null
 
 	var/datum/dnaBlocks/dnaBlocks = null
 
@@ -78,45 +85,57 @@ ABSTRACT_TYPE(/datum/bioEffect)
 			if (istype(global_instance, /datum/bioEffect/power))
 				global_instance_power = global_instance
 		dnaBlocks = new/datum/dnaBlocks(src)
-		return ..()
+		. = ..()
 
 	disposing()
+		src.global_instance = null
+		src.global_instance_power = null
 		if(src.holder)
 			src.holder.RemovePoolEffect(src)
 			src.holder.RemoveEffect(src.id)
-		if(!removed)
+		if(!removed && src.owner)
 			src.OnRemove()
+		QDEL_NULL(src.dnaBlocks)
 		holder = null
 		owner = null
-		dnaBlocks?.dispose()
-		dnaBlocks = null
 		..()
 
-	proc/OnAdd()     //Called when the effect is added.
+	/// Called when the effect is added.
+	proc/OnAdd()
+		SHOULD_CALL_PARENT(TRUE)
 		removed = 0
 		if(overlay_image)
 			if(isliving(owner))
 				var/mob/living/L = owner
-				L.UpdateOverlays(overlay_image, id)
-		return
+				L.AddOverlays(overlay_image, id)
 
-	proc/OnRemove()  //Called when the effect is removed.
+	/// Called when the effect is removed.
+	/// Returns FALSE if the holder is being deleted, TRUE otherwise.
+	proc/OnRemove()
+		SHOULD_CALL_PARENT(TRUE)
+		. = TRUE
 		removed = 1
 		if(overlay_image)
 			if(isliving(owner))
 				var/mob/living/L = owner
-				L.UpdateOverlays(null, id)
-		return
+				L.ClearSpecificOverlays(id)
+		if (QDELETED(src.holder))
+			return FALSE
 
-	proc/OnMobDraw() //Called when the overlays for the mob are drawn. Children should NOT run when this returns 1
+	/// Called when the overlays for the mob are drawn. Children should NOT run when this returns 1
+	proc/OnMobDraw()
+		SHOULD_CALL_PARENT(TRUE)
 		return removed
 
-	proc/OnLife(var/mult)    //Called when the life proc of the mob is called. Children should NOT run when this returns 1
-		return removed
+	/// Called when the life proc of the mob is called. Children should NOT run when this returns 1
+	proc/OnLife(var/mult)
+		SHOULD_CALL_PARENT(TRUE)
+		return removed || QDELETED(owner)
 
+	/// Gets a copy of this effect. Used to build local effect pool from global instance list.
+	/// Please don't use this for anything else as it might not work as you think it should.
 	proc/GetCopy()
-		//Gets a copy of this effect. Used to build local effect pool from global instance list.
-		//Please don't use this for anything else as it might not work as you think it should.
+
 		var/datum/bioEffect/E = new src.type()
 		E.dnaBlocks.blockList = src.dnaBlocks.blockList
 		//Since we assume that the effect being copied is the one in the global pool we copy
@@ -132,6 +151,14 @@ ABSTRACT_TYPE(/datum/bioEffect)
 				return BE
 			else
 				return null
+
+	proc/onPowerChange(oldval, newval)
+		return
+
+	onVarChanged(variable, oldval, newval)
+		. = ..()
+		if(variable == "power")
+			src.onPowerChange(oldval, newval)
 
 /datum/dnaBlocks
 	var/datum/bioEffect/owner = null
@@ -191,17 +218,17 @@ ABSTRACT_TYPE(/datum/bioEffect)
 		//Make sure you don't have more gaps than basepairs or youll get an error.
 		//But at that point the mutation would be unsolvable.
 
-		if(owner.blockGaps > length(blockListCurr))
-			CRASH("bioEffect [owner.name] has [owner.blockGaps] block gaps but only [length(blockListCurr)] blocks")
+		if(src.owner.blockGaps > length(src.blockListCurr))
+			CRASH("bioEffect [owner.name] has [owner.blockGaps] block gaps but only [length(blockListCurr)] blocks ([json_encode(blockListCurr)])")
 
-		for(var/i=0, i<owner.blockGaps, i++)
+		for(var/i=0, i < owner.blockGaps, i++)
 			var/datum/basePair/bp = pick(blockListCurr - gapList)
 			gapList.Add(bp)
 			bp.bpp1 = "?"
 			bp.bpp2 = "?"
 			bp.style = "X"
 
-		for(var/i=0, i<owner.lockedGaps, i++)
+		for(var/i=0, i < owner.lockedGaps, i++)
 			if (!prob(owner.lockProb))
 				continue
 			var/datum/basePair/bp = pick(blockListCurr - gapList)
@@ -263,39 +290,6 @@ ABSTRACT_TYPE(/datum/bioEffect)
 	var/lockcode = ""
 	var/locktries = 0
 
-/atom/movable/screen/ability/topBar/genetics
-	tens_offset_x = 19
-	tens_offset_y = 7
-	secs_offset_x = 23
-	secs_offset_y = 7
-
-	clicked(parameters)
-		var/mob/living/user = usr
-
-		if (!istype(user) || !istype(owner))
-			boutput(user, "<span class='alert'>Oh christ something's gone completely batshit. Report this to a coder.</span>")
-			return
-
-		if (!owner.cooldowncheck())
-			boutput(user, "<span class='alert'>That ability is on cooldown for [round((owner.last_cast - world.time) / 10)] seconds.</span>")
-			return
-
-		if (!owner.targeted)
-			owner.handleCast()
-			return
-		else
-			user.targeting_ability = owner
-			user.update_cursor()
-
-	get_controlling_mob()
-		if (!istype(owner,/datum/targetable/geneticsAbility/))
-			return null
-		var/datum/targetable/geneticsAbility/GA = owner
-		var/mob/M = GA.owner
-		if (!istype(M) || !M.client)
-			return null
-		return M
-
 /datum/targetable/geneticsAbility
 	icon = 'icons/mob/genetics_powers.dmi'
 	icon_state = "template"
@@ -309,89 +303,154 @@ ABSTRACT_TYPE(/datum/bioEffect)
 	var/datum/bioEffect/power/linked_power = null
 	var/mob/living/owner = null
 
-	New()
-		var/atom/movable/screen/ability/topBar/genetics/B = new /atom/movable/screen/ability/topBar/genetics(null)
-		B.icon = src.icon
-		B.icon_state = src.icon_state
-		B.name = src.name
-		B.desc = src.desc
-		B.owner = src
-		src.object = B
-
 	disposing()
 		owner = null
 		linked_power = null
 		..()
 
-	doCooldown()
-		if (ishuman(owner))
-			var/mob/living/carbon/human/H = owner
-			last_cast = world.time + linked_power.cooldown
-			if (linked_power.cooldown > 0)
-				SPAWN_DBG(linked_power.cooldown)
-					if (src && H?.hud)
-						H.hud.update_ability_hotbar()
 
-	tryCast(atom/target)
+	castcheck(atom/target)
+		if (!owner)
+			return FALSE
+		if (!linked_power)
+			return FALSE
 		if (can_act_check && !can_act(owner, needs_hands))
-			return 999
-		if (last_cast > world.time)
-			boutput(holder.owner, "<span class='alert'>That ability is on cooldown for [round((last_cast - world.time) / 10)] seconds.</span>")
-			return 999
+			return FALSE
+		if (targeted && GET_DIST(src.holder?.owner, target) > src.max_range)
+			boutput(src.holder?.owner, SPAN_ALERT("[target] is too far away."))
+			return FALSE
+		return ..()
 
-		if (has_misfire)
-			var/success_prob = 100
-			if (ishuman(owner))
-				var/mob/living/carbon/human/H = owner
-				if (H.bioHolder)
-					var/datum/bioHolder/BH = H.bioHolder
-					success_prob = BH.genetic_stability
-					success_prob = max(success_prob_min_cap,min(success_prob,100))
-
-			if (prob(success_prob))
-				. = cast(target)
-			else
-				. = cast_misfire(target)
-		else
-			. = cast(target)
-
-	handleCast(atom/target)
-		var/result = tryCast(target)
-		if (result && result != 999)
-			last_cast = 0 // reset cooldown
-		else if (result != 999)
-			doCooldown()
-		afterCast()
+	handleCast(atom/target, params)
+		if (src.linked_power) //paranoia check to keep them synched
+			src.cooldown = src.linked_power.cooldown
+		..()
 
 	cast(atom/target)
-		if (!owner)
-			return 1
-		if (!linked_power)
-			return 1
-		if (ismob(target))
-			logTheThing("combat", owner, target, "used the [linked_power.name] power on [constructTarget(target,"combat")].")
-		else if (target)
-			logTheThing("combat", owner, null, "used the [linked_power.name] power on [target].")
+		if (!has_misfire)
+			return ..(target)
+		var/success_prob = 100
+		success_prob = src.linked_power.holder.genetic_stability
+		success_prob = lerp(clamp(success_prob, 0, 100), 100, success_prob_min_cap/100)
+		if (prob(success_prob))
+			return ..(target)
 		else
-			logTheThing("combat", owner, null, "used the [linked_power.name] power.")
-		return 0
+			return cast_misfire(target)
+
+	logCast(atom/target)
+		if (target)
+			logTheThing(LOG_COMBAT, src.holder?.owner, "used the [linked_power.name] power on [constructTarget(target,"combat")] at [log_loc(target)].")
+		else if (!linked_power.ability_path:targeted)
+			logTheThing(LOG_COMBAT, src.holder?.owner, "used the [linked_power.name] power at [log_loc(src.holder?.owner)].")
 
 	proc/cast_misfire(atom/target)
-		if (!owner)
-			return 1
-		if (!linked_power)
-			return 1
-		if (ismob(target))
-			logTheThing("combat", owner, target, "misfired the [linked_power.name] power on [constructTarget(target,"combat")].")
-		else if (target)
-			logTheThing("combat", owner, null, "misfired the [linked_power.name] power on [target].")
+		if (target)
+			logTheThing(LOG_COMBAT, owner, "misfired the [linked_power.name] power on [constructTarget(target,"combat")] at [log_loc(target)].")
 		else
-			logTheThing("combat", owner, null, "misfired the [linked_power.name] power.")
+			logTheThing(LOG_COMBAT, owner, "misfired the [linked_power.name] power at [log_loc(owner)].")
 		return 0
 
+
+/datum/targetable/geneticsAbility/wrapper
+	var/wrapped_ability = null
+	var/datum/targetable/ability = null
+	var/list/override_params
+
+	New(datum/abilityHolder/holder)
+		ability = new wrapped_ability(holder)
+		src.holder = holder
+		src.name = ability.name
+		src.desc = ability.desc
+		src.disabled = ability.disabled
+		if( !src.cooldown ) src.cooldown = ability.cooldown
+		if( !src.max_range) src.max_range = ability.max_range
+		if( !src.start_on_cooldown ) src.start_on_cooldown = ability.start_on_cooldown
+
+		if(override_params && islist(override_params))
+			for(var/key in override_params)
+				if(hasvar(ability, key) && !(key in src.vars) && !isatom(override_params[key]))
+					ability.vars[key] = override_params[key]
+
+		src.pointCost = ability.pointCost
+		src.special_screen_loc = ability.special_screen_loc
+		src.helpable = ability.helpable
+
+		src.cd_text_color = ability.cd_text_color
+		src.copiable = ability.copiable
+		src.targeted = ability.targeted
+		src.target_anything = ability.target_anything
+		src.target_in_inventory = ability.target_in_inventory
+		src.target_nodamage_check = ability.target_nodamage_check
+		src.target_ghosts = ability.target_ghosts
+		src.target_selection_check = ability.target_selection_check
+		src.lock_holder = ability.lock_holder
+		src.ignore_holder_lock = ability.ignore_holder_lock
+		src.restricted_area_check = ability.restricted_area_check
+		src.check_range = ability.check_range
+		src.sticky = ability.sticky
+		src.ignore_sticky_cooldown = ability.ignore_sticky_cooldown
+		src.interrupt_action_bars = ability.interrupt_action_bars
+		src.cooldown_after_action = ability.cooldown_after_action
+		src.action_key_number = ability.action_key_number
+		src.waiting_for_hotkey = ability.waiting_for_hotkey
+		src.theme = ability.theme
+		src.tooltip_flags = ability.tooltip_flags
+
+		..()
+
+		if (!src.icon || !src.icon_state)
+			src.object.icon = ability.icon
+			src.object.icon_state = ability.icon_state
+		src.object.name = ability.name
+		src.object.desc = ability.desc
+
+	onAttach(datum/abilityHolder/H)
+		. = ..()
+		var/atom/movable/screen/ability/topBar/B = src.object
+		var/icon/overlay_icon = icon(src.ability.icon,src.ability.icon_state)
+		overlay_icon.Blend(icon('icons/mob/genetics_powers.dmi',"darkener"), ICON_ADD)
+		B.UpdateOverlays(image(overlay_icon), "ability_overlay")
+
+	onAttach(var/datum/abilityHolder/H)
+		..()
+
+	cast(atom/target)
+		if (..())
+			return 1
+		. = ability.cast(target)
+
+	handleCast(atom/target, params)
+		. = ..()
+		src.ability.last_cast = src.last_cast
+
+	// Don't remove the holder.locked checks, as lots of people used lag and click-spamming
+	// to execute one ability multiple times. The checks hopefully make it a bit more difficult.
+	tryCast(atom/target, params)
+		. = ability.tryCast(arglist(args))
+
+	updateObject()
+		. = ability.updateObject(arglist(args))
+
+	castcheck(atom/target)
+		. = ..() && ability.castcheck(arglist(args))
+
 	afterCast()
-		if (ishuman(owner))
-			var/mob/living/carbon/human/H = owner
-			if (H?.hud)
-				H.hud.update_ability_hotbar()
-		return 0
+		. = ability.afterCast(arglist(args))
+
+	afterAction()
+		. = ability.afterAction(arglist(args))
+
+	Stat()
+		updateObject(holder.owner)
+		stat(null, object)
+		. = ability.Stat(arglist(args))
+
+	// See comment in /atom/movable/screen/ability (Convair880).
+	target_reference_lookup()
+		. = ability.target_reference_lookup(arglist(args))
+
+	display_available()
+		. = ..() && ability.display_available(arglist(args))
+
+	flip_callback()
+		. = ability.flip_callback(arglist(args))

@@ -1,8 +1,18 @@
 
 /* ==================== Area ==================== */
-
+TYPEINFO(/area/station/shield_zone)
+	valid_bounty_area = FALSE
 /area/station/shield_zone
+	name = "shield protected space"
 	icon_state = "shield_zone"
+	expandable = FALSE
+	do_not_irradiate = TRUE
+	requires_power = FALSE
+	minimaps_to_render_on = null
+	occlude_foreground_parallax_layers = FALSE
+	#ifdef UNDERWATER_MAP
+	ambient_light = OCEAN_LIGHT
+	#endif
 
 /* ==================== Generator ==================== */
 
@@ -11,9 +21,10 @@
 	desc = "Some kinda thing what generates a big ol' shield around everything."
 	icon = 'icons/obj/large/32x96.dmi'
 	icon_state = "shieldgen0"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 	bound_height = 96
+	power_usage = 250
 	var/obj/machinery/power/data_terminal/link = null
 	var/net_id = null
 	var/list/shields = list()
@@ -22,12 +33,12 @@
 	var/image/image_shower_dir = null
 	var/sound_startup = 'sound/machines/shieldgen_startup.ogg' // 40
 	var/sound_shutoff = 'sound/machines/shieldgen_shutoff.ogg' // 35
-	var/lastuse = 0
+	var/cooldown = 150 SECONDS
 
 	New()
 		..()
-		src.update_icon()
-		SPAWN_DBG(0.6 SECONDS)
+		src.UpdateIcon()
+		SPAWN(0.6 SECONDS)
 			if (!src.link)
 				var/turf/T = get_turf(src)
 				var/obj/machinery/power/data_terminal/test_link = locate() in T
@@ -36,38 +47,31 @@
 					src.link.master = src
 			src.net_id = generate_net_id(src)
 
-	proc/update_icon()
+	update_icon()
+
 		if (status & (NOPOWER|BROKEN))
 			src.icon_state = "shieldgen0"
-			src.UpdateOverlays(null, "top_lights")
-			src.UpdateOverlays(null, "meteor_dir1")
-			src.UpdateOverlays(null, "meteor_dir2")
-			src.UpdateOverlays(null, "meteor_dir3")
-			src.UpdateOverlays(null, "meteor_dir4")
+			src.ClearSpecificOverlays("top_lights", "meteor_dir1", "meteor_dir2", "meteor_dir3", "meteor_dir4")
 			return
 
 		if (src.active)
 			src.icon_state = "shieldgen-anim"
 			if (!src.image_active)
 				src.image_active = image(src.icon, "shield-top_anim")
-			src.UpdateOverlays(src.image_active, "top_lights")
+			src.AddOverlays(src.image_active, "top_lights")
 		else
 			src.icon_state = "shieldgen1"
-			src.UpdateOverlays(null, "top_lights")
+			src.ClearSpecificOverlays("top_lights")
 
 		if (meteor_shower_active)
 			if (!src.image_shower_dir)
 				src.image_shower_dir = image(src.icon, "shield-D[meteor_shower_active]")
 			src.image_shower_dir.icon_state = "shield-D[meteor_shower_active]"
-			src.UpdateOverlays(src.image_shower_dir, "meteor_dir[meteor_shower_active]")
+			src.AddOverlays(src.image_shower_dir, "meteor_dir[meteor_shower_active]")
 		else
-			src.UpdateOverlays(null, "meteor_dir1")
-			src.UpdateOverlays(null, "meteor_dir2")
-			src.UpdateOverlays(null, "meteor_dir3")
-			src.UpdateOverlays(null, "meteor_dir4")
+			src.ClearSpecificOverlays("meteor_dir1", "meteor_dir2", "meteor_dir3", "meteor_dir4")
 
 	process()
-		//src.update_icon()
 		if (status & BROKEN)
 			src.deactivate()
 			return
@@ -75,7 +79,7 @@
 		if (status & NOPOWER)
 			src.deactivate()
 			return
-		src.use_power(250)
+
 		if (src.shields.len)
 			src.use_power(5*src.shields.len)
 
@@ -101,7 +105,7 @@
 		//Otherwise, ff they aren't addressing us, ignore them
 		if (signal.data["address_1"] != src.net_id)
 			if ((signal.data["address_1"] == "ping") && signal.data["sender"])
-				SPAWN_DBG(0.5 SECONDS) //Send a reply for those curious jerks
+				SPAWN(0.5 SECONDS) //Send a reply for those curious jerks
 					src.post_status(target, "command", "ping_reply", "device", "PNET_SHIELD_GEN", "netid", src.net_id)
 			return
 
@@ -125,13 +129,12 @@
 				src.post_reply("SGEN_DACTVD", target)
 
 	// for testing atm
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
+		if (status & (NOPOWER|BROKEN) || !src.link)
+			user.show_text("[src] seems inoperable, as pressing the button does nothing.")
+			return
 
-		var/diff = world.timeofday - lastuse
-		if(diff < 0) diff += 864000 //Wrapping protection.
-
-		if(diff > 1500)
-			lastuse = world.timeofday
+		if(!ON_COOLDOWN(src, "toggle_shields", src.cooldown))
 			visible_message("[src] beeps loudly.","You hear a loud beep.")
 			if (src.active)
 				src.deactivate()
@@ -139,10 +142,10 @@
 			else
 				src.activate()
 				user.show_text("Shields Activated.")
-			message_admins("<span class='internal'>[key_name(user)] [src.active ? "activated" : "deactivated"] shields</span>")
-			logTheThing("station", null, null, "[key_name(user)] [src.active ? "activated" : "deactivated"] shields")
+			message_admins(SPAN_INTERNAL("[key_name(user)] [src.active ? "activated" : "deactivated"] shields"))
+			logTheThing(LOG_STATION, null, "[key_name(user)] [src.active ? "activated" : "deactivated"] shields")
 		else
-			user.show_text("<span class='alert'><b>That is still not ready to be used again.</b></span>")
+			user.show_text(SPAN_ALERT("<b>That is still not ready to be used again.</b>"))
 
 	proc/post_status(var/target_id, var/key, var/value, var/key2, var/value2, var/key3, var/value3)
 		if (!src.link || !target_id)
@@ -165,7 +168,7 @@
 	proc/post_reply(error_text, target_id)
 		if (!error_text || !target_id)
 			return
-		SPAWN_DBG(0.3 SECONDS)
+		SPAWN(0.3 SECONDS)
 			src.post_status(target_id, "command", "device_reply", "status", error_text)
 		return
 
@@ -188,7 +191,7 @@
 			return
 		src.active = 1
 		src.create_shield()
-		src.update_icon()
+		src.UpdateIcon()
 		playsound(src.loc, src.sound_startup, 75)
 
 	proc/deactivate()
@@ -196,22 +199,24 @@
 			return
 		src.active = 0
 		src.remove_shield()
-		src.update_icon()
+		src.UpdateIcon()
 		playsound(src.loc, src.sound_shutoff, 75)
 
 
 /obj/machinery/shield_generator/console_upper
 	icon = 'icons/obj/computerpanel.dmi'
 	icon_state = "engine1"
-
+	bound_height = 32
 	update_icon()
+
 		return
 
 /obj/machinery/shield_generator/console_lower
 	icon = 'icons/obj/computerpanel.dmi'
 	icon_state = "engine2"
-
+	bound_height = 32
 	update_icon()
+
 		return
 
 /* ==================== Computer ==================== */
@@ -241,34 +246,21 @@
 	name = "ShieldControl"
 	size = 10
 	req_access = list(access_engineering_engine)
-	var/tmp/authenticated = null //Are we currently logged in?
-	var/datum/computer/file/user_data/account = null
 	var/obj/item/peripheral/network/powernet_card/pnet_card = null
 	var/tmp/gen_net_id = null //The net id of our linked generator
 	var/tmp/reply_wait = -1 //How long do we wait for replies? -1 is not waiting.
 
-	var/setup_acc_filepath = "/logs/sysusr"//Where do we look for login data?
-
 	initialize()
-		src.authenticated = null
+		if (..())
+			return TRUE
 		src.master.temp = null
-		if (!src.find_access_file()) //Find the account information, as it's essentially a ~digital ID card~
-			src.print_text("<b>Error:</b> Cannot locate user file.  Quitting...")
-			src.master.unload_program(src) //Oh no, couldn't find the file.
-			return
 
 		src.pnet_card = locate() in src.master.peripherals
 		if (!pnet_card || !istype(src.pnet_card))
 			src.pnet_card = null
 			src.print_text("<b>Warning:</b> No network adapter detected.")
 
-		if (!src.check_access(src.account.access))
-			src.print_text("User [src.account.registered] does not have needed access credentials.<br>Quitting...")
-			src.master.unload_program(src)
-			return
-
 		src.reply_wait = -1
-		src.authenticated = src.account.registered
 
 		var/intro_text = {"<b>ShieldControl</b>
 		<br>Emergency Defense Shield System
@@ -400,28 +392,16 @@
 					if ("sgen_actvd")
 						src.print_text("<b>Alert:</b> Shield generator activated.")
 						if (usr)
-							message_admins("<span class='internal'>[key_name(usr)] activated shields</span>")
-							logTheThing("station", null, null, "[key_name(usr)] activated shields")
+							message_admins(SPAN_INTERNAL("[key_name(usr)] activated shields"))
+							logTheThing(LOG_STATION, null, "[key_name(usr)] activated shields")
 
 					if ("sgen_dactvd")
 						src.print_text("<b>Alert:</b> Shield generator deactivated.")
 						if (usr)
-							message_admins("<span class='internal'>[key_name(usr)] deactivated shields</span>")
-							logTheThing("station", null, null, "[key_name(usr)] deactivated shields")
+							message_admins(SPAN_INTERNAL("[key_name(usr)] deactivated shields"))
+							logTheThing(LOG_STATION, null, "[key_name(usr)] deactivated shields")
 				return
 		return
-
-	proc/find_access_file() //Look for the whimsical account_data file
-		var/datum/computer/folder/accdir = src.holder.root
-		if (src.master.host_program) //Check where the OS is, preferably.
-			accdir = src.master.host_program.holder.root
-
-		var/datum/computer/file/user_data/target = parse_file_directory(setup_acc_filepath, accdir)
-		if (target && istype(target))
-			src.account = target
-			return 1
-
-		return 0
 
 	proc/detect_generator() //Send out a ping signal to find a comm dish.
 		if (!src.pnet_card)

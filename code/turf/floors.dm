@@ -8,28 +8,151 @@
 	name = "floor"
 	icon = 'icons/turf/floors.dmi'
 	icon_state = "floor"
-	thermal_conductivity = 0.040
+	thermal_conductivity = 0.04
 	heat_capacity = 225000
+	default_material = "steel"
 
 	turf_flags = IS_TYPE_SIMULATED | MOB_SLIP | MOB_STEP
 
-	var/broken = 0
-	var/burnt = 0
+	can_burn = TRUE
+	can_break = TRUE
 	var/has_material = TRUE
-	var/plate_mat = null
+
+	/// Set to instantiated material datum ([getMaterial()]) for custom material floors
 	var/reinforced = FALSE
 	//Stuff for the floor & wall planner undo mode that initial() doesn't resolve.
-	var/roundstart_icon_state
-	var/roundstart_dir
+	var/tmp/roundstart_icon_state
+	var/tmp/roundstart_dir
+	/// if this turf is immune to explosion (explosion immune turfs immediately return on ex_act())
+	var/explosion_immune = FALSE
+	///Things that are hidden "in" this turf that are revealed when it is pried up.
+	///Kept in a hidden object on the turf so that `get_turf` works as normal. Yes this is crime, fight me I have a possum.
+	var/obj/effects/hidden_contents_holder/hidden_contents = null
 
 	New()
 		..()
-		if (has_material)
-			if (isnull(plate_mat))
-				plate_mat = getMaterial("steel")
-			setMaterial(plate_mat)
 		roundstart_icon_state = icon_state
 		roundstart_dir = dir
+		#ifdef XMAS
+		if(src.z == Z_LEVEL_STATION && current_state <= GAME_STATE_PREGAME)
+			switch(src.icon_state)
+				if("caution_north")
+					new /obj/decal/tile_edge/stripe/xmas{dir=NORTH}(src)
+				if("engine_caution_north")
+					new /obj/decal/tile_edge/stripe/xmas{dir=NORTH}(src)
+				if("caution_south")
+					new /obj/decal/tile_edge/stripe/xmas{dir=SOUTH}(src)
+				if("engine_caution_south")
+					new /obj/decal/tile_edge/stripe/xmas{dir=SOUTH}(src)
+				if("caution_west")
+					new /obj/decal/tile_edge/stripe/xmas{dir=WEST}(src)
+				if("engine_caution_west")
+					new /obj/decal/tile_edge/stripe/xmas{dir=WEST}(src)
+				if("caution_east")
+					new /obj/decal/tile_edge/stripe/xmas{dir=EAST}(src)
+				if("engine_caution_east")
+					new /obj/decal/tile_edge/stripe/xmas{dir=EAST}(src)
+				if("caution_we")
+					new /obj/decal/tile_edge/stripe/xmas{dir=WEST}(src)
+					new /obj/decal/tile_edge/stripe/xmas{dir=EAST}(src)
+				if("engine_caution_we")
+					new /obj/decal/tile_edge/stripe/xmas{dir=WEST}(src)
+					new /obj/decal/tile_edge/stripe/xmas{dir=EAST}(src)
+				if("caution_ns")
+					new /obj/decal/tile_edge/stripe/xmas{dir=NORTH}(src)
+					new /obj/decal/tile_edge/stripe/xmas{dir=SOUTH}(src)
+				if("engine_caution_ns")
+					new /obj/decal/tile_edge/stripe/xmas{dir=NORTH}(src)
+					new /obj/decal/tile_edge/stripe/xmas{dir=SOUTH}(src)
+				if("corner_neast")
+					new /obj/decal/tile_edge/stripe/xmas{dir=NORTHEAST}(src)
+				if("corner_nwest")
+					new /obj/decal/tile_edge/stripe/xmas{dir=NORTHWEST}(src)
+				if("corner_east")
+					new /obj/decal/tile_edge/stripe/xmas{dir=SOUTHEAST}(src)
+				if("corner_west")
+					new /obj/decal/tile_edge/stripe/xmas{dir=SOUTHWEST}(src)
+				if("floor_hazard_misc")
+					switch(src.dir)
+						if(SOUTH)
+							new /obj/decal/tile_edge/stripe/xmas{dir=SOUTHWEST}(src)
+							new /obj/decal/tile_edge/stripe/xmas{dir=SOUTHEAST}(src)
+						if(NORTH)
+							new /obj/decal/tile_edge/stripe/xmas{dir=NORTHWEST}(src)
+							new /obj/decal/tile_edge/stripe/xmas{dir=NORTHEAST}(src)
+						if(EAST)
+							new /obj/decal/tile_edge/stripe/xmas{dir=SOUTHEAST}(src)
+							new /obj/decal/tile_edge/stripe/xmas{dir=NORTHEAST}(src)
+						if(WEST)
+							new /obj/decal/tile_edge/stripe/xmas{dir=SOUTHWEST}(src)
+							new /obj/decal/tile_edge/stripe/xmas{dir=NORTHWEST}(src)
+						if(SOUTHEAST)
+							new /obj/decal/tile_edge/stripe/xmas{dir=SOUTHWEST}(src)
+							new /obj/decal/tile_edge/stripe/xmas{dir=NORTHEAST}(src)
+				if("engine_caution_misc")
+					switch(src.dir)
+						if(SOUTH)
+							new /obj/decal/tile_edge/stripe/xmas{dir=SOUTHWEST}(src)
+							new /obj/decal/tile_edge/stripe/xmas{dir=SOUTHEAST}(src)
+						if(NORTH)
+							new /obj/decal/tile_edge/stripe/xmas{dir=NORTHWEST}(src)
+							new /obj/decal/tile_edge/stripe/xmas{dir=NORTHEAST}(src)
+						if(EAST)
+							new /obj/decal/tile_edge/stripe/xmas{dir=SOUTHEAST}(src)
+							new /obj/decal/tile_edge/stripe/xmas{dir=NORTHEAST}(src)
+						if(WEST)
+							new /obj/decal/tile_edge/stripe/xmas{dir=SOUTHWEST}(src)
+							new /obj/decal/tile_edge/stripe/xmas{dir=NORTHWEST}(src)
+						if(SOUTHEAST)
+							new /obj/decal/tile_edge/stripe/xmas{dir=SOUTHWEST}(src)
+							new /obj/decal/tile_edge/stripe/xmas{dir=NORTHEAST}(src)
+				if("engine_caution_corners")
+					switch(src.dir)
+						if(SOUTH)
+							new /obj/decal/tile_edge/stripe/xmas{dir=SOUTHWEST}(src)
+						if(NORTH)
+							new /obj/decal/tile_edge/stripe/xmas{dir=SOUTHEAST}(src)
+						if(EAST)
+							new /obj/decal/tile_edge/stripe/xmas{dir=NORTHEAST}(src)
+						if(WEST)
+							new /obj/decal/tile_edge/stripe/xmas{dir=NORTHWEST}(src)
+				if("floor_hazard_corners")
+					switch(src.dir)
+						if(SOUTH)
+							new /obj/decal/tile_edge/stripe/corner/xmas{dir=SOUTH}(src)
+						if(NORTH)
+							new /obj/decal/tile_edge/stripe/corner/xmas{dir=NORTH}(src)
+						if(EAST)
+							new /obj/decal/tile_edge/stripe/corner/xmas{dir=EAST}(src)
+						if(WEST)
+							new /obj/decal/tile_edge/stripe/corner/xmas{dir=WEST}(src)
+						if(SOUTHEAST)
+							new /obj/decal/tile_edge/stripe/corner/xmas2{dir=SOUTHEAST}(src)
+						if(SOUTHWEST)
+							new /obj/decal/tile_edge/stripe/corner/xmas2{dir=SOUTHWEST}(src)
+						if(NORTHEAST)
+							new /obj/decal/tile_edge/stripe/corner/xmas2{dir=NORTHEAST}(src)
+						if(NORTHWEST)
+							new /obj/decal/tile_edge/stripe/corner/xmas2{dir=NORTHWEST}(src)
+				if("engine_caution_corners2")
+					switch(src.dir)
+						if(SOUTH)
+							new /obj/decal/tile_edge/stripe/corner/xmas{dir=SOUTH}(src)
+						if(NORTH)
+							new /obj/decal/tile_edge/stripe/corner/xmas{dir=NORTH}(src)
+						if(EAST)
+							new /obj/decal/tile_edge/stripe/corner/xmas{dir=EAST}(src)
+						if(WEST)
+							new /obj/decal/tile_edge/stripe/corner/xmas{dir=WEST}(src)
+						if(SOUTHEAST)
+							new /obj/decal/tile_edge/stripe/corner/xmas2{dir=SOUTHEAST}(src)
+						if(SOUTHWEST)
+							new /obj/decal/tile_edge/stripe/corner/xmas2{dir=SOUTHWEST}(src)
+						if(NORTHEAST)
+							new /obj/decal/tile_edge/stripe/corner/xmas2{dir=NORTHEAST}(src)
+						if(NORTHWEST)
+							new /obj/decal/tile_edge/stripe/corner/xmas2{dir=NORTHWEST}(src)
+		#endif
 		var/obj/plan_marker/floor/P = locate() in src
 		if (P)
 			src.icon = P.icon
@@ -37,7 +160,7 @@
 			src.icon_old = P.icon_state
 			allows_vehicles = P.allows_vehicles
 			var/pdir = P.dir
-			SPAWN_DBG(0.5 SECONDS)
+			SPAWN(0.5 SECONDS)
 				src.set_dir(pdir)
 			qdel(P)
 
@@ -58,7 +181,13 @@
 	New()
 		..()
 		if (prob(20))
-			src.icon_state = pick("panelscorched", "platingdmg1", "platingdmg2", "platingdmg3")
+			if (prob(50))
+				src.break_tile()
+				src.icon_old = null // we're already plating
+			else
+				src.burn_tile()
+				src.icon_old = null
+			src.UpdateIcon()
 		if (prob(2))
 			make_cleanable(/obj/decal/cleanable/dirt,src)
 		if (prob(2))
@@ -75,7 +204,7 @@
 			make_cleanable( C ,src)
 		else if ((locate(/obj) in src) && prob(3))
 			var/obj/C = pick(/obj/item/cable_coil/cut/small, /obj/item/brick, /obj/item/cigbutt, /obj/item/scrap, /obj/item/raw_material/scrap_metal,\
-			/obj/item/spacecash, /obj/item/tile/steel, /obj/item/weldingtool, /obj/item/screwdriver, /obj/item/wrench, /obj/item/wirecutters, /obj/item/crowbar)
+			/obj/item/currency/spacecash, /obj/item/tile/steel, /obj/item/weldingtool, /obj/item/screwdriver, /obj/item/wrench, /obj/item/wirecutters, /obj/item/crowbar)
 			new C (src)
 		else if (prob(1) && prob(2)) // really rare. not "three space things spawn on destiny during first test with just prob(1)" rare.
 			var/obj/C = pick(/obj/item/space_thing, /obj/item/sticker/gold_star, /obj/item/sticker/banana, /obj/item/sticker/heart,\
@@ -87,41 +216,88 @@
 	New()
 		..()
 		if (prob(20))
-			src.icon_state = pick("panelscorched", "platingdmg1", "platingdmg2", "platingdmg3")
+			if (prob(50))
+				src.break_tile()
+				src.icon_old = null
+			else
+				src.burn_tile()
+				src.icon_old = null
 
 
 /////////////////////////////////////////
 
 /turf/simulated/floor/scorched
-	icon_state = "floorscorched1"
+	burnt = 1
+
+	New()
+		..()
+		var/image/burn_overlay = image('icons/turf/floors.dmi',"floorscorched1")
+		burn_overlay.alpha = 200
+		AddOverlays(burn_overlay,"burn")
 
 /turf/simulated/floor/scorched2
-	icon_state = "floorscorched2"
+	burnt = 1
+
+	New()
+		..()
+		var/image/burn_overlay = image('icons/turf/floors.dmi',"floorscorched2")
+		burn_overlay.alpha = 200
+		AddOverlays(burn_overlay,"burn")
 
 /turf/simulated/floor/damaged1
-	icon_state = "damaged1"
 	step_material = "step_plating"
 	step_priority = STEP_PRIORITY_MED
+	broken = 1
+
+	New()
+		..()
+		var/image/damage_overlay = image('icons/turf/floors.dmi',"damaged1")
+		damage_overlay.alpha = 200
+		AddOverlays(damage_overlay,"damage")
 
 /turf/simulated/floor/damaged2
-	icon_state = "damaged2"
 	step_material = "step_plating"
 	step_priority = STEP_PRIORITY_MED
+	broken = 1
+
+	New()
+		..()
+		var/image/damage_overlay = image('icons/turf/floors.dmi',"damaged2")
+		damage_overlay.alpha = 200
+		AddOverlays(damage_overlay,"damage")
 
 /turf/simulated/floor/damaged3
-	icon_state = "damaged3"
 	step_material = "step_plating"
 	step_priority = STEP_PRIORITY_MED
+	broken = 1
+
+	New()
+		..()
+		var/image/damage_overlay = image('icons/turf/floors.dmi',"damaged3")
+		damage_overlay.alpha = 200
+		AddOverlays(damage_overlay,"damage")
 
 /turf/simulated/floor/damaged4
-	icon_state = "damaged4"
 	step_material = "step_plating"
 	step_priority = STEP_PRIORITY_MED
+	broken = 1
+
+	New()
+		..()
+		var/image/damage_overlay = image('icons/turf/floors.dmi',"damaged4")
+		damage_overlay.alpha = 200
+		AddOverlays(damage_overlay,"damage")
 
 /turf/simulated/floor/damaged5
-	icon_state = "damaged5"
 	step_material = "step_plating"
 	step_priority = STEP_PRIORITY_MED
+	broken = 1
+
+	New()
+		..()
+		var/image/damage_overlay = image('icons/turf/floors.dmi',"damaged5")
+		damage_overlay.alpha = 200
+		AddOverlays(damage_overlay,"damage")
 
 /////////////////////////////////////////
 
@@ -135,16 +311,37 @@
 	icon_state = "plating_jen"
 
 /turf/simulated/floor/plating/scorched
-	icon_state = "panelscorched"
+
+	New()
+		..()
+		burn_tile()
 
 /turf/simulated/floor/plating/damaged1
-	icon_state = "platingdmg1"
+	broken = 1
+
+	New()
+		..()
+		var/image/damage_overlay = image('icons/turf/floors.dmi',"platingdmg1")
+		damage_overlay.alpha = 200
+		AddOverlays(damage_overlay,"damage")
 
 /turf/simulated/floor/plating/damaged2
-	icon_state = "platingdmg2"
+	broken = 1
+
+	New()
+		..()
+		var/image/damage_overlay = image('icons/turf/floors.dmi',"platingdmg2")
+		damage_overlay.alpha = 200
+		AddOverlays(damage_overlay,"damage")
 
 /turf/simulated/floor/plating/damaged3
-	icon_state = "platingdmg3"
+	broken = 1
+
+	New()
+		..()
+		var/image/damage_overlay = image('icons/turf/floors.dmi',"platingdmg3")
+		damage_overlay.alpha = 200
+		AddOverlays(damage_overlay,"damage")
 
 /////////////////////////////////////////
 
@@ -309,6 +506,27 @@
 /turf/simulated/floor/darkblue/checker/other
 	icon_state = "blue-dblue2"
 
+/turf/simulated/floor/darkblue/side
+	icon_state = "dblue"
+
+/turf/simulated/floor/darkblue/corner
+	icon_state = "dbluecorner"
+
+/turf/simulated/floor/darkblue/checker
+	icon_state = "dbluechecker"
+
+/turf/simulated/floor/darkblueblack
+	icon_state = "dblueblack"
+
+/turf/simulated/floor/darkblueblack/corner
+	icon_state = "dblueblackcorner"
+
+/turf/simulated/floor/darkbluewhite
+	icon_state = "dbluewhite"
+
+/turf/simulated/floor/darkbluewhite/corner
+	icon_state = "dbluewhitecorner"
+
 /////////////////////////////////////////
 
 /turf/simulated/floor/bluegreen
@@ -392,6 +610,24 @@
 /turf/simulated/floor/darkpurple/side
 	icon_state = "dpurple"
 
+/turf/simulated/floor/darkpurple/corner
+	icon_state = "dpurplecorner"
+
+/turf/simulated/floor/darkpurple/checker
+	icon_state = "dpurplechecker"
+
+/turf/simulated/floor/darkpurpleblack
+	icon_state = "dpurpleblack"
+
+/turf/simulated/floor/darkpurpleblack/corner
+	icon_state = "dpurpleblackcorner"
+
+
+/turf/simulated/floor/darkpurplewhite
+	icon_state = "dpurplewhite"
+
+/turf/simulated/floor/darkpurplewhite/corner
+	icon_state = "dpurplewhitecorner"
 /////////////////////////////////////////
 
 /turf/simulated/floor/yellow
@@ -444,6 +680,8 @@
 
 /////////////////////////////////////////
 
+TYPEINFO(/turf/simulated/floor/circuit)
+	mat_appearances_to_ignore = list("pharosium")
 /turf/simulated/floor/circuit
 	name = "transduction matrix"
 	desc = "An elaborate, faintly glowing matrix of isolinear circuitry."
@@ -451,13 +689,9 @@
 	RL_LumR = 0
 	RL_LumG = 0   //Corresponds to color of the icon_state.
 	RL_LumB = 0.3
-	mat_appearances_to_ignore = list("pharosium")
 	step_material = "step_plating"
 	step_priority = STEP_PRIORITY_MED
-
-	New()
-		..()
-		setMaterial(getMaterial("pharosium"))
+	default_material = "pharosium"
 
 /turf/simulated/floor/circuit/green
 	icon_state = "circuit-green"
@@ -497,26 +731,16 @@
 
 /////////////////////////////////////////
 
+TYPEINFO(/turf/simulated/floor/carpet)
+	mat_appearances_to_ignore = list("cotton")
 /turf/simulated/floor/carpet
 	name = "carpet"
 	icon = 'icons/turf/carpet.dmi'
 	icon_state = "red1"
-	mat_appearances_to_ignore = list("cloth")
-	mat_changename = 0
 	step_material = "step_carpet"
 	step_priority = STEP_PRIORITY_MED
-
-	New()
-		..()
-		setMaterial(getMaterial("cloth"))
-
-	break_tile()
-		..()
-		icon = 'icons/turf/floors.dmi'
-
-	burn_tile()
-		..()
-		icon = 'icons/turf/floors.dmi'
+	mat_changename = 0
+	default_material = "cotton"
 
 /turf/simulated/floor/carpet/grime
 	name = "cheap carpet"
@@ -541,6 +765,45 @@
 	icon = 'icons/turf/floors.dmi'
 	icon_state = "office_carpet2"
 
+DEFINE_FLOORS(carpet/regalcarpet,
+	name = "regal carpet";\
+	icon = 'icons/turf/floors.dmi';\
+	icon_state = "regal_carpet";\
+	step_material = "step_carpet";\
+	step_priority = STEP_PRIORITY_MED)
+
+DEFINE_FLOORS(carpet/regalcarpet/border,
+	icon_state = "regal_carpet_border")
+
+DEFINE_FLOORS(carpet/regalcarpet/innercorner,
+	icon_state = "regal_carpet_corner")
+
+DEFINE_FLOORS(carpet/darkcarpet,
+	name = "dark carpet";\
+	icon = 'icons/turf/floors.dmi';\
+	icon_state = "dark_carpet";\
+	step_material = "step_carpet";\
+	step_priority = STEP_PRIORITY_MED)
+
+DEFINE_FLOORS(carpet/darkcarpet/border,
+	icon_state = "dark_carpet_border")
+
+DEFINE_FLOORS(carpet/darkcarpet/innercorner,
+	icon_state = "dark_carpet_corner")
+
+DEFINE_FLOORS(carpet/clowncarpet,
+	name = "clown carpet";\
+	icon = 'icons/turf/floors.dmi';\
+	icon_state = "clown_carpet";\
+	step_material = "step_carpet";\
+	step_priority = STEP_PRIORITY_MED)
+
+DEFINE_FLOORS(carpet/clowncarpet/border,
+	icon_state = "clown_carpet_border")
+
+DEFINE_FLOORS(carpet/clowncarpet/innercorner,
+	icon_state = "clown_carpet_corner")
+
 /////////////////////////////////////////
 
 /turf/simulated/floor/shiny
@@ -550,6 +813,29 @@
 	icon_state = "whiteshiny"
 
 /////////////////////////////////////////
+
+/turf/simulated/floor/pool/lightblue
+	icon_state = "pooltiles_lightblue"
+
+/turf/simulated/floor/pool/white
+	icon_state = "pooltiles_white"
+
+/turf/simulated/floor/pool/blue
+	icon_state = "pooltiles_blue"
+
+/turf/simulated/floor/pool/bluewhite
+	icon_state = "pooltiles_bluew"
+
+/turf/simulated/floor/pool/lightbluewhite
+	icon_state = "pooltiles_lightbluew"
+
+/turf/simulated/floor/pool/bluewhitecorner
+	icon_state = "pooltiles_bluewcorner"
+
+/turf/simulated/floor/pool/lightbluewhitecorner
+	icon_state = "pooltiles_lightbluewcorner"
+
+//////////////////////////////////////////
 
 /turf/simulated/floor/sanitary
 	icon_state = "freezerfloor"
@@ -561,6 +847,190 @@
 	icon_state = "freezerfloor3"
 
 ////////////////////////////////////////
+
+DEFINE_FLOORS(twotone,
+	name = "two-tone checker floor";\
+	icon = 'icons/turf/floors.dmi';\
+	icon_state = "twotone_grey";\
+	step_material = "step_plating";\
+	step_priority = STEP_PRIORITY_MED)
+
+DEFINE_FLOORS(twotone/red,
+	icon_state = "twotone_red")
+
+DEFINE_FLOORS(twotone/purple,
+	icon_state = "twotone_purple")
+
+DEFINE_FLOORS(twotone/green,
+	icon_state = "twotone_green")
+
+DEFINE_FLOORS(twotone/blue,
+	icon_state = "twotone_blue")
+
+DEFINE_FLOORS(twotone/yellow,
+	icon_state = "twotone_yellow")
+
+DEFINE_FLOORS(twotone/white,
+	icon_state = "twotone_white")
+
+DEFINE_FLOORS(twotone/black,
+	icon_state = "twotone_black")
+
+/////////////////////////////////////////
+
+DEFINE_FLOORS(terrazzo,
+	name = "terrazzo tiling";\
+	icon = 'icons/turf/floors.dmi';\
+	icon_state = "terrazzo_beige";\
+	step_material = "step_wood";\
+	step_priority = STEP_PRIORITY_MED)
+
+DEFINE_FLOORS(terrazzo/black,
+	icon_state = "terrazzo_black")
+
+DEFINE_FLOORS(terrazzo/white,
+	icon_state = "terrazzo_white")
+
+/////////////////////////////////////////
+
+DEFINE_FLOORS(marble,
+	name = "marble tiling";\
+	icon = 'icons/turf/floors.dmi';\
+	icon_state = "marble_white";\
+	step_material = "step_wood";\
+	step_priority = STEP_PRIORITY_MED)
+
+DEFINE_FLOORS(marble/black,
+	icon_state = "marble_black")
+
+DEFINE_FLOORS(marble/border_bw,
+	icon_state = "marble_border_bw")
+
+DEFINE_FLOORS(marble/border_wb,
+	icon_state = "marble_border_wb")
+
+/////////////////////////////////////////
+
+TYPEINFO(/turf/simulated/floor/glassblock)
+	mat_appearances_to_ignore = list("steel","synthrubber","glass")
+/turf/simulated/floor/glassblock
+	name = "glass block tiling"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "glass_small"
+	step_material = "step_wood"
+	step_priority = STEP_PRIORITY_MED
+	mat_changename = FALSE
+	can_burn = FALSE
+	can_break = FALSE
+
+	pry_tile(obj/item/C as obj, mob/user as mob, params)
+		boutput(user, SPAN_ALERT("This is glass flooring, you can't pry this up!"))
+
+	to_plating()
+		return
+
+	break_tile_to_plating()
+		return
+
+	break_tile()
+		return
+
+	// unburnable, otherwise floorbots use steel sheets for repair which doesn't make sense
+	burn_tile()
+		return
+
+	attackby(obj/item/C, mob/user, params)
+		if (istype(C, /obj/item/rods))
+			boutput(user, SPAN_ALERT("You can't reinforce this tile."))
+			return
+		if(istype(C, /obj/item/cable_coil))
+			boutput(user, SPAN_ALERT("You can't put cable over this tile, it would be too exposed."))
+			return
+		..()
+
+/turf/simulated/floor/glassblock/large
+	icon_state = "glass_large"
+
+/turf/simulated/floor/glassblock/transparent
+	icon_state = "glasstr_cyan"
+	default_material = "glass"
+
+	New()
+		..()
+		#ifndef CI_RUNTIME_CHECKING
+		var/image/I
+		#ifdef UNDERWATER_MAP
+		var/sand_icon
+		var/direction
+		switch(rand(1, 3))
+			if(1)
+				sand_icon = "sand_other_texture"
+				direction = pick(alldirs)
+			if(2)
+				sand_icon = "sand_other_texture2"
+				direction = pick(alldirs)
+			if(3)
+				sand_icon = "sand_other_texture3"
+				direction = pick(cardinal)
+		I = image('icons/turf/outdoors.dmi', sand_icon, dir = direction)
+		#else
+		src.underlays += /turf/space::starlight
+		I = mutable_appearance('icons/turf/space.dmi', "[rand(1, 25)]")
+		I.color = /turf/space::space_color
+		#endif
+		I.plane = PLANE_SPACE
+		src.underlays += I
+		#endif
+
+/turf/simulated/floor/glassblock/transparent/cyan
+	icon_state = "glasstr_cyan"
+
+/turf/simulated/floor/glassblock/transparent/indigo
+	icon_state = "glasstr_indigo"
+
+/turf/simulated/floor/glassblock/transparent/red
+	icon_state = "glasstr_red"
+
+/turf/simulated/floor/glassblock/transparent/grey
+	icon_state = "glasstr_grey"
+
+/turf/simulated/floor/glassblock/transparent/purple
+	icon_state = "glasstr_purple"
+
+/turf/simulated/floor/glassblock/transparent/large
+	icon_state = "glasstr_large_cyan"
+
+/turf/simulated/floor/glassblock/transparent/large/cyan
+	icon_state = "glasstr_large_cyan"
+
+/turf/simulated/floor/glassblock/transparent/large/indigo
+	icon_state = "glasstr_large_indigo"
+
+/turf/simulated/floor/glassblock/transparent/large/red
+	icon_state = "glasstr_large_red"
+
+/turf/simulated/floor/glassblock/transparent/large/grey
+	icon_state = "glasstr_large_grey"
+
+/turf/simulated/floor/glassblock/transparent/large/purple
+	icon_state = "glasstr_large_purple"
+
+/////////////////////////////////////////
+
+DEFINE_FLOORS(minitiles,
+	name = "mini tiles";\
+	icon = 'icons/turf/floors.dmi';\
+	icon_state = "minitiles_grey";\
+	step_material = "step_plating";\
+	step_priority = STEP_PRIORITY_MED)
+
+DEFINE_FLOORS(minitiles/white,
+	icon_state = "minitiles_white")
+
+DEFINE_FLOORS(minitiles/black,
+	icon_state = "minitiles_black")
+
+/////////////////////////////////////////
 
 /turf/simulated/floor/specialroom
 
@@ -619,43 +1089,17 @@
 
 /////////////////////////////////////////
 
-/turf/simulated/floor/delivery
-	icon_state = "delivery"
-
-/turf/simulated/floor/delivery/white
-	icon_state = "delivery_white"
-
-/turf/simulated/floor/delivery/caution
-	icon_state = "deliverycaution"
-
-
-/turf/simulated/floor/bot
-	icon_state = "bot"
-
-/turf/simulated/floor/bot/white
-	icon_state = "bot_white"
-
-/turf/simulated/floor/bot/blue
-	icon_state = "bot_blue"
-
-/turf/simulated/floor/bot/darkpurple
-	icon_state = "bot_dpurple"
-
-/turf/simulated/floor/bot/caution
-	icon_state = "botcaution"
-
-/////////////////////////////////////////
-
 /turf/simulated/floor/engine
 	name = "reinforced floor"
 	icon_state = "engine"
 	thermal_conductivity = 0.025
 	heat_capacity = 325000
-
 	reinforced = TRUE
-	allows_vehicles = 1
+	allows_vehicles = TRUE
 	step_material = "step_plating"
 	step_priority = STEP_PRIORITY_MED
+	can_burn = FALSE
+	can_break = FALSE
 
 	event_handler_flags = IMMUNE_SINGULARITY_INACTIVE
 
@@ -740,15 +1184,13 @@
 
 /////////////////////////////////////////
 
+TYPEINFO(/turf/simulated/floor/wood)
+	mat_appearances_to_ignore = list("wood")
 /turf/simulated/floor/wood
 	icon_state = "wooden-2"
-	mat_appearances_to_ignore = list("wood")
 	step_material = "step_wood"
 	step_priority = STEP_PRIORITY_MED
-
-	New()
-		..()
-		setMaterial(getMaterial("wood"))
+	default_material = "wood"
 
 /turf/simulated/floor/wood/two
 	icon_state = "wooden"
@@ -822,7 +1264,7 @@
 	Entered(atom/A as mob|obj)
 		if (istype(A, /obj/stool/chair/comfy/wheelchair))
 			var/obj/stool/chair/comfy/wheelchair/W = A
-			if (!W.lying && prob(40))
+			if (!W.lying && prob(10))
 				if (W.buckled_guy && W.buckled_guy.m_intent == "walk")
 					return ..()
 				else
@@ -865,26 +1307,39 @@
 	icon_state = "quiltystair2"
 
 
+TYPEINFO(/turf/simulated/floor/stairs/wood)
+	mat_appearances_to_ignore = list("wood")
 /turf/simulated/floor/stairs/wood
+	default_material = "wood"
 	icon_state = "wood_stairs"
 
 /turf/simulated/floor/stairs/wood/wide
+	default_material = "wood"
 	icon_state = "wood_stairs2"
 
 
+TYPEINFO(/turf/simulated/floor/stairs/wood2)
+	mat_appearances_to_ignore = list("wood")
 /turf/simulated/floor/stairs/wood2
+	default_material = "wood"
 	icon_state = "wood2_stairs"
 
 /turf/simulated/floor/stairs/wood2/wide
+	default_material = "wood"
 	icon_state = "wood2_stairs2"
 
 /turf/simulated/floor/stairs/wood2/middle
+	default_material = "wood"
 	icon_state = "wood2_stairs2_middle"
 
+TYPEINFO(/turf/simulated/floor/stairs/wood3)
+	mat_appearances_to_ignore = list("wood")
 /turf/simulated/floor/stairs/wood3
+	default_material = "wood"
 	icon_state = "wood3_stairs"
 
 /turf/simulated/floor/stairs/wood3/wide
+	default_material = "wood"
 	icon_state = "wood3_stairs2"
 
 
@@ -938,12 +1393,14 @@
 
 /////////////////////////////////////////
 
+TYPEINFO(/turf/simulated/floor/snow)
+	mat_appearances_to_ignore = list("steel")
 /turf/simulated/floor/snow
 	name = "snow"
+	default_material = null
 	icon_state = "snow1"
 	step_material = "step_outdoors"
 	step_priority = STEP_PRIORITY_MED
-	mat_appearances_to_ignore = list("steel")
 
 	New()
 		..()
@@ -956,18 +1413,10 @@
 		src.set_dir(pick(cardinal))
 
 /turf/simulated/floor/snow/snowball
-	var/last_gather_time
 
-	attack_hand(mob/user)
-		if ((last_gather_time + 40) >= world.time)
-			return
-		else
-			user.visible_message("<b>[user]</b> gathers up some snow and rolls it into a snowball!",\
-			"You gather up some snow and roll it into a snowball!")
-			var/obj/item/reagent_containers/food/snacks/snowball/S = new /obj/item/reagent_containers/food/snacks/snowball(user.loc)
-			user.put_in_hand_or_drop(S)
-			src.last_gather_time = world.time
-			return
+	New()
+		..()
+		AddComponent(/datum/component/snowballs)
 
 /turf/simulated/floor/snow/green
 	name = "snow-covered floor"
@@ -976,6 +1425,26 @@
 /turf/simulated/floor/snow/green/corner
 	name = "snow-covered floor"
 	icon_state = "snowgreencorner"
+
+DEFINE_FLOORS(snowcalm,
+	name = "snow";\
+	icon = 'icons/turf/floors.dmi';\
+	icon_state = "snow_calm";\
+	step_material = "step_outdoors";\
+	step_priority = STEP_PRIORITY_MED)
+
+DEFINE_FLOORS(snowcalm/border,
+	icon_state = "snow_calm_border")
+
+DEFINE_FLOORS(snowrough,
+	name = "snow";\
+	icon = 'icons/turf/floors.dmi';\
+	icon_state = "snow_rough";\
+	step_material = "step_outdoors";\
+	step_priority = STEP_PRIORITY_MED)
+
+DEFINE_FLOORS(snowrough/border,
+	icon_state = "snow_rough_border")
 
 /////////////////////////////////////////
 
@@ -1003,26 +1472,118 @@
 	step_priority = STEP_PRIORITY_MED
 
 /////////////////////////////////////////
+
+/* Animated turf - Walp */
+
+DEFINE_FLOORS(techfloor,
+	name = "data tech flooring";\
+	icon = 'icons/turf/floors.dmi';\
+	icon_state = "techfloor_blue";\
+	step_material = "step_plating";\
+	step_priority = STEP_PRIORITY_MED;\
+	RL_LumR = 0;\
+	RL_LumG = 0;\
+	RL_LumB = 0.3)
+
+DEFINE_FLOORS(techfloor/red,
+	icon_state = "techfloor_red";\
+	RL_LumR = 0.3;\
+	RL_LumG = 0;\
+	RL_LumB = 0)
+
+DEFINE_FLOORS(techfloor/purple,
+	icon_state = "techfloor_purple";\
+	RL_LumR = 0.1;\
+	RL_LumG = 0;\
+	RL_LumB = 0.2)
+
+DEFINE_FLOORS(techfloor/yellow,
+	icon_state = "techfloor_yellow";\
+	RL_LumR = 0.2;\
+	RL_LumG = 0.1;\
+	RL_LumB = 0)
+
+DEFINE_FLOORS(techfloor/green,
+	icon_state = "techfloor_green";\
+	RL_LumR = 0;\
+	RL_LumG = 0.3;\
+	RL_LumB = 0)
+
+/////////////////////////////////////////
+
+TYPEINFO(/turf/simulated/floor/grass)
+	mat_appearances_to_ignore = list("steel","synthrubber")
 /turf/simulated/floor/grass
 	name = "grass"
 	icon = 'icons/turf/outdoors.dmi'
+	#ifdef SEASON_AUTUMN
+	icon_state = "grass_autumn"
+	#else
 	icon_state = "grass"
-	mat_appearances_to_ignore = list("steel","synthrubber")
+	#endif
 	mat_changename = 0
 	mat_changedesc = 0
 	step_material = "step_outdoors"
 	step_priority = STEP_PRIORITY_MED
+	default_material = "synthrubber"
 
+	#ifdef SEASON_WINTER
 	New()
+		if(src.z == Z_LEVEL_STATION && current_state <= GAME_STATE_PREGAME)
+			if(prob(10))
+				new /obj/item/reagent_containers/food/snacks/snowball/unmelting(src)
+			..()
+			SPAWN(0)
+				src.ReplaceWith(/turf/simulated/floor/snow/snowball, keep_old_material=FALSE, handle_air = FALSE)
+			return
 		..()
-		setMaterial(getMaterial("synthrubber"))
+	#endif
 
 /turf/proc/grassify()
 	.=0
 
+/// wetType: [-2 = glue, -1 = slime, 0 = dry, 1 = water, 2 = lube, 3 = superlube]
+/// silent: makes the overlay invisible and prevents the sound effect
+/turf/simulated/proc/wetify(var/wetType = 2, var/timeout = 80 SECONDS, var/color = null, var/silent = FALSE)
+	var/obj/mesh/catwalk/catwalk = null
+	var/image/overlay = null
+	var/alpha = 60
+
+	if (wetType <= 0)
+		overlay = image('icons/effects/water.dmi', "sticky_floor")
+	else
+		overlay = image('icons/effects/water.dmi', "wet_floor")
+
+	if (!silent)
+		playsound(src, 'sound/impact_sounds/Slimy_Splat_1.ogg', 50, TRUE)
+	else
+		alpha = 0
+
+	overlay.blend_mode = BLEND_ADD
+	overlay.alpha = alpha
+	overlay.color = color
+
+	if (istype(src, /turf/simulated/floor/airless/plating/catwalk)) // "Guh" - Leah
+		catwalk = locate() in src
+		catwalk.AddOverlays(overlay, "wet_overlay")
+
+	src.AddOverlays(overlay, "wet_overlay")
+	src.wet = wetType
+
+	SPAWN(timeout)
+		src.dryify()
+
+/turf/simulated/proc/dryify()
+	src.ClearSpecificOverlays("wet_overlay")
+	if(istype(src, /turf/simulated/floor/airless/plating/catwalk)) // ""Guh" - Leah" - Me
+		var/obj/mesh/catwalk/catwalk = locate() in src
+		catwalk?.ClearSpecificOverlays("wet_overlay")
+	src.wet = 0
+
 /turf/simulated/floor/grassify()
 	src.icon = 'icons/turf/outdoors.dmi'
 	src.icon_state = "grass"
+	src.UpdateIcon()
 	if(prob(30))
 		src.icon_state += pick("_p", "_w", "_b", "_y", "_r", "_a")
 	src.name = "grass"
@@ -1041,7 +1602,11 @@
 	step_priority = STEP_PRIORITY_MED
 
 /turf/simulated/floor/grass/leafy
+#ifdef SEASON_AUTUMN
+	icon_state = "grass_leafy_autumn"
+#else
 	icon_state = "grass_leafy"
+#endif
 
 /turf/simulated/floor/grass/random
 	New()
@@ -1051,23 +1616,131 @@
 /turf/simulated/floor/grass/random/alt
 	icon_state = "grass_eh"
 
+TYPEINFO(/turf/simulated/floor/grasstodirt)
+	mat_appearances_to_ignore = list("steel","synthrubber")
 /turf/simulated/floor/grasstodirt
 	name = "grass"
 	icon = 'icons/misc/worlds.dmi'
+	#ifdef SEASON_AUTUMN
+	icon_state = "autumntodirt"
+	#else
 	icon_state = "grasstodirt"
-	mat_appearances_to_ignore = list("steel","synthrubber")
+	#endif
 	mat_changename = 0
 	mat_changedesc = 0
 
+TYPEINFO(/turf/simulated/floor/dirt)
+	mat_appearances_to_ignore = list("steel","synthrubber")
 /turf/simulated/floor/dirt
 	name = "dirt"
 	icon = 'icons/misc/worlds.dmi'
 	icon_state = "dirt"
-	mat_appearances_to_ignore = list("steel","synthrubber")
 	mat_changename = 0
 	mat_changedesc = 0
 
 /////////////////////////////////////////
+
+//// some other floors ////
+
+TYPEINFO(/turf/simulated/floor/marslike)
+	mat_appearances_to_ignore = list("steel")
+/turf/simulated/floor/marslike
+	name = "imitation martian dirt"
+	desc = "Wow, you almost believed it was real martian dirt for a moment!"
+	icon = 'icons/misc/mars_outpost.dmi'
+	icon_state = "placeholder"
+	step_material = "step_outdoors"
+	step_priority = STEP_PRIORITY_MED
+
+/turf/simulated/floor/marslike/t1
+	icon_state = "t1"
+/turf/simulated/floor/marslike/t2
+	icon_state = "t2"
+/turf/simulated/floor/marslike/t3
+	icon_state = "t4"
+/turf/simulated/floor/marslike/t4
+	icon_state = "t4"
+
+TYPEINFO(/turf/simulated/floor/stone)
+	mat_appearances_to_ignore = list("steel","rock")
+/turf/simulated/floor/stone
+	name = "stone"
+	icon = 'icons/turf/dojo.dmi'
+	icon_state = "stone"
+	mat_changename = 0
+	mat_changedesc = 0
+	default_material = "rock"
+
+/////////////////////////////////////////
+
+/* Misc Adventure tilesets - Walp */
+
+TYPEINFO(/turf/simulated/floor/honeyblocks)
+	mat_appearances_to_ignore = list("steel","synthrubber")
+
+DEFINE_FLOORS(honeyblocks,
+	name = "crystallized honey";\
+	desc = "Probably not edible.";\
+	icon = 'icons/turf/adventure_walpvrgis.dmi';\
+	icon_state = "honeyblock";\
+	mat_changename = 0;\
+	mat_changedesc = 0;\
+	step_material = "step_plating";\
+	step_priority = STEP_PRIORITY_MED)
+
+DEFINE_FLOORS(honeyblocks/border,
+	icon_state = "honeyblock_border")
+
+DEFINE_FLOORS(honeyblocks/corner,
+	icon_state = "honeyblock_corner")
+
+/////////////////////////////////////////
+
+/* Outdoors tilesets - Walp */
+
+TYPEINFO(/turf/simulated/floor/grasslush)
+	mat_appearances_to_ignore = list("steel","synthrubber")
+TYPEINFO(/turf/simulated/floor/grasslush/airless)
+	mat_appearances_to_ignore = list("steel","synthrubber")
+TYPEINFO(/turf/unsimulated/floor/grasslush)
+	mat_appearances_to_ignore = list("steel","synthrubber")
+TYPEINFO(/turf/unsimulated/floor/grasslush/airless)
+	mat_appearances_to_ignore = list("steel","synthrubber")
+DEFINE_FLOORS(grasslush,
+	name = "lush grass";\
+	desc = "This grass somehow thrives in space.";\
+	icon = 'icons/turf/outdoors.dmi';\
+	icon_state = "grass_lush";\
+	mat_changename = 0;\
+	mat_changedesc = 0;\
+	step_material = "step_outdoors";\
+	step_priority = STEP_PRIORITY_MED)
+
+DEFINE_FLOORS(grasslush/border,
+	icon_state = "grass_lush_border")
+
+DEFINE_FLOORS(grasslush/corner,
+	icon_state = "grass_lush_corner")
+
+DEFINE_FLOORS(grasslush/thinner,
+	icon_state = "grass_lesslush")
+
+DEFINE_FLOORS(grasslush/thin,
+	icon_state = "grass_thin")
+
+/////////////////////////////////////////
+
+DEFINE_FLOORS(solidcolor,
+	icon_state = "solid_white")
+
+DEFINE_FLOORS(solidcolor/fullbright,
+	fullbright = 1)
+
+DEFINE_FLOORS(solidcolor/black,
+	icon_state = "solid_black")
+
+DEFINE_FLOORS(solidcolor/black/fullbright,
+	fullbright = 1)
 
 /* ._.-'~'-._.-'~'-._.-'~'-._.-'~'-._.-'~'-._.-'~'-._.-'~'-._. */
 /*-=-=-=-=-=-=-=-FUCK THAT SHIT MY WRIST HURTS=-=-=-=-=-=-=-=-=*/
@@ -1091,6 +1764,8 @@
 	icon_state = "engine"
 	allows_vehicles = 1
 	reinforced = TRUE
+	can_burn = FALSE
+	can_break = FALSE
 
 /turf/simulated/floor/shuttlebay
 	name = "shuttle bay plating"
@@ -1099,6 +1774,8 @@
 	step_material = "step_plating"
 	step_priority = STEP_PRIORITY_MED
 	reinforced = TRUE
+	can_burn = FALSE
+	can_break = FALSE
 
 /turf/simulated/floor/metalfoam
 	icon = 'icons/turf/floors.dmi'
@@ -1118,20 +1795,18 @@
 /turf/simulated/floor/blob
 	name = "blob floor"
 	desc = "Blob floors to lob blobs over."
-	icon = 'icons/mob/blob.dmi'
+	icon = 'icons/mob/blob_organs.dmi'
 	icon_state = "bridge"
-	default_melt_cap = 80
+	default_melt_chance = 80
 	allows_vehicles = 1
-
-	New()
-		..()
-		setMaterial(getMaterial("blob"))
+	default_material = "blob"
+	mat_changename = FALSE
+	can_burn = FALSE
+	can_break = FALSE
 
 	proc/setOvermind(var/mob/living/intangible/blob_overmind/O)
-		if (!material)
-			setMaterial(getMaterial("blob"))
-		material.color = O.color
-		color = O.color
+		setMaterial(O.my_material)
+		color = material.getColor()
 
 	attackby(var/obj/item/W, var/mob/user)
 		if (isweldingtool(W))
@@ -1151,22 +1826,23 @@
 // metal foam floors
 
 /turf/simulated/floor/metalfoam/update_icon()
+	. = ..()
 	if(metal == 1)
 		icon_state = "metalfoam"
 	else
-		icon_state = "ironform"
+		icon_state = "ironfoam"
 
 /turf/simulated/floor/metalfoam/ex_act()
 	ReplaceWithSpace()
 
-/turf/simulated/floor/metalfoam/attackby(obj/item/C as obj, mob/user as mob)
+/turf/simulated/floor/metalfoam/attackby(obj/item/C, mob/user)
 
 	if(!C || !user)
 		return 0
 	if (istype(C, /obj/item/tile))
 		var/obj/item/tile/T = C
 		if (T.amount >= 1)
-			playsound(src, "sound/impact_sounds/Generic_Stab_1.ogg", 50, 1)
+			playsound(src, 'sound/impact_sounds/Generic_Stab_1.ogg', 50, TRUE)
 			T.build(src)
 		return
 
@@ -1176,40 +1852,46 @@
 	else
 		boutput(user, "Your attack bounces off the foamed metal floor.")
 
-/turf/simulated/floor/CanPass(atom/movable/mover, turf/target, height=0, air_group=0)
+/turf/simulated/floor/Cross(atom/movable/mover)
 	if (!src.allows_vehicles && (istype(mover, /obj/machinery/vehicle) && !istype(mover,/obj/machinery/vehicle/tank)))
 		if (!( locate(/obj/machinery/mass_driver, src) ))
-			return 0
+			var/obj/machinery/vehicle/O = mover
+			if (istype(O?.sec_system, /obj/item/shipcomponent/secondary_system/crash)) //For ships crashing with the SEED
+				var/obj/item/shipcomponent/secondary_system/crash/I = O.sec_system
+				if (I.crashable)
+					mover.Bump(src)
+					return TRUE
+			return FALSE
 	return ..()
 
-/turf/simulated/shuttle/CanPass(atom/movable/mover, turf/target, height=0, air_group=0)
+/turf/simulated/shuttle/Cross(atom/movable/mover)
 	if (!src.allows_vehicles && (istype(mover, /obj/machinery/vehicle) && !istype(mover,/obj/machinery/vehicle/tank)))
 		return 0
 	return ..()
 
-/turf/unsimulated/floor/CanPass(atom/movable/mover, turf/target, height=0, air_group=0)
+/turf/unsimulated/floor/Cross(atom/movable/mover)
 	if (!src.allows_vehicles && (istype(mover, /obj/machinery/vehicle) && !istype(mover,/obj/machinery/vehicle/tank)))
 		if (!( locate(/obj/machinery/mass_driver, src) ))
 			return 0
 	return ..()
 
 /turf/simulated/floor/burn_down()
-	src.ex_act(2)
+	if (src.intact)
+		src.ex_act(2)
+	else //make sure plating always burns down to space and not... plating
+		src.ex_act(1)
 
 /turf/simulated/floor/ex_act(severity)
+	if(src.explosion_immune)
+		return
 	switch(severity)
-		if(1.0)
+		if(1)
 			src.ReplaceWithSpace()
-#ifdef UNDERWATER_MAP
-			//if (prob(10))
-			//	src.ex_act(severity+1)
-#endif
-
-		if(2.0)
+		if(2)
 			switch(pick(1,2;75,3))
 				if (1)
 					if(prob(33))
-						var/obj/item/I = unpool(/obj/item/raw_material/scrap_metal)
+						var/obj/item/I = new /obj/item/raw_material/scrap_metal
 						I.set_loc(src)
 						if (src.material)
 							I.setMaterial(src.material)
@@ -1221,7 +1903,7 @@
 					src.ReplaceWithSpace()
 				if(3)
 					if(prob(33))
-						var/obj/item/I = unpool(/obj/item/raw_material/scrap_metal)
+						var/obj/item/I = new /obj/item/raw_material/scrap_metal
 						I.set_loc(src)
 						if (src.material)
 							I.setMaterial(src.material)
@@ -1233,7 +1915,7 @@
 					else
 						src.break_tile()
 					src.hotspot_expose(1000,CELL_VOLUME)
-		if(3.0)
+		if(3)
 			if (prob(50))
 				src.break_tile()
 				src.hotspot_expose(1000,CELL_VOLUME)
@@ -1242,23 +1924,21 @@
 /turf/simulated/floor/blob_act(var/power)
 	return
 
-/turf/simulated/floor/proc/update_icon()
-
-/turf/simulated/attack_hand(mob/user as mob)
+/turf/simulated/attack_hand(mob/user)
 	if (src.density == 1)
 		return
 	if (!user.canmove || user.restrained())
 		return
-	if (!user.pulling || user.pulling.anchored || (user.pulling.loc != user.loc && get_dist(user, user.pulling) > 1))
+	if (!user.pulling || user.pulling.anchored || (user.pulling.loc != user.loc && BOUNDS_DIST(user, user.pulling) > 0))
 		//get rid of click delay since we didn't do anything
 		user.next_click = world.time
 		return
 	//duplicate user.pulling for RTE fix
 	if (user.pulling && user.pulling.loc == user)
-		user.pulling = null
+		user.remove_pulling()
 		return
 	//if the object being pulled's loc is another object (being in their contents) return
-	if (isobj(user.pulling.loc))
+	if (!isturf(user.pulling.loc))
 		var/obj/container = user.pulling.loc
 		if (user.pulling in container.contents)
 			return
@@ -1267,9 +1947,9 @@
 	if (ismob(user.pulling))
 		var/mob/M = user.pulling
 		var/mob/t = M.pulling
-		M.pulling = null
+		M.remove_pulling()
 		step(M, get_dir(fuck_u, src))
-		M.pulling = t
+		M.set_pulling(t)
 	else
 		step(user.pulling, get_dir(fuck_u, src))
 	return
@@ -1284,11 +1964,13 @@
 		name_old = name
 	src.name = "plating"
 	src.icon_state = "plating"
+	src.UpdateIcon()
 	setIntact(FALSE)
 	broken = 0
 	burnt = 0
-	if(plate_mat)
-		src.setMaterial(plate_mat)
+	if(default_material)
+		var/datum/material/mat = istext(default_material) ? getMaterial(default_material) : default_material
+		src.setMaterial(mat)
 	else
 		src.setMaterial(getMaterial("steel"))
 	levelupdate()
@@ -1296,102 +1978,23 @@
 /turf/simulated/floor/proc/dismantle_wall()//can get called due to people spamming weldingtools on walls
 	return
 
-/turf/simulated/floor/proc/take_hit()// can get called due to people crumpling cardboard walls
-	return
-
 /turf/simulated/floor/proc/break_tile_to_plating()
-	if(intact) to_plating()
+	if (intact)
+		to_plating()
 	break_tile()
 
-/turf/simulated/floor/proc/break_tile(var/force_break)
-	if(!force_break)
-		if(src.reinforced) return
-
-	if(broken) return
-	if (!icon_old)
-		icon_old = icon_state
-	if(intact)
-		src.icon_state = "damaged[pick(1,2,3,4,5)]"
-		broken = 1
-	else
-		src.icon_state = "platingdmg[pick(1,2,3)]"
-		broken = 1
-
-/turf/simulated/floor/proc/burn_tile()
-	if(broken || burnt || reinforced) return
-	if (!icon_old)
-		icon_old = icon_state
-	if(intact)
-		src.icon_state = "floorscorched[pick(1,2)]"
-	else
-		src.icon_state = "panelscorched"
-	burnt = 1
-
-/turf/simulated/floor/shuttle/burn_tile()
-	return
-
-/turf/simulated/floor/proc/restore_tile()
-	if(intact) return
-	setIntact(TRUE)
-	broken = 0
-	burnt = 0
-	icon = initial(icon)
-	if(icon_old)
-		icon_state = icon_old
-	else
-		icon_state = "floor"
-	if (name_old)
-		name = name_old
-	levelupdate()
-
 /turf/simulated/floor/var/global/girder_egg = 0
-
-//basically the same as walls.dm sans the
-/turf/simulated/floor/proc/attach_light_fixture_parts(var/mob/user, var/obj/item/W, var/instantly)
-	if (!user || !istype(W, /obj/item/light_parts/floor))
-		return
-
-	// the wall is the target turf, the source is the turf where the user is standing
-	var/obj/item/light_parts/parts = W
-	var/turf/target = src
-
-	if(!instantly)
-		playsound(src, "sound/items/Screwdriver.ogg", 50, 1)
-		boutput(user, "You begin to attach the light fixture to [src]...")
-
-
-		if (!do_after(user, 4 SECONDS))
-			user.show_text("You were interrupted!", "red")
-			return
-
-		if (!parts) //ZeWaka: Fix for null.fixture_type
-			return
-
-		// if they didn't move, put it up
-		boutput(user, "You attach the light fixture to [src].")
-
-	var/obj/machinery/light/newlight = new parts.fixture_type(target)
-	newlight.icon_state = parts.installed_icon_state
-	newlight.base_state = parts.installed_base_state
-	newlight.fitting = parts.fitting
-	newlight.status = 1 // LIGHT_EMPTY
-
-	newlight.add_fingerprint(user)
-	src.add_fingerprint(user)
-
-	user.u_equip(parts)
-	qdel(parts)
-	return
 
 /turf/simulated/floor/proc/pry_tile(obj/item/C as obj, mob/user as mob, params)
 	if (!intact)
 		return
 	if(src.reinforced)
-		boutput(user, "<span class='alert'>You can't pry apart reinforced flooring! You'll have to loosen it with a welder or wrench instead.</span>")
+		boutput(user, SPAN_ALERT("You can't pry apart reinforced flooring! You'll have to loosen it with a welder or wrench instead."))
 		return
 
 	if(broken || burnt)
-		boutput(user, "<span class='alert'>You remove the broken plating.</span>")
+		boutput(user, SPAN_ALERT("You remove the broken plating."))
+		ClearSpecificOverlays("burn", "damage")
 	else
 		var/atom/A = new /obj/item/tile(src)
 		if(src.material)
@@ -1400,11 +2003,26 @@
 			var/datum/material/M = getMaterial("steel")
 			A.setMaterial(M)
 		.= A //return tile for crowbar special attack ok
+		user?.unlock_medal("Misclick", 1)
+		var/datum/gang/gang = user?.get_gang()
+		if (gang && !params["quick_replace"])
+			gang.do_vandalism(GANG_VANDALISM_FLOORTILE_POINTS,src)
+
 
 	to_plating()
-	playsound(src, "sound/items/Crowbar.ogg", 80, 1)
+	playsound(src, 'sound/items/Crowbar.ogg', 80, TRUE)
 
-/turf/simulated/floor/attackby(obj/item/C as obj, mob/user as mob, params)
+/turf/simulated/floor/levelupdate()
+	..()
+	if (!src.intact && src.hidden_contents)
+		for(var/atom/movable/AM as anything in src.hidden_contents)
+			AM.set_loc(src)
+			SEND_SIGNAL(AM, COMSIG_MOVABLE_FLOOR_REVEALED, src)
+		qdel(src.hidden_contents) //it's an obj, see the definition for crime justification
+		src.hidden_contents = null
+
+
+/turf/simulated/floor/attackby(obj/item/C, mob/user, params)
 
 	if (!C || !user)
 		return 0
@@ -1418,175 +2036,167 @@
 		P.write_on_turf(src, user, params)
 		return
 
-	if (istype(C, /obj/item/light_parts/floor))
-		src.attach_light_fixture_parts(user, C) // Made this a proc to avoid duplicate code (Convair880).
-		return
-
-	if (src.reinforced && ((isweldingtool(C) && C:try_weld(user,0,-1,0,1)) || iswrenchingtool(C)))
-		boutput(user, "<span class='notice'>Loosening rods...</span>")
+	if (src.reinforced && ((isweldingtool(C) && C:try_weld(user,0,-1,1,1)) || iswrenchingtool(C)))
+		boutput(user, SPAN_NOTICE("Loosening rods..."))
 		if(iswrenchingtool(C))
-			playsound(src, "sound/items/Ratchet.ogg", 80, 1)
-		if(do_after(user, 3 SECONDS))
-			if(!src.reinforced)
-				return
-			var/obj/R1 = new /obj/item/rods(src)
-			var/obj/R2 = new /obj/item/rods(src)
-			if (material)
-				R1.setMaterial(material)
-				R2.setMaterial(material)
-			else
-				R1.setMaterial(getMaterial("steel"))
-				R2.setMaterial(getMaterial("steel"))
-			ReplaceWithFloor()
-			src.to_plating()
-			return
+			playsound(src, 'sound/items/Ratchet.ogg', 80, TRUE)
+		SETUP_GENERIC_ACTIONBAR(user, src, 3 SECONDS, /turf/simulated/floor/proc/remove_reinforcement, null, C.icon, C.icon_state, null, INTERRUPT_MOVE | INTERRUPT_ACT | INTERRUPT_ATTACKED | INTERRUPT_STUNNED | INTERRUPT_ACTION)
+		return
 
 	if(istype(C, /obj/item/rods))
 		if (!src.intact)
-			if (C:amount >= 2)
-				boutput(user, "<span class='notice'>Reinforcing the floor...</span>")
-				if(do_after(user, 3 SECONDS))
-					ReplaceWithEngineFloor()
+			if (C.amount >= 2)
+				boutput(user, SPAN_NOTICE("Reinforcing the floor..."))
 
-					if (C)
-						C.change_stack_amount(-2)
-						if (C:amount <= 0)
-							qdel(C) //wtf
-
-						if (C.material)
-							src.setMaterial(C.material)
-
-					playsound(src, "sound/items/Deconstruct.ogg", 80, 1)
+				SETUP_GENERIC_ACTIONBAR(user, src, 3 SECONDS, /turf/simulated/floor/proc/reinforce, C, C.icon, C.icon_state, null, INTERRUPT_MOVE | INTERRUPT_ACT | INTERRUPT_ATTACKED | INTERRUPT_STUNNED | INTERRUPT_ACTION)
 			else
-				boutput(user, "<span class='alert'>You need more rods.</span>")
+				boutput(user, SPAN_ALERT("You need more rods."))
 		else
-			boutput(user, "<span class='alert'>You must remove the plating first.</span>")
+			boutput(user, SPAN_ALERT("You must remove the plating first."))
 		return
 
 	if(istype(C, /obj/item/tile))
 		var/obj/item/tile/T = C
+		var/do_hide = TRUE
 		if(intact)
 			var/obj/P = user.find_tool_in_hand(TOOL_PRYING)
 			if (!P)
 				return
 			// Call ourselves w/ the tool, then continue
-			src.attackby(P, user)
+			var/list/newParams = list()
+			newParams["quick_replace"] = TRUE
+			src.Attackby(P, user, newParams)
+			do_hide = FALSE //don't stuff things under the floor if we're just swapping/replacing a broken tile
 
 		// Don't replace with an [else]! If a prying tool is found above [intact] might become 0 and this runs too, which is how floor swapping works now! - BatElite
 		if (!intact)
-			restore_tile()
-			src.plate_mat = src.material
-			if(C.material)
-				src.setMaterial(C.material)
-			playsound(src, "sound/impact_sounds/Generic_Stab_1.ogg", 50, 1)
+			if(T.amount >= 1)
+				restore_tile(do_hide)
+				src.default_material = src.material
 
-			if(!istype(src.material, /datum/material/metal/steel))
-				logTheThing("station", user, null, "constructs a floor (<b>Material:</b>: [src.material && src.material.name ? "[src.material.name]" : "*UNKNOWN*"]) at [log_loc(src)].")
+				// if we have a special icon state and it doesn't have a material variant
+				// and at the same time the base floor icon state does have a material variant
+				// we use the material variant from the base floor
+				var/potential_new_icon_state = "[materialless_icon_state()]$$[C.material?.getID()]"
+				var/potential_new_base_icon_state = "floor$$[C.material?.getID()]"
+				if(!src.is_valid_icon_state(potential_new_icon_state) && is_valid_icon_state(potential_new_base_icon_state, 'icons/turf/floors.dmi'))
+					src.icon_state = "floor"
+					src.icon = 'icons/turf/floors.dmi'
 
-			T.change_stack_amount(-1)
+				if(C.material)
+					src.setMaterial(C.material)
+				playsound(src, 'sound/impact_sounds/Generic_Stab_1.ogg', 50, TRUE)
+
+				if(!istype(src.material, /datum/material/metal/steel))
+					logTheThing(LOG_STATION, user, "constructs a floor (<b>Material:</b>: [src.material && src.material.getName() ? "[src.material.getName()]" : "*UNKNOWN*"]) at [log_loc(src)].")
+				T.change_stack_amount(-1)
 			//if(T && (--T.amount < 1))
 			//	qdel(T)
 			//	return
 
 
 	if(istype(C, /obj/item/sheet))
-		if (!(C?.material?.material_flags & (MATERIAL_METAL | MATERIAL_CRYSTAL))) return
-		if (!C:amount_check(2,user)) return
+		var/obj/item/sheet/S = C
+		if (!S.amount_check(2,user)) return
+		if (S?.material?.getMaterialFlags() & MATERIAL_METAL)
+			var/msg = "the girder"
 
-		var/msg = "a girder"
-
-		if(!girder_egg)
-			var/count = 0
-			for(var/obj/structure/girder in src)
-				count++
-			var/static/list/insert_girder = list(
-			"a girder",
-			"another girder",
-			"yet another girder",
-			"oh god it's another girder",
-			"god save the queen its another girder",
-			"sweet christmas its another girder",
-			"the 6th girder",
-			"you're not sure but you think it's a girder",
-			"um... ok. a girder, I guess",
-			"what does girder even mean, anyway",
-			"the strangest girder",
-			"the girder that confuses you",
-			"the metallic support frame",
-			"a very untrustworthy girder",
-			"the \"i'm concerned about the sheer number of girders\" girder",
-			"a broken wall",
-			"the 16th girder",
-			"the 17th girder",
-			"the 18th girder",
-			"the 19th girder",
-			"the 20th century girder",
-			"the 21th girder",
-			"the mfin girder coming right atcha",
-			"the girder you cant believe is a girder",
-			"rozenkrantz \[sic?\] and girderstein",
-			"a.. IS THAT?! no, just a girder",
-			"a gifter",
-			"a shitty girder",
-			"a girder potato",
-			"girded loins",
-			"the platonic ideal of stacked girders",
-			"a complete goddamn mess of girders",
-			"FUCK",
-			"a girder for ants",
-			"a girder of a time",
-			"a girder girder girder girder girder girder girder girder girder girder girder girder.. mushroom MUSHROOM",
-			"an attempted girder",
-			"a failed girder",
-			"a girder most foul",
-			"a girder who just wants to be a wall",
-			"a human child",//40
-			"ett gürdür",
-			"a girdle",
-			"a g--NOT NOW MOM IM ALMOST AT THE 100th GIRDER--irder",
-			"a McGirder",
-			"a Double Cheesegirder",
-			"an egg salad",
-			"the ugliest damn girder you've ever seen in your whole fucking life",
-			"the most magnificent goddamn girder that you've ever seen in your entire fucking life",
-			"the constitution of the old republic, and also a girder",
-			"a waste of space, which is crazy when you consider where you built this",//50
-			"pure girder vibrations",
-			"a poo containment girder",
-			"an extremely solid girder, your parents would be proud",
-			"the girder who informs you to the authorities",
-			"a discount girder",
-			"a counterfeit girder",
-			"a construction",
-			"readster's very own girder",
-			"just a girder",
-			"a gourder",//60
-			"a fuckable girder",
-			"a herd of girders",
-			"an A.D.G.S",
-			"the... thing",
-			"the.. girder?",
-			"a girder. one that girds if you girder it.",
-			"the frog(?)",
-			"the unstable relationship",
-			"nice",
-			"the girder egg")
-			msg = insert_girder[min(count+1, insert_girder.len)]
-			if(count >= 70)
-				girder_egg = 1
-				actions.start(new /datum/action/bar/icon/build(C, /obj/item/reagent_containers/food/snacks/ingredient/egg/critter/townguard/passive, 2, null, 1, 'icons/obj/structures.dmi', "girder egg", msg, null), user)
+			if(!girder_egg)
+				var/count = 0
+				for(var/obj/structure/girder in src)
+					count++
+				var/static/list/insert_girder = list(
+				"a girder",
+				"another girder",
+				"yet another girder",
+				"oh god it's another girder",
+				"god save the queen its another girder",
+				"sweet christmas its another girder",
+				"the 6th girder",
+				"you're not sure but you think it's a girder",
+				"um... ok. a girder, I guess",
+				"what does girder even mean, anyway",
+				"the strangest girder",
+				"the girder that confuses you",
+				"the metallic support frame",
+				"a very untrustworthy girder",
+				"the \"i'm concerned about the sheer number of girders\" girder",
+				"a broken wall",
+				"the 16th girder",
+				"the 17th girder",
+				"the 18th girder",
+				"the 19th girder",
+				"the 20th century girder",
+				"the 21th girder",
+				"the mfin girder coming right atcha",
+				"the girder you cant believe is a girder",
+				"rozenkrantz \[sic?\] and girderstein",
+				"a.. IS THAT?! no, just a girder",
+				"a gifter",
+				"a shitty girder",
+				"a girder potato",
+				"girded loins",
+				"the platonic ideal of stacked girders",
+				"a complete goddamn mess of girders",
+				"FUCK",
+				"a girder for ants",
+				"a girder of a time",
+				"a girder girder girder girder girder girder girder girder girder girder girder girder.. mushroom MUSHROOM",
+				"an attempted girder",
+				"a failed girder",
+				"a girder most foul",
+				"a girder who just wants to be a wall",
+				"a human child",//40
+				"ett gürdür",
+				"a girdle",
+				"a g--NOT NOW MOM IM ALMOST AT THE 100th GIRDER--irder",
+				"a McGirder",
+				"a Double Cheesegirder",
+				"an egg salad",
+				"the ugliest damn girder you've ever seen in your whole fucking life",
+				"the most magnificent goddamn girder that you've ever seen in your entire fucking life",
+				"the constitution of the old republic, and also a girder",
+				"a waste of space, which is crazy when you consider where you built this",//50
+				"pure girder vibrations",
+				"a poo containment girder",
+				"an extremely solid girder, your parents would be proud",
+				"the girder who informs you to the authorities",
+				"a discount girder",
+				"a counterfeit girder",
+				"a construction",
+				"readster's very own girder",
+				"just a girder",
+				"a gourder",//60
+				"an owl?",
+				"a herd of girders",
+				"an A.D.G.S",
+				"the... thing",
+				"the.. girder?",
+				"a girder. one that girds if you girder it.",
+				"the frog(?)",
+				"the unstable relationship",
+				"nice",
+				"the girder egg")
+				msg = insert_girder[min(count+1, insert_girder.len)]
+				if(count >= 70) //nice
+					girder_egg = 1
+					actions.start(new /datum/action/bar/icon/build(/obj/item/reagent_containers/food/snacks/ingredient/egg/critter/townguard/passive, src, 1, 3 SECONDS, S, 2, null, null, S.material, 'icons/obj/structures.dmi', "girder egg", name = msg), user)
+				else
+					actions.start(new /datum/action/bar/icon/build(/obj/structure/girder, src, 1, 3 SECONDS, S, 2, null, null, S.material, 'icons/obj/structures.dmi', "girder", name = msg), user)
 			else
-				actions.start(new /datum/action/bar/icon/build(C, /obj/structure/girder, 2, C:material, 1, 'icons/obj/structures.dmi', "girder", msg, null, spot = src), user)
-		else
-			actions.start(new /datum/action/bar/icon/build(C, /obj/structure/girder, 2, C:material, 1, 'icons/obj/structures.dmi', "girder", msg, null, spot = src), user)
-
+				actions.start(new /datum/action/bar/icon/build(/obj/structure/girder, src, 1, 3 SECONDS, S, 2, null, null, S.material, 'icons/obj/structures.dmi', "girder", name = msg), user)
+		else if ((S?.material?.getMaterialFlags() & MATERIAL_CRYSTAL) && !(locate(/obj/window) in src))
+			if(S.reinforcement)
+				actions.start(new /datum/action/bar/icon/build(map_settings ? map_settings.rwindows : /obj/window/reinforced, src, 1, 3 SECONDS, S, 2, null, null, S.material, 'icons/obj/window.dmi', "window", /proc/window_reinforce_full_callback, "a full window"), user)
+			else
+				actions.start(new /datum/action/bar/icon/build(map_settings ? map_settings.windows : /obj/window, 			  src, 1, 3 SECONDS, S, 2, null, null, S.material, 'icons/obj/window.dmi', "window", /proc/window_reinforce_full_callback, "a full window"), user)
 
 	if(istype(C, /obj/item/cable_coil))
 		if(!intact)
 			var/obj/item/cable_coil/coil = C
-			coil.turf_place(src, user)
+			coil.turf_place(src, get_turf(user), user)
 		else
-			boutput(user, "<span class='alert'>You must remove the plating first.</span>")
+			boutput(user, SPAN_ALERT("You must remove the plating first."))
 
 //grabsmash??
 	else if (istype(C, /obj/item/grab/))
@@ -1596,24 +2206,42 @@
 		else
 			return
 
-	// hi i don't know where else to put this :D - cirr
-	else if (istype(C, /obj/item/martianSeed))
-		var/obj/item/martianSeed/S = C
-		if(S)
-			S.plant(src)
-			logTheThing("station", user, null, "plants a martian biotech seed (<b>Structure:</b> [S.spawn_path]) at [log_loc(src)].")
-			return
-
 	//also in turf.dm. Put this here for lowest priority.
 	else if (src.temp_flags & HAS_KUDZU)
 		var/obj/spacevine/K = locate(/obj/spacevine) in src.contents
 		if (K)
-			K.attackby(C, user, params)
+			K.Attackby(C, user, params)
 
-	else if (!user.pulling || user.pulling.anchored || (user.pulling.loc != user.loc && get_dist(user, user.pulling) > 1)) // this seemed like the neatest way to make attack_hand still trigger when needed
-		src?.material.triggerOnHit(src, C, user, 1)
+	else if (!user.pulling || user.pulling.anchored || (user.pulling.loc != user.loc && BOUNDS_DIST(user, user.pulling) > 0)) // this seemed like the neatest way to make attack_hand still trigger when needed
+		src.material_trigger_when_attacked(C, user, 1)
 	else
 		return attack_hand(user)
+
+/turf/simulated/floor/proc/reinforce(obj/item/rods/I)
+	src.ReplaceWithEngineFloor()
+	if (I.material)
+		src.setMaterial(I.material)
+	I.change_stack_amount(-2)
+	playsound(src, 'sound/items/Deconstruct.ogg', 80, TRUE)
+
+/turf/simulated/floor/proc/remove_reinforcement()
+	if(!src.reinforced)
+		return
+	var/obj/R1 = new /obj/item/rods(src)
+	var/obj/R2 = new /obj/item/rods(src)
+	if (material)
+		R1.setMaterial(material)
+		R2.setMaterial(material)
+	else
+		R1.setMaterial(getMaterial("steel"))
+		R2.setMaterial(getMaterial("steel"))
+	ReplaceWithFloor()
+	src.to_plating()
+
+/turf/simulated/floor/proc/hide_inside(atom/movable/AM)
+	if (!src.hidden_contents)
+		src.hidden_contents = new(src)
+	AM.set_loc(src.hidden_contents)
 
 /turf/simulated/floor/MouseDrop_T(atom/A, mob/user as mob)
 	..(A,user)
@@ -1623,8 +2251,40 @@
 		if(I)
 			if(istype(I,/obj/item/cable_coil))
 				var/obj/item/cable_coil/C = I
-				if((get_dist(user,F)<2) && (get_dist(user,src)<2))
-					C.move_callback(user, F, src)
+				if(BOUNDS_DIST(user,F) == 0 && BOUNDS_DIST(user,src) == 0)
+					C.move_callback(user, F, 0, src)
+
+/turf/simulated/floor/ReplaceWith(what, keep_old_material, handle_air, handle_dir, force)
+	var/obj/effects/hidden_contents_holder/old_hidden_contents = src.hidden_contents //we have to do this because src will be the new turf after the replace due to byond
+	var/turf/simulated/floor/newfloor = ..()
+	if (istype(newfloor))
+		newfloor.hidden_contents = old_hidden_contents
+	else
+		qdel(old_hidden_contents)
+	return newfloor
+
+/turf/simulated/floor/restore_tile(do_hide = TRUE)
+	..()
+	if (!do_hide)
+		return
+	for (var/obj/item/item in src.contents)
+		if (item.w_class <= W_CLASS_TINY && !item.anchored) //I wonder if this will cause problems
+			src.hide_inside(item)
+
+///CRIME
+/obj/effects/hidden_contents_holder
+	name = ""
+	desc = ""
+	icon = null
+	anchored = ANCHORED_ALWAYS
+	invisibility = INVIS_ALWAYS
+	alpha = 0
+
+	set_loc(newloc)
+		if (!isnull(newloc))
+			return
+		. = ..()
+
 
 ////////////////////////////////////////////ADVENTURE SIMULATED FLOORS////////////////////////
 DEFINE_FLOORS_SIMMED_UNSIMMED(racing,
@@ -1721,10 +2381,10 @@ DEFINE_FLOORS_SIMMED_UNSIMMED(racing/rainbow_road,
 		icon_state = "bluewall_glow"
 		can_replace_with_stuff = 1
 
-		attackby(obj/item/W as obj, mob/user as mob)
-			if (istype(W, /obj/item/device/key))
-				playsound(src, "sound/effects/mag_warp.ogg", 50, 1)
-				src.visible_message("<span class='notice'><b>[src] slides away!</b></span>")
+		attackby(obj/item/W, mob/user)
+			if (istype(W, /obj/item/device/key/generic/coldsteel))
+				playsound(src, 'sound/effects/mag_warp.ogg', 50, TRUE)
+				src.visible_message(SPAN_NOTICE("<b>[src] slides away!</b>"))
 				src.ReplaceWithSpace() // make sure the area override says otherwise - maybe this sucks
 
 	hive
@@ -1754,24 +2414,6 @@ DEFINE_FLOORS_SIMMED_UNSIMMED(racing/rainbow_road,
 	icon_state = "gauntwall"
 // --------------------------------------------
 
-/turf/proc/fall_to(var/turf/T, var/atom/movable/A)
-	if(istype(A, /obj/overlay/tile_effect)) //Ok enough light falling places. Fak.
-		return
-	if (isturf(T))
-		visible_message("<span class='alert'>[A] falls into [src]!</span>")
-		if (ismob(A))
-			var/mob/M = A
-			if(!M.stat && ishuman(M))
-				var/mob/living/carbon/human/H = M
-				if(H.gender == MALE) playsound(H.loc, "sound/voice/screams/male_scream.ogg", 100, 0, 0, H.get_age_pitch(), channel=VOLUME_CHANNEL_EMOTE)
-				else playsound(H.loc, "sound/voice/screams/female_scream.ogg", 100, 0, 0, H.get_age_pitch(), channel=VOLUME_CHANNEL_EMOTE)
-			random_brute_damage(M, 50)
-			M.changeStatus("paralysis", 7 SECONDS)
-			SPAWN_DBG(0)
-				playsound(M.loc, pick('sound/impact_sounds/Slimy_Splat_1.ogg', 'sound/impact_sounds/Flesh_Break_1.ogg'), 75, 1)
-		A.set_loc(T)
-		return
-
 /turf/unsimulated/floor/setpieces
 	icon = 'icons/misc/worlds.dmi'
 	fullbright = 0
@@ -1780,39 +2422,18 @@ DEFINE_FLOORS_SIMMED_UNSIMMED(racing/rainbow_road,
 		name = "broken staircase"
 		desc = "You can't see the bottom."
 		icon_state = "black"
-		var/target_landmark = LANDMARK_FALL_ANCIENT
+		var/falltarget = LANDMARK_FALL_ANCIENT
 
-		Entered(atom/A as mob|obj)
-			if (isobserver(A) || (istype(A, /obj/critter) && A:flying))
-				return ..()
-
-			var/turf/T = pick_landmark(target_landmark)
-			if(T)
-				fall_to(T, A)
-				return
-			else ..()
-
-		shaft
-			name = "Elevator Shaft"
-			target_landmark = LANDMARK_FALL_BIO_ELE
-
-			Entered(atom/A as mob|obj)
-				if (istype(A, /mob) && !istype(A, /mob/dead))
-					bioele_accident()
-				return ..()
+		New()
+			. = ..()
+			src.AddComponent(/datum/component/pitfall/target_landmark,\
+				BruteDamageMax = 50,\
+				FallTime = 0 SECONDS,\
+				TargetLandmark = src.falltarget)
 
 		hole_xy
 			name = "deep pit"
-			target_landmark = LANDMARK_FALL_DEBUG
-			Entered(atom/A as mob|obj)
-				if (isobserver(A) || (istype(A, /obj/critter) && A:flying))
-					return ..()
-
-				if(warptarget)
-					fall_to(warptarget, A)
-					return
-				else ..()
-
+			falltarget = LANDMARK_FALL_DEBUG
 
 	bloodfloor
 		name = "bloody floor"
@@ -1823,6 +2444,11 @@ DEFINE_FLOORS_SIMMED_UNSIMMED(racing/rainbow_road,
 		name = "overgrown floor"
 		desc = "This floor is covered in vines."
 		icon_state = "rootfloor_1"
+
+		random
+			New()
+				. = ..()
+				icon_state = "rootfloor_[rand(1,3)]"
 
 	oldfloor
 		name = "floor"
@@ -1839,15 +2465,12 @@ DEFINE_FLOORS_SIMMED_UNSIMMED(racing/rainbow_road,
 			desc = "You can't see the bottom."
 			icon_state = "deeps"
 
-			Entered(atom/A as mob|obj)
-				if (istype(A, /obj/overlay/tile_effect) || istype(A, /mob/dead) || istype(A, /mob/wraith) || istype(A, /mob/living/intangible))
-					return ..()
-
-				var/turf/T = pick_landmark(LANDMARK_FALL_DEEP)
-				if(T)
-					fall_to(T, A)
-					return
-				else ..()
+			New()
+				. = ..()
+				src.AddComponent(/datum/component/pitfall/target_landmark,\
+					BruteDamageMax = 50,\
+					FallTime = 0 SECONDS,\
+					TargetLandmark = LANDMARK_FALL_DEEP)
 
 	hivefloor
 		name = "hive floor"
@@ -1871,3 +2494,418 @@ DEFINE_FLOORS_SIMMED_UNSIMMED(racing/rainbow_road,
 		desc = ""
 		icon = 'icons/misc/worlds.dmi'
 		icon_state = "swampgrass_edge"
+
+TYPEINFO(/turf/simulated/floor/auto)
+	/// List of types this autowall connects to
+	var/list/connects_to = null
+	/// Because connections now work by parent type searches, this is for when you don't want certain subtypes to connect.
+	/// This must be a typecache ([/proc/typecachesof]) list
+	var/list/connects_to_exceptions = null
+	/// do we have wall connection overlays, ex nornwalls?
+	var/connect_overlay = 0
+	var/list/connects_with_overlay = null
+	var/list/connects_with_overlay_exceptions = null // same as above comment
+	var/connect_across_areas = TRUE
+	/// 0 = no diagonal sprites, 1 = diagonal only if both adjacent cardinals are present, 2 = always allow diagonals
+	var/connect_diagonal = 0
+
+/turf/simulated/floor/auto
+	name = "auto edging turf"
+
+	var/mod = null
+	var/light_mod = null
+	/// The image we're using to connect to stuff with
+	var/image/connect_image = null
+	///turf won't draw edges on turfs with higher or equal priority
+	var/edge_priority_level = 0
+	var/icon_state_edge = null
+
+	New()
+		. = ..()
+		src.layer += src.edge_priority_level / 1000
+		if (current_state > GAME_STATE_WORLD_NEW)
+			SPAWN(0) //worldgen overrides ideally
+				UpdateIcon()
+				if(istype(src))
+					update_neighbors()
+		else
+			worldgenCandidates += src
+
+	generate_worldgen()
+		src.UpdateIcon()
+		if(istype(src))
+			update_neighbors()
+
+	update_icon()
+		. = ..()
+		src.edge_overlays()
+		if(src.mod)
+			var/typeinfo/turf/simulated/floor/auto/typinfo = get_typeinfo()
+			var/connectdir = get_connected_directions_bitflag(typinfo.connects_to, typinfo.connects_to_exceptions, typinfo.connect_across_areas, typinfo.connect_diagonal)
+			var/the_state = "[mod][connectdir]"
+			icon_state = the_state
+
+			// if (light_mod)
+			// 	src.RL_SetSprite("[light_mod][connectdir]")
+
+			if (typinfo.connect_overlay)
+				var/overlaydir = get_connected_directions_bitflag(typinfo.connects_with_overlay, typinfo.connects_with_overlay_exceptions, typinfo.connect_across_areas)
+				if (overlaydir)
+					if (!src.connect_image)
+						src.connect_image = image(src.icon, "connect[overlaydir]")
+					else
+						src.connect_image.icon_state = "connect[overlaydir]"
+					src.AddOverlays(src.connect_image, "connect")
+				else
+					src.ClearSpecificOverlays("connect")
+
+	proc/update_neighbors()
+		for (var/turf/simulated/floor/auto/T in orange(1,src))
+			T.UpdateIcon()
+
+	proc/edge_overlays()
+		if(src.icon_state_edge)
+			for (var/turf/T in orange(src,1))
+				if (istype(T, /turf/simulated/floor/auto))
+					var/turf/simulated/floor/auto/TA = T
+					if (TA.edge_priority_level >= src.edge_priority_level)
+						continue
+				var/direction = get_dir(T,src)
+				var/image/edge_overlay = image(src.icon, "[icon_state_edge][direction]")
+				edge_overlay.appearance_flags = PIXEL_SCALE | TILE_BOUND | RESET_COLOR | RESET_ALPHA
+				edge_overlay.layer = src.layer + (src.edge_priority_level / 1000)
+				edge_overlay.plane = PLANE_FLOOR
+				T.AddOverlays(edge_overlay, "edge_[direction]")
+
+/turf/simulated/floor/auto/grass/swamp_grass
+	name = "swamp grass"
+	desc = "Grass. In a swamp. Truly fascinating."
+	icon = 'icons/turf/forest.dmi'
+	icon_state = "grass1"
+	edge_priority_level = FLOOR_AUTO_EDGE_PRIORITY_GRASS
+	icon_state_edge = "grassedge"
+
+	New()
+		. = ..()
+		src.icon_state = "grass[rand(1,9)]"
+
+/turf/simulated/floor/auto/grass/leafy
+	name = "grass"
+	desc = "some leafy grass."
+	icon = 'icons/turf/outdoors.dmi'
+#ifdef SEASON_AUTUMN
+	icon_state = "grass_leafy_autumn"
+	icon_state_edge = "leafy_edge_autumn"
+#else
+	icon_state = "grass_leafy"
+	icon_state_edge = "grass_leafyedge"
+#endif
+	edge_priority_level = FLOOR_AUTO_EDGE_PRIORITY_GRASS - 1
+
+/turf/simulated/floor/auto/dirt
+	name = "dirt"
+	desc = "earth."
+	icon = 'icons/misc/worlds.dmi'
+	icon_state = "dirt"
+	edge_priority_level = FLOOR_AUTO_EDGE_PRIORITY_DIRT
+	icon_state_edge = "dirtedge"
+
+/turf/simulated/floor/auto/sand
+	name = "sand"
+	desc = "finest earth."
+	icon = 'icons/turf/outdoors.dmi'
+	icon_state = "sand_other"
+	edge_priority_level = FLOOR_AUTO_EDGE_PRIORITY_DIRT + 1
+	icon_state_edge = "sand_edge"
+	var/tuft_prob = 2
+
+	New()
+		..()
+		src.set_dir(pick(cardinal))
+
+		if(prob(tuft_prob))
+			var/rand_x = rand(-5,5)
+			var/rand_y = rand(-5,5)
+			var/image/tuft
+			var/hue_shift = rand(80,95)
+
+			tuft = image('icons/turf/outdoors.dmi', "grass_tuft", src, pixel_x=rand_x, pixel_y=rand_y)
+			tuft.color = hsv_transform_color_matrix(h=hue_shift)
+			AddOverlays(tuft,"grass_turf")
+
+	rough
+		tuft_prob = 0.8
+		New()
+			..()
+			icon_state_edge = "sand_r_edge"
+			edge_priority_level = FLOOR_AUTO_EDGE_PRIORITY_DIRT + 2
+			switch(rand(1,3))
+				if(1)
+					icon_state = "sand_other_texture"
+					src.set_dir(pick(alldirs))
+				if(2)
+					icon_state = "sand_other_texture2"
+					src.set_dir(pick(alldirs))
+				if(3)
+					icon_state = "sand_other_texture3"
+
+
+/turf/simulated/floor/auto/water
+	name = "water"
+	desc = "Who knows what could be hiding in there."
+	icon = 'icons/turf/water.dmi'
+	icon_state = "swamp0"
+	edge_priority_level = FLOOR_AUTO_EDGE_PRIORITY_WATER
+	icon_state_edge = "swampedge"
+
+	New()
+		. = ..()
+		if (prob(8))
+			src.icon_state = "swamp[rand(1, 4)]"
+
+
+TYPEINFO(/turf/simulated/floor/auto/water/ice)
+	mat_appearances_to_ignore = list("ice")
+/turf/simulated/floor/auto/water/ice
+	name = "ice"
+	desc = "Frozen water."
+	icon = 'icons/turf/water.dmi'
+	icon_state = "ice"
+	icon_state_edge = "ice_edge"
+	default_material = "ice"
+	mat_changename = FALSE
+
+/turf/simulated/floor/auto/water/ice/rough
+	name = "ice"
+	desc = "Rough frozen water."
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "ice1"
+
+	New()
+		..()
+		src.icon_state = "ice[rand(1, 6)]"
+
+	edge_overlays()
+		return
+
+/turf/simulated/floor/auto/swamp
+	name = "swamp"
+	desc = "Who knows what could be hiding in there."
+	icon = 'icons/turf/water.dmi'
+	icon_state = "swamp0"
+	edge_priority_level = FLOOR_AUTO_EDGE_PRIORITY_WATER
+	icon_state_edge = "swampedge"
+
+	New()
+		. = ..()
+		if (prob(10))
+			src.icon_state = "swamp_decor[rand(1, 10)]"
+		else
+			src.icon_state = "swamp0"
+
+/turf/simulated/floor/auto/swamp/rain
+	New()
+		. = ..()
+		var/image/R = image('icons/turf/water.dmi', "ripple", dir=pick(alldirs),pixel_x=rand(-10,10),pixel_y=rand(-10,10))
+		R.alpha = 180
+		src.AddOverlays(R, "ripple")
+
+/turf/simulated/floor/auto/snow
+	name = "snow"
+	desc = "Snow. Soft and fluffy."
+	icon = 'icons/turf/snow.dmi'
+	icon_state = "snow1"
+	edge_priority_level = FLOOR_AUTO_EDGE_PRIORITY_GRASS + 1
+	icon_state_edge = "snow_edge"
+	step_material = "step_outdoors"
+	step_priority = STEP_PRIORITY_MED
+
+	New()
+		. = ..()
+		if(src.type == /turf/simulated/floor/auto/snow && prob(10))
+			src.icon_state = "snow[rand(1,5)]"
+
+/turf/simulated/floor/auto/snow/rough
+	name = "snow"
+	desc = "some piled snow."
+	icon =  'icons/turf/snow.dmi'
+	icon_state = "snow_rough1"
+	edge_priority_level = FLOOR_AUTO_EDGE_PRIORITY_GRASS + 2
+	icon_state_edge = "snow_r_edge"
+
+	New()
+		. = ..()
+		if(prob(10))
+			src.icon_state = "snow_rough[rand(1,3)]"
+
+/turf/simulated/floor/swampgrass
+	name = "reedy grass"
+	desc = ""
+	icon = 'icons/misc/worlds.dmi'
+	icon_state = "swampgrass"
+
+	New()
+		..()
+		set_dir(pick(1,2,4,8))
+		return
+
+/turf/simulated/floor/swampgrass_edging
+	name = "reedy grass"
+	desc = ""
+	icon = 'icons/misc/worlds.dmi'
+	icon_state = "swampgrass_edge"
+
+TYPEINFO(/turf/simulated/floor/auto/glassblock)
+	mat_appearances_to_ignore = list("steel","synthrubber","glass")
+	connect_diagonal = 1
+
+//dont use please
+/turf/simulated/floor/auto/glassblock
+	name = "glass block tiling"
+	step_material = "step_wood"
+	step_priority = STEP_PRIORITY_MED
+	mat_changename = FALSE
+	can_burn = FALSE
+	can_break = FALSE
+	icon_state = "glass-0"
+	mod = "glass-"
+	default_material = "glass"
+	var/static/image/starlight
+
+	New()
+		..()
+		#ifndef CI_RUNTIME_CHECKING
+		var/image/I
+		#ifdef UNDERWATER_MAP
+		var/sand_icon
+		var/direction
+		switch(rand(1, 3))
+			if(1)
+				sand_icon = "sand_other_texture"
+				direction = pick(alldirs)
+			if(2)
+				sand_icon = "sand_other_texture2"
+				direction = pick(alldirs)
+			if(3)
+				sand_icon = "sand_other_texture3"
+				direction = pick(cardinal)
+		I = image('icons/turf/outdoors.dmi', sand_icon, dir = direction)
+		#else
+		src.underlays += /turf/space::starlight
+		I = mutable_appearance('icons/turf/space.dmi', "[rand(1, 25)]")
+		I.color = /turf/space::space_color
+		#endif
+		I.plane = PLANE_SPACE
+		src.underlays += I
+		#endif
+
+	pry_tile(obj/item/C as obj, mob/user as mob, params)
+		boutput(user, SPAN_ALERT("This is glass flooring, you can't pry this up!"))
+
+	to_plating()
+		return
+
+	break_tile_to_plating()
+		return
+
+	break_tile()
+		return
+
+	// unburnable, otherwise floorbots use steel sheets for repair which doesn't make sense
+	burn_tile()
+		return
+
+	attackby(obj/item/C, mob/user, params)
+		if (istype(C, /obj/item/rods))
+			boutput(user, SPAN_ALERT("You can't reinforce this tile."))
+			return
+		if(istype(C, /obj/item/cable_coil))
+			boutput(user, SPAN_ALERT("You can't put cable over this tile, it would be too exposed."))
+			return
+		..()
+
+TYPEINFO(/turf/simulated/floor/auto/glassblock/grey)
+TYPEINFO_NEW(/turf/simulated/floor/auto/glassblock/grey)
+	. = ..()
+	connects_to = typecacheof(/turf/simulated/floor/auto/glassblock/grey)
+/turf/simulated/floor/auto/glassblock/grey
+	icon = 'icons/turf/glass_floors/grey_glass_floor_auto.dmi'
+
+TYPEINFO(/turf/simulated/floor/auto/glassblock/cyan)
+TYPEINFO_NEW(/turf/simulated/floor/auto/glassblock/cyan)
+	. = ..()
+	connects_to = typecacheof(/turf/simulated/floor/auto/glassblock/cyan)
+/turf/simulated/floor/auto/glassblock/cyan
+	icon = 'icons/turf/glass_floors/cyan_glass_floor_auto.dmi'
+
+TYPEINFO(/turf/simulated/floor/auto/glassblock/indigo)
+TYPEINFO_NEW(/turf/simulated/floor/auto/glassblock/indigo)
+	. = ..()
+	connects_to = typecacheof(/turf/simulated/floor/auto/glassblock/indigo)
+/turf/simulated/floor/auto/glassblock/indigo
+	icon = 'icons/turf/glass_floors/indigo_glass_floor_auto.dmi'
+
+TYPEINFO(/turf/simulated/floor/auto/glassblock/red)
+TYPEINFO_NEW(/turf/simulated/floor/auto/glassblock/red)
+	. = ..()
+	connects_to = typecacheof(/turf/simulated/floor/auto/glassblock/red)
+/turf/simulated/floor/auto/glassblock/red
+	icon = 'icons/turf/glass_floors/red_glass_floor_auto.dmi'
+
+TYPEINFO(/turf/simulated/floor/auto/glassblock/purple)
+TYPEINFO_NEW(/turf/simulated/floor/auto/glassblock/purple)
+	. = ..()
+	connects_to = typecacheof(/turf/simulated/floor/auto/glassblock/purple)
+/turf/simulated/floor/auto/glassblock/purple
+	icon = 'icons/turf/glass_floors/purple_glass_floor_auto.dmi'
+
+
+/turf/unsimulated/floor/pool
+	mat_changename = FALSE
+	mat_changedesc = FALSE
+	name = "water"
+	icon_state = "poolwaterfloor"
+
+	New()
+		..()
+		src.set_dir(pick(NORTH,SOUTH))
+
+/turf/unsimulated/floor/pool/no_animate
+	name = "pool floor"
+	icon_state = "poolwaterfloor_static"
+
+	New()
+		..()
+		src.set_dir(pick(NORTH,SOUTH))
+
+/turf/simulated/floor/pool
+	mat_changename = FALSE
+	mat_changedesc = FALSE
+	name = "water"
+	icon_state = "poolwaterfloor"
+
+	New()
+		..()
+		src.set_dir(pick(NORTH,SOUTH))
+
+/turf/simulated/floor/pool/no_animate
+	name = "pool floor"
+	icon_state = "poolwaterfloor_static"
+
+	New()
+		..()
+		src.set_dir(pick(NORTH,SOUTH))
+
+// Material flooring
+
+DEFINE_FLOORS(mauxite,
+	icon = 'icons/turf/floors.dmi';\
+	icon_state = "floor$$mauxite";\
+	default_material = "mauxite";\
+	uses_default_material_appearance = TRUE)
+
+DEFINE_FLOORS(bamboo,
+	icon = 'icons/turf/floors.dmi';\
+	icon_state = "floor$$bamboo";\
+	default_material = "bamboo";\
+	uses_default_material_appearance = TRUE)

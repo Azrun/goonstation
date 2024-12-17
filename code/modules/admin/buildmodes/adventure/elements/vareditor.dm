@@ -1,12 +1,12 @@
 /// Adventure puzzle thing - edits set var (via .name or .interesting)
 /obj/adventurepuzzle/triggerable/targetable/varedit
 	name = "vareditor"
-	invisibility = 20
+	invisibility = INVIS_ADVENTURE
 	icon = 'icons/obj/stationobjs.dmi'
 	icon_state = "var_editor"
 	density = 0
 	opacity = 0
-	anchored = 1
+	anchored = ANCHORED
 	target = null
 	var/var_name = ""
 	var/var_value = null
@@ -18,7 +18,7 @@
 		..()
 		if (to_set)
 			var_object = to_set
-		SPAWN_DBG(2 SECONDS) // let the world load
+		SPAWN(2 SECONDS) // let the world load
 			for (var/atom/A as anything in get_turf(src))
 				if (src.var_object == A.name || src.var_object == A.interesting) // oh boo hoo, sue me for misuse of variables
 					var_object = A

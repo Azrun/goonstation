@@ -114,7 +114,7 @@
 	desc = "Discount Dan's loves you too!"
 	density = 0
 	opacity = 0
-	anchored = 1
+	anchored = ANCHORED
 
 	deconstruct_flags = DECON_MULTITOOL
 
@@ -149,17 +149,17 @@
 		light.attach(src)
 		light.enable()
 
-	attackby(var/obj/item/I as obj, user as mob)
+	attackby(var/obj/item/I, user)
 		if(istype(I, /obj/item/ticket/golden))
 			qdel(I)
-			boutput(user, "<span class='notice'>You insert the golden ticket into the GTM.</span>")
+			boutput(user, SPAN_NOTICE("You insert the golden ticket into the GTM."))
 			src.current_tickets++
 			src.updateUsrDialog()
 		else
-			src.attack_hand(user)
+			src.Attackhand(user)
 		return
 
-	attack_hand(var/mob/user as mob)
+	attack_hand(var/mob/user)
 		if(..())
 			return
 

@@ -4,47 +4,47 @@
 // Envelope using an action as the timer
 // -----------------------------------
 
-/datum/action/bar/icon/envelopeAbility
-	duration = 40
+/datum/action/bar/icon/envelopAbility
+	duration = 4 SECONDS
 	interrupt_flags = INTERRUPT_MOVE | INTERRUPT_ACT | INTERRUPT_STUNNED | INTERRUPT_ACTION
-	id = "critter_envelope"
 	icon = 'icons/mob/critter_ui.dmi'
 	icon_state = "devour_over"
 	var/mob/living/target
-	var/datum/targetable/critter/envelope/envelope
+	var/datum/targetable/critter/envelop/ability
 
-	New(Target, Envelope)
+	critter
+		duration = 6 SECONDS
+
+	New(Target, Envelop)
 		target = Target
-		envelope = Envelope
+		ability = Envelop
 		..()
 
 	onUpdate()
 		..()
 
-		if (get_dist(owner, target) > 1 || target == null || owner == null || !envelope || !envelope.cooldowncheck())
+		if (BOUNDS_DIST(owner, target) > 0 || target == null || owner == null || (ability && !ability.cooldowncheck()))
 			interrupt(INTERRUPT_ALWAYS)
 			return
 
 	onStart()
 		..()
-		if (get_dist(owner, target) > 1 || target == null || owner == null || !envelope || !envelope.cooldowncheck())
+		if (BOUNDS_DIST(owner, target) > 0 || target == null || owner == null || (ability && !ability.cooldowncheck()))
 			interrupt(INTERRUPT_ALWAYS)
 			return
-
-		for (var/mob/O in AIviewers(owner))
-			O.show_message("<span class='combat'><B>[owner]</B> starts to envelop [target]!</span>", 1)
+		owner.visible_message(SPAN_COMBAT("<B>[owner]</B> starts to envelop [target]!"))
 
 	onEnd()
 		..()
 		var/mob/ownerMob = owner
-		if (ownerMob && target && IN_RANGE(owner, target, 1) && envelope?.cooldowncheck())
-			logTheThing("combat", target, ownerMob, "was enveloped by [constructTarget(ownerMob,"combat")] (mob) at [log_loc(ownerMob)].")
-			for (var/mob/O in AIviewers(ownerMob))
-				O.show_message("<span class='combat'><B>[ownerMob]</B> completely envelops [target]!</span>", 1)
-			playsound(ownerMob, "sound/impact_sounds/Slimy_Hit_4.ogg", 50, 1)
-			ownerMob.health = ownerMob.max_health
-			if (target == owner)
-				boutput(owner, "<span class='success'>Good. Job.</span>")
+		if (ownerMob && target && (BOUNDS_DIST(owner, target) == 0) && (!ability || ability.cooldowncheck()))
+			logTheThing(LOG_COMBAT, target, "was enveloped by [constructTarget(ownerMob,"combat")] [ismob(ownerMob) ? "(mob) " : ""]at [log_loc(ownerMob)].")
+			owner.visible_message(SPAN_COMBAT("<B>[ownerMob]</B> completely envelops [target]!"))
+			playsound(ownerMob, 'sound/impact_sounds/Slimy_Hit_4.ogg', 50, TRUE)
+			if(istype(ownerMob))
+				ownerMob.health = ownerMob.max_health
+				if (target == owner)
+					boutput(owner, SPAN_SUCCESS("Good. Job."))
 			target.death()
 			target.ghostize()
 			if (iscarbon(target))
@@ -55,12 +55,12 @@
 							W.set_loc(target.loc)
 							W.dropped(target)
 							W.layer = initial(W.layer)
-			envelope.actionFinishCooldown()
+			ability?.actionFinishCooldown()
 			qdel(target)
 
-/datum/targetable/critter/envelope
-	name = "Envelope"
-	desc = "After a short delay, instantly envelope a mob. Both you and the target must stand still for this."
+/datum/targetable/critter/envelop
+	name = "Envelop"
+	desc = "After a short delay, instantly envelop a mob. You must stand still for this."
 	cooldown = 0
 	var/actual_cooldown = 200
 	targeted = 1
@@ -79,13 +79,13 @@
 		if (isturf(target))
 			target = locate(/mob/living) in target
 			if (!target)
-				boutput(holder.owner, __red("Nothing to envelope there."))
+				boutput(holder.owner, SPAN_ALERT("Nothing to envelop there."))
 				return 1
 		if (!istype(target, /mob/living))
-			boutput(holder.owner, __red("Invalid target."))
+			boutput(holder.owner, SPAN_ALERT("Invalid target."))
 			return 1
-		if (get_dist(holder.owner, target) > 1)
-			boutput(holder.owner, __red("That is too far away to envelope."))
+		if (BOUNDS_DIST(holder.owner, target) > 0)
+			boutput(holder.owner, SPAN_ALERT("That is too far away to envelop."))
 			return 1
-		actions.start(new/datum/action/bar/icon/envelopeAbility(target, src), holder.owner)
+		actions.start(new/datum/action/bar/icon/envelopAbility(target, src), holder.owner)
 		return 0

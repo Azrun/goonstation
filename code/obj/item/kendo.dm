@@ -41,11 +41,12 @@
 	crit_override = 1
 	bonus_crit_chance = 0
 	stamina_dmg_mult = 0.35
+	fingertip_color = "#2d3c52"
 
 	setupProperties()
 		..()
 		setProperty("coldprot", 7)
-		setProperty("conductivity", 0.3)
+		setProperty("conductivity", 0.4)
 
 //======
 //Shinai
@@ -61,17 +62,17 @@
 
 	w_class = W_CLASS_BULKY
 	two_handed = 1
-	throwforce = 4.0
+	throwforce = 4
 	throw_range = 4
 	stamina_crit_chance = 2
 
 	//these combat variables will change depending on the guard
-	force = 6.0
+	force = 6
 	stamina_damage = 10
-	stamina_cost = 5.0
+	stamina_cost = 5
 
 	hit_type = DAMAGE_BLUNT
-	flags = FPRINT | TABLEPASS | USEDELAY
+	flags = TABLEPASS | USEDELAY
 	c_flags = EQUIPPED_WHILE_HELD
 	item_function_flags = USE_INTENT_SWITCH_TRIGGER | USE_SPECIALS_ON_ALL_INTENTS
 
@@ -144,26 +145,28 @@
 		if(guard != user.a_intent)
 			change_guard(user,user.a_intent)
 
-	attack(mob/living/carbon/human/defender as mob, mob/living/carbon/human/attacker as mob)
-		if(ishuman(defender))
-			if(defender.equipped() && istype(defender.equipped(),/obj/item/shinai))
-				var/obj/item/shinai/S = defender.equipped()
-				var/parry_block = S.parry_block_check(attacker,defender)
+	attack(mob/target, mob/user, def_zone, is_special = FALSE, params = null)
+		if(ishuman(target))
+			if(target.equipped() && istype(target.equipped(),/obj/item/shinai))
+				var/obj/item/shinai/S = target.equipped()
+				var/parry_block = S.parry_block_check(user,target)
 				if((parry_block == 1) || (parry_block == 2))
-					attacker.do_disorient((attacker.equipped().stamina_damage),0,0,0,0,1,null)
+					user.do_disorient((user.equipped().stamina_damage),0,0,0,0,1,null)
 					return //stops damage if parried or blocked, if not, itll check for a disarm
 
-			if((attacker.a_intent=="disarm") && prob(20) && defender.equipped())
-				var/obj/item/I = defender.equipped()
-				defender.u_equip(I)
-				I.set_loc(defender.loc)
+			if((user.a_intent=="disarm") && prob(20) && target.equipped())
+				var/obj/item/I = target.equipped()
+				if (I.cant_drop)
+					return
+				target.u_equip(I)
+				I.set_loc(target.loc)
 				var/target_turf = get_offset_target_turf(I.loc,rand(5)-rand(5),rand(5)-rand(5))
 				I.throw_at(target_turf,3,1)
-				defender.show_text("<b>[attacker] knocks the [I] right out of your hands!</b>","red")
-				attacker.show_text("<b>You knock the [I] right out of [defender]'s hands!</b>","green")
+				target.show_text("<b>[user] knocks the [I] right out of your hands!</b>","red")
+				user.show_text("<b>You knock the [I] right out of [target]'s hands!</b>","green")
 		..()
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if(src.loc != user)
 			change_guard(user,user.a_intent)
 		..()
@@ -179,10 +182,10 @@
 /obj/item/shinai_bag
 	name = "shinai bag"
 	desc = "\improper 竹刀袋 : A tube-like back for holding two shinai."
-	wear_image_icon = 'icons/mob/back.dmi'
+	wear_image_icon = 'icons/mob/clothing/back.dmi'
 	icon_state = "shinaibag-closed"
 	item_state = "shinaibag-closed"
-	flags = ONBACK | FPRINT | TABLEPASS
+	c_flags = ONBACK
 	w_class = W_CLASS_BULKY
 	var/open = 0
 	var/shinai = 2
@@ -220,7 +223,7 @@
 		open = !open
 		update_sprite(user)
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if(src.loc == user)
 			if(open)
 				draw_shinai(user)
@@ -232,13 +235,29 @@
 		else
 			..()
 
-	attackby(obj/item/W as obj, mob/user as mob)
+	attackby(obj/item/W, mob/user)
 		if(istype(W, /obj/item/shinai) && open && shinai + length(src.contents) < 2)
 			user.u_equip(W)
 			W.set_loc(src)
 			update_sprite(user)
 		else
 			..()
+
+	mouse_drop(atom/over_object, src_location, over_location)
+		..()
+		var/atom/movable/screen/hud/S = over_object
+		if (istype(S))
+			playsound(src.loc, "rustle", 50, 1, -5)
+			if (can_act(usr) && src.loc == usr)
+				if (S.id == "rhand")
+					if (!usr.r_hand)
+						usr.u_equip(src)
+						usr.put_in_hand_or_drop(src, 0)
+				else
+					if (S.id == "lhand")
+						if (!usr.l_hand)
+							usr.u_equip(src)
+							usr.put_in_hand_or_drop(src, 1)
 
 /obj/item/storage/box/kendo_box
 	name = "kendo box"
@@ -247,7 +266,7 @@
 	spawn_contents = list(/obj/item/clothing/head/helmet/men=2,/obj/item/clothing/suit/armor/douandtare=2,/obj/item/clothing/gloves/kote=2,/obj/item/shinai_bag=1)
 
 /obj/item/storage/box/kendo_box/hakama
-	name = "hakama box"
-	desc = "A box full of hakama!"
+	name = "uwagi and hakama box"
+	desc = "A box full of sets of uwagi and hakama!"
 	icon_state = "box"
 	spawn_contents = list(/obj/item/clothing/under/gimmick/hakama/random=7)

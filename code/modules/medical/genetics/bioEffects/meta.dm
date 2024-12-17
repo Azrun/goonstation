@@ -22,7 +22,7 @@
 		for(var/ID in B.effectPool)
 			B.ActivatePoolEffect(B.effectPool[ID], 1, 0)
 			//Overrides incomplete DNA sequences
-		return
+		. = ..()
 
 /datum/bioEffect/scrambler
 	name = "Booster Gene Y"
@@ -45,9 +45,9 @@
 		var/mob/living/L = owner
 		var/datum/bioHolder/B = L.bioHolder
 
-		B.RemoveAllEffects()
+		B.RemoveAllEffects(null, TRUE)
 		B.BuildEffectPool()
-		return
+		. = ..()
 
 /datum/bioEffect/remove_all
 	name = "Booster Gene Z"
@@ -70,9 +70,9 @@
 		var/mob/living/L = owner
 		var/datum/bioHolder/B = L.bioHolder
 
-		B.RemoveAllEffects()
+		B.RemoveAllEffects(null, TRUE)
 		B.RemoveAllPoolEffects()
-		return
+		. = ..()
 
 /datum/bioEffect/early_secret_access
 	name = "High Complexity DNA"
@@ -80,7 +80,7 @@
 	id = "early_secret_access"
 	secret = 1
 	effectType = EFFECT_TYPE_POWER
-	mob_exclusive = /mob/living/carbon/human/
+	mob_exclusive = /mob/living/carbon/human
 	can_research = 0
 	blockCount = 1
 	probability = 35

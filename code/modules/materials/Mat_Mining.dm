@@ -50,7 +50,8 @@
 	var/power = 5 //Damage to asteroid tiles.
 	var/hit_sound = 'sound/items/mining_drill.ogg'
 
-	flags = FPRINT | EXTRADELAY | TABLEPASS | CONDUCT | ONBELT
+	flags = EXTRADELAY | TABLEPASS | CONDUCT
+	c_flags = ONBELT
 
 	New()
 		..()
@@ -67,9 +68,9 @@
 	onMaterialChanged()
 		..()
 		if(istype(src.material))
-			src.power = max(20, src.material.getProperty("hard") * 4)
+			src.power = max(20, (src.material.getProperty("hard") - 3) * 66)
 		if(blasting)
-			src.power *= 0.90
+			src.power *= 0.9
 		return
 
 	proc/use(var/mob/user, var/atom/target)
@@ -92,11 +93,11 @@
 		..()
 		if(istype(src.material))
 			src.power = 0
-			src.power += max(10, src.material.getProperty("density") * 2)
-			src.power += max(10, src.material.getProperty("hard") * 2)
+			src.power += max(10, (src.material.getProperty("density") - 3) * 33)
+			src.power += max(10, (src.material.getProperty("hard") - 3) * 33)
 			src.power *= 2.5
 			if(blasting)
-				src.power *= 0.90
+				src.power *= 0.9
 			src.power = round(src.power)
 		return
 
@@ -107,22 +108,22 @@
 
 		var/turf/start = get_step(user,attackDir)
 
-		var/obj/meleeeffect/pick/DA = new/obj/meleeeffect/pick(start)
+		var/obj/effect/melee/pick/DA = new/obj/effect/melee/pick(start)
 
-		SPAWN_DBG(2 SECONDS)
+		SPAWN(2 SECONDS)
 			qdel(DA)
 
 		var/list/extra_dmg = list()
 		if(blasting)
 			extra_dmg |= range(1,start)
 			for(var/turf/T in extra_dmg)
-				if(istype(T,/turf/simulated/wall/asteroid))
-					var/obj/meleeeffect/conc/conc = new/obj/meleeeffect/conc(T)
-					SPAWN_DBG(1 SECOND) qdel(conc)
+				if(istype(T,/turf/simulated/wall/auto/asteroid))
+					var/obj/effect/melee/conc/conc = new/obj/effect/melee/conc(T)
+					SPAWN(1 SECOND) qdel(conc)
 					T:change_health(-(round(power/7)))
 
-		if(istype(start,/turf/simulated/wall/asteroid))
-			var/turf/simulated/wall/asteroid/A = start
+		if(istype(start,/turf/simulated/wall/auto/asteroid))
+			var/turf/simulated/wall/auto/asteroid/A = start
 			A.change_health(-power)
 		return
 
@@ -136,10 +137,10 @@
 	onMaterialChanged()
 		..()
 		if(istype(src.material))
-			src.power = max(20, src.material.getProperty("electrical") * 4)
-			src.power *= 0.80
+			src.power = max(20, (src.material.getProperty("electrical") - 4) * 80)
+			src.power *= 0.8
 			if(blasting)
-				src.power *= 0.90
+				src.power *= 0.9
 			src.power = round(src.power)
 		return
 
@@ -169,8 +170,8 @@
 		animate(color="#AA0000", time=2)
 		animate(color="#FFFFFF", time=4)
 
-		var/obj/meleeeffect/blasterline/EA = new/obj/meleeeffect/blasterline(user.loc)
-		var/obj/meleeeffect/blasterline/EB = new/obj/meleeeffect/blasterline(start)
+		var/obj/effect/melee/blasterline/EA = new/obj/effect/melee/blasterline(user.loc)
+		var/obj/effect/melee/blasterline/EB = new/obj/effect/melee/blasterline(start)
 
 		EA.set_dir(attackDir)
 		EB.set_dir(turn(attackDir, 180))
@@ -178,7 +179,7 @@
 		animate(EA,alpha=0, time=5)
 		animate(EB,alpha=0, time=5)
 
-		SPAWN_DBG(0.6 SECONDS)
+		SPAWN(0.6 SECONDS)
 			qdel(EA)
 			qdel(EB)
 
@@ -189,22 +190,22 @@
 			extra_dmg |= range(1,TB)
 			extra_dmg |= range(1,TC)
 			for(var/turf/T in extra_dmg)
-				if(istype(T,/turf/simulated/wall/asteroid))
-					var/obj/meleeeffect/conc/conc = new/obj/meleeeffect/conc(T)
-					SPAWN_DBG(1 SECOND) qdel(conc)
+				if(istype(T,/turf/simulated/wall/auto/asteroid))
+					var/obj/effect/melee/conc/conc = new/obj/effect/melee/conc(T)
+					SPAWN(1 SECOND) qdel(conc)
 					T:change_health(-(round(power/7)))
 
-		if(istype(start,/turf/simulated/wall/asteroid))
-			var/turf/simulated/wall/asteroid/A = start
+		if(istype(start,/turf/simulated/wall/auto/asteroid))
+			var/turf/simulated/wall/auto/asteroid/A = start
 			A.change_health(-power)
-		if(istype(TC,/turf/simulated/wall/asteroid))
-			var/turf/simulated/wall/asteroid/B = TC
+		if(istype(TC,/turf/simulated/wall/auto/asteroid))
+			var/turf/simulated/wall/auto/asteroid/B = TC
 			B.change_health(-power)
-		if(istype(TA,/turf/simulated/wall/asteroid))
-			var/turf/simulated/wall/asteroid/C = TA
+		if(istype(TA,/turf/simulated/wall/auto/asteroid))
+			var/turf/simulated/wall/auto/asteroid/C = TA
 			C.change_health(-power)
-		if(istype(TB,/turf/simulated/wall/asteroid))
-			var/turf/simulated/wall/asteroid/D = TB
+		if(istype(TB,/turf/simulated/wall/auto/asteroid))
+			var/turf/simulated/wall/auto/asteroid/D = TB
 			D.change_health(-power)
 		return
 
@@ -219,9 +220,9 @@
 	onMaterialChanged()
 		..()
 		if(istype(src.material))
-			src.power = max(20, src.material.getProperty("density") * 4)
+			src.power = max(20, (src.material.getProperty("density") - 3) * 66)
 			if(blasting)
-				src.power *= 0.90
+				src.power *= 0.9
 			src.power = round(src.power)
 		return
 
@@ -234,11 +235,11 @@
 		var/turf/middle = get_step(start,turn(attackDir, 90))
 		var/turf/end = get_step(start,turn(attackDir, -90))
 
-		var/obj/meleeeffect/hammer/DA = new/obj/meleeeffect/hammer(start)
-		var/obj/meleeeffect/hammer/DB = new/obj/meleeeffect/hammer(middle)
-		var/obj/meleeeffect/hammer/DC = new/obj/meleeeffect/hammer(end)
+		var/obj/effect/melee/hammer/DA = new/obj/effect/melee/hammer(start)
+		var/obj/effect/melee/hammer/DB = new/obj/effect/melee/hammer(middle)
+		var/obj/effect/melee/hammer/DC = new/obj/effect/melee/hammer(end)
 
-		SPAWN_DBG(2 SECONDS)
+		SPAWN(2 SECONDS)
 			qdel(DA)
 			qdel(DB)
 			qdel(DC)
@@ -249,35 +250,35 @@
 			extra_dmg |= range(1,middle)
 			extra_dmg |= range(1,end)
 			for(var/turf/T in extra_dmg)
-				if(istype(T,/turf/simulated/wall/asteroid))
-					var/obj/meleeeffect/conc/conc = new/obj/meleeeffect/conc(T)
-					SPAWN_DBG(1 SECOND) qdel(conc)
+				if(istype(T,/turf/simulated/wall/auto/asteroid))
+					var/obj/effect/melee/conc/conc = new/obj/effect/melee/conc(T)
+					SPAWN(1 SECOND) qdel(conc)
 					T:change_health(-(round(power/7)))
 
-		if(istype(start,/turf/simulated/wall/asteroid))
-			var/turf/simulated/wall/asteroid/A = start
+		if(istype(start,/turf/simulated/wall/auto/asteroid))
+			var/turf/simulated/wall/auto/asteroid/A = start
 			A.change_health(-power)
-		if(istype(middle,/turf/simulated/wall/asteroid))
-			var/turf/simulated/wall/asteroid/B = middle
+		if(istype(middle,/turf/simulated/wall/auto/asteroid))
+			var/turf/simulated/wall/auto/asteroid/B = middle
 			B.change_health(-power)
-		if(istype(end,/turf/simulated/wall/asteroid))
-			var/turf/simulated/wall/asteroid/C = end
+		if(istype(end,/turf/simulated/wall/auto/asteroid))
+			var/turf/simulated/wall/auto/asteroid/C = end
 			C.change_health(-power)
 		return
 
 /obj/item/mining_tools/drill
 	name = "Mining Drill"
 	desc = "A mining drill. Has a long range."
-	icon_state = "lasdrill"
+	icon_state = "lasdrill-old"
 	item_state = "drill"
 	hit_sound = 'sound/items/mining_drill.ogg'
 
 	onMaterialChanged()
 		..()
 		if(istype(src.material))
-			src.power = max(20, src.material.getProperty("hard") * 4)
+			src.power = max(20, (src.material.getProperty("hard") - 3) * 66)
 			if(blasting)
-				src.power *= 0.90
+				src.power *= 0.9
 			src.power = round(src.power)
 		return
 
@@ -307,11 +308,11 @@
 				anim_x = -64
 				anim_y = 0
 
-		var/obj/meleeeffect/drill/D = new/obj/meleeeffect/drill(start)
+		var/obj/effect/melee/drill/D = new/obj/effect/melee/drill(start)
 		D.set_dir(attackDir)
 
 		animate(D, pixel_x = anim_x, pixel_y = anim_y, time = 5, easing = QUAD_EASING)
-		SPAWN_DBG(2 SECONDS) qdel(D)
+		SPAWN(2 SECONDS) qdel(D)
 
 		var/list/extra_dmg = list()
 		if(blasting)
@@ -319,19 +320,19 @@
 			extra_dmg |= range(1,middle)
 			extra_dmg |= range(1,end)
 			for(var/turf/T in extra_dmg)
-				if(istype(T,/turf/simulated/wall/asteroid))
-					var/obj/meleeeffect/conc/conc = new/obj/meleeeffect/conc(T)
-					SPAWN_DBG(1 SECOND) qdel(conc)
+				if(istype(T,/turf/simulated/wall/auto/asteroid))
+					var/obj/effect/melee/conc/conc = new/obj/effect/melee/conc(T)
+					SPAWN(1 SECOND) qdel(conc)
 					T:change_health(-(round(power/7)))
 
-		if(istype(start,/turf/simulated/wall/asteroid))
-			var/turf/simulated/wall/asteroid/A = start
+		if(istype(start,/turf/simulated/wall/auto/asteroid))
+			var/turf/simulated/wall/auto/asteroid/A = start
 			A.change_health(-power)
-		if(istype(middle,/turf/simulated/wall/asteroid))
-			var/turf/simulated/wall/asteroid/B = middle
+		if(istype(middle,/turf/simulated/wall/auto/asteroid))
+			var/turf/simulated/wall/auto/asteroid/B = middle
 			B.change_health(-power)
-		if(istype(end,/turf/simulated/wall/asteroid))
-			var/turf/simulated/wall/asteroid/C = end
+		if(istype(end,/turf/simulated/wall/auto/asteroid))
+			var/turf/simulated/wall/auto/asteroid/C = end
 			C.change_health(-power)
 
 		return

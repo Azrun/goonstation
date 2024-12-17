@@ -10,7 +10,7 @@
 	icon_state = "meatcube"
 	a_intent = "disarm" // just so they don't swap with help intent users
 	health = INFINITY
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 	nodamage = 1
 	opacity = 0
@@ -19,41 +19,36 @@
 	use_stamina = 0
 
 	examine(mob/user)
-		. = list("<span class='notice'>*---------*</span>")
-		. += "<span class='notice'>This is a [bicon(src)] <B>[src.name]</B>!</span>"
+		. = list(SPAN_NOTICE("*---------*"))
+		. += SPAN_NOTICE("This is a [bicon(src)] <B>[src.name]</B>!")
 		if(prob(50) && ishuman(user) && user.bioHolder.HasEffect("clumsy"))
-			. += "<span class='alert'>You can't help but laugh at it.</span>"
+			. += SPAN_ALERT("You can't help but laugh at it.")
 			user.emote("laugh")
 		else
-			. += "<span class='alert'>It looks [pick("kinda", "really", "sorta", "a bit", "slightly")] [desc].</span>"
-		. += "<span class='notice'>*---------*</span>" // the fact this was missing bugged me - cirr
+			. += SPAN_ALERT("It looks [pick("kinda", "really", "sorta", "a bit", "slightly")] [desc].")
+		. += SPAN_NOTICE("*---------*") // the fact this was missing bugged me - cirr
 
 	say_understands(var/other)
 		if (ishuman(other) || isrobot(other) || isAI(other))
 			return 1
 		return ..()
 
-	attack_hand(mob/user as mob)
-		boutput(user, "<span class='notice'>You push the [src.name] but nothing happens!</span>")
-		playsound(src.loc, "sound/weapons/Genhit.ogg", 25, 1)
+	attack_hand(mob/user)
+		boutput(user, SPAN_NOTICE("You push the [src.name] but nothing happens!"))
+		playsound(src.loc, 'sound/impact_sounds/Flesh_Crush_1.ogg', 40, 1)
 		src.add_fingerprint(user)
 		return
 
 	ex_act(severity)
 		..() // Logs.
 		switch(severity)
-			if(1.0)
+			if(1)
 				src.gib(1)
 				return
-			if(2.0)
+			if(2)
 				if (prob(25))
 					src.gib(1)
-			else
 		return
-
-	build_keybind_styles(client/C)
-		..()
-		C.apply_keybind("cube")
 
 	proc/get_cube_idle()
 		return "cubes cubily"
@@ -74,6 +69,7 @@
 		return 1
 
 	emote(var/act, var/voluntary = 1)
+		..()
 		var/param = null
 
 		if (findtext(act, " ", 1, null))
@@ -93,10 +89,9 @@
 						var/fart_on_other = 0
 						for (var/mob/living/M in src.loc)
 							if (M == src || !M.lying) continue
-							message = "<span class='alert'><B>[src]</B> jumps and farts all over [M]! That's disgusting!</span>"
+							message = SPAN_ALERT("<B>[src]</B> jumps and farts all over [M]! That's disgusting!")
 							fart_on_other = 1
 							if(prob(20))
-								message = "<span class='alert'>[M] vomits!</span>"
 								M.vomit()
 							break
 						if(!fart_on_other)
@@ -125,17 +120,17 @@
 					if(src.emote_check(voluntary, 50))
 						if (istype(src.loc,/obj/))
 							var/obj/container = src.loc
-							boutput(src, "<span class='alert'>You leap and slam yourself against the inside of [container]! Ouch!</span>")
-							src.changeStatus("paralysis", 4 SECONDS)
-							src.changeStatus("weakened", 3 SECONDS)
-							container.visible_message("<span class='alert'><b>[container]</b> emits a loud thump and rattles a bit.</span>")
-							playsound(src.loc, "sound/impact_sounds/Metal_Hit_Heavy_1.ogg", 50, 1)
+							boutput(src, SPAN_ALERT("You leap and slam yourself against the inside of [container]! Ouch!"))
+							src.changeStatus("unconscious", 4 SECONDS)
+							src.changeStatus("knockdown", 3 SECONDS)
+							container.visible_message(SPAN_ALERT("<b>[container]</b> emits a loud thump and rattles a bit."))
+							playsound(src.loc, 'sound/impact_sounds/Metal_Hit_Heavy_1.ogg', 50, 1)
 							animate_shake(container)
 							if (prob(33))
 								if (istype(container, /obj/storage))
 									var/obj/storage/C = container
 									if (C.can_flip_bust == 1)
-										boutput(src, "<span class='alert'>[C] [pick("cracks","bends","shakes","groans")].</span>")
+										boutput(src, SPAN_ALERT("[C] [pick("cracks","bends","shakes","groans")]."))
 										C.bust_out()
 						else
 							message = "<B>[src]</b> squishes down, pops up, and does a flip! Gross!"
@@ -145,9 +140,9 @@
 					if(src.emote_check(voluntary, 10))
 						message = "<B>[src]</B> jiggles like only a meat cube can."
 				else
-					src.show_text("Invalid Emote: [act]")
+					if (voluntary) src.show_text("Invalid Emote: [act]")
 		if (message && isalive(src))
-			logTheThing("say", src, null, "EMOTE: [message]")
+			logTheThing(LOG_SAY, src, "EMOTE: [message]")
 			if (m_type & 1)
 				for (var/mob/O in viewers(src, null))
 					O.show_message(message, m_type)
@@ -159,7 +154,7 @@
 				for (var/mob/O in A.contents)
 					O.show_message(message, m_type)
 
-	attackby(obj/item/W as obj, mob/user as mob)
+	attackby(obj/item/W, mob/user)
 		if (isweldingtool(W) && W:try_weld(user,0,-1,0,0))
 			pop()
 		else
@@ -191,8 +186,8 @@
 				var/obj/item/reagent_containers/food/snacks/ingredient/meat/mysterymeat/meat = new /obj/item/reagent_containers/food/snacks/ingredient/meat/mysterymeat(src.loc)
 				meat.name = "cube steak"
 				meat.desc = "Grody."
-			playsound(src.loc, "sound/effects/splat.ogg", 75, 1)
-			src.visible_message("<span class='alert'><b>The meat cube pops!</b></span>")
+			playsound(src.loc, 'sound/impact_sounds/Slimy_Splat_1.ogg', 75, 1)
+			src.visible_message(SPAN_ALERT("<b>The meat cube pops!</b>"))
 			..()
 
 
@@ -205,13 +200,13 @@
 			New()
 				..()
 				real_name = pick("Krampus", "Krampus 3.0", "The Krampmeister", "The Krampster") //For deadchat
-				SPAWN_DBG(2 SECONDS) //I do not know where the hell you get a bioholder from =I
+				SPAWN(2 SECONDS) //I do not know where the hell you get a bioholder from =I
 					if(src.bioHolder) src.bioHolder.age = 110
 
 			// people were somehow being shit even as a meatcube, so i'm removing the small mercy they had with being unpoppable - cirr
 
-			// attackby(obj/item/W as obj, mob/user as mob)
-			// 	user.visible_message("<span class='combat'><B>[user] pokes [src] with \the [W]!</B></span>") //No weldergibs. Krampus is truly a fiend.
+			// attackby(obj/item/W, mob/user)
+			// 	user.visible_message(SPAN_COMBAT("<B>[user] pokes [src] with \the [W]!</B>")) //No weldergibs. Krampus is truly a fiend.
 
 			telekinetic //this one has the wraith click-drag to throw item ability
 				name = "Krampus 3.1 III Turbo Edition: Alpha Strike"
@@ -222,7 +217,7 @@
 		real_name = "metal cube"
 		desc = "unfortunate"
 		icon_state = "metalcube-squish"
-		sound_scream = "sound/voice/screams/Robot_Scream_2.ogg"
+		sound_scream = 'sound/voice/screams/Robot_Scream_2.ogg'
 		custom_gib_handler = /proc/robogibs
 
 		get_cube_idle()
@@ -240,11 +235,11 @@
 				M.icon_state = "cybermeat"
 				if (prob(50))
 					M.reagents.add_reagent("nanites", 5)
-			playsound(src.loc, "sound/machines/engine_grump2.ogg", 75, 1)
-			src.visible_message("<span class='alert'><b>The metal cube violently falls apart!</b></span>")
+			playsound(src.loc, 'sound/machines/engine_grump2.ogg', 75, 1)
+			src.visible_message(SPAN_ALERT("<b>The metal cube violently falls apart!</b>"))
 			..()
 
-		attackby(obj/item/W as obj, mob/user as mob)
+		attackby(obj/item/W, mob/user)
 			if (iswrenchingtool(W))
 				pop()
 			else
@@ -262,10 +257,9 @@
 						var/fart_on_other = 0
 						for (var/mob/living/M in src.loc)
 							if (M == src || !M.lying) continue
-							message = "<span class='alert'><B>[src]</B> jumps and farts all over [M]! That's disgusting!</span>"
+							message = SPAN_ALERT("<B>[src]</B> jumps and farts all over [M]! That's disgusting!")
 							fart_on_other = 1
 							if(prob(20))
-								message = "<span class='alert'>[M] vomits!</span>"
 								M.vomit()
 							break
 						if(!fart_on_other)

@@ -2,13 +2,10 @@
 //#define MACHINE_PROCESSING_DEBUG
 
 //this file is not in defines or macros because this one is kind of a frankenstein
-#define NETWORK_MACHINE_RESET_DELAY 40 //Time (in 1/10 of a second) before we can be manually reset again (machines).
+/// Time (in 1/10 of a second) before we can be manually reset again (machines).
+#define NETWORK_MACHINE_RESET_DELAY 40
 
 #define MACHINE_PROC_INTERVAL (0.4 SECONDS)
-
-//communications stuff
-#define TRANSMISSION_WIRE	0
-#define TRANSMISSION_RADIO	1
 
 //lighting stuff
 #define LIGHT_OK 0
@@ -32,17 +29,28 @@
 #define REQ_PHYSICAL_ACCESS (1<<6) //! Can only be interacted with if adjacent and physical
 
 //recharger stuff
-#define CELLRATE 0.002  // multiplier for watts per tick <> cell storage (eg: .002 means if there is a load of 1000 watts, 20 units will be taken from a cell per second)
-#define CHARGELEVEL 0.001 // Cap for how fast cells charge, as a percentage-per-tick (.001 means cellcharge is capped to 1% per second)
+/// multiplier for watts per tick != cell storage (eg: .002 means if there is a load of 1000 watts, 20 units will be taken from a cell per second)
+#define CELLRATE 0.002
+/// Cap for how fast cells charge, as a percentage-per-tick (.001 means cellcharge is capped to 1% per second)
+#define CHARGELEVEL (0.001 * MACHINE_PROC_INTERVAL)
 
 //red smashy button stuff
 #define SHIP_ALERT_GOOD 0
 #define SHIP_ALERT_BAD 1
 
+//conveyor belt operating modes
+#define CONVEYOR_FORWARD 1
+#define CONVEYOR_REVERSE -1
+#define CONVEYOR_STOPPED 0
+
 #define DATA_TERMINAL_IS_VALID_MASTER(terminal, master) (master && (get_turf(master) == terminal.loc))
 
 #define PROCESSING_TIER_MULTI(target) (1<<(target.current_processing_tier-1)) //! Scalar to behave as if it were running at full speed
 #define MACHINE_PROCS_PER_SEC (MACHINE_PROC_INTERVAL / (1 SECOND))
+
+// Previous SOLARGENRATE was 1500 WATTS processed every 3.3 SECONDS.  This provides 455 WATTS every second
+// Adjust accordingly based on machine proc rate
+#define DEFAULT_SOLARGENRATE (455 * MACHINE_PROCS_PER_SEC)
 
 #define PROCESSING_FULL      1
 #define PROCESSING_HALF      2
@@ -50,11 +58,7 @@
 #define PROCESSING_EIGHTH    4
 #define PROCESSING_SIXTEENTH 5
 #define PROCESSING_32TH			 6
-// Uncomment and adjust PROCESSING_MAX_IN_USE as needed
-
-//
-//
-
+// adjust PROCESSING_MAX_IN_USE as needed
 #define PROCESSING_MAX_IN_USE PROCESSING_32TH
 
 #define MACHINES_CONVEYORS				1 // Conveyor belts
@@ -74,11 +78,14 @@
 #define MACHINES_PORTALGENERATORS	15 // /obj/machinery/teleport/portal_generator
 #define MACHINES_MASSDRIVERS			16 // /obj/machinery/mass_driver
 #define MACHINES_MAINFRAMES				17 // /obj/machinery/networked/mainframe
-#define MACHINES_ELEVATORCOMPS		18 // /obj/machinery/computer/sea_elevator, /obj/machinery/computer/icebase_elevator, /obj/machinery/computer/biodome_elevator
+#define MACHINES_ELEVATORSEA		18 // /obj/machinery/computer/elevator/sea
 #define MACHINES_SHUTTLECOMPS			19 // /obj/machinery/computer/mining_shuttle, /obj/machinery/computer/research_shuttle, /obj/machinery/computer/prison_shuttle, /obj/machinery/computer/shuttle_bus
 #define MACHINES_SHUTTLEPROPULSION 20 // /obj/machinery/shuttle/engine/propulsion
 #define MACHINES_TURRETS					21	// /obj/machinery/turret
 #define MACHINES_DRONERECHARGERS	22	// /obj/machinery/drone_recharger
+#define MACHINES_ELEVATORICEBASE		23 // /obj/machinery/computer/elevator/icebase
+#define MACHINES_ELEVATORBIODOME		24 // /obj/machinery/computer/elevator/biodome
+#define MACHINES_ELEVATORCENTCOM		25 // /obj/machinery/computer/elevator/centcomm
 
 // misc objects that get looped for that have relatively few instances and the loops are not performance critical: /obj/machinery/tripod, /obj/machinery/compressor, /obj/machinery/noise_maker, /obj/machinery/engine_laser_spawner
 #define MACHINES_MISC							23
@@ -90,7 +97,7 @@
 
 #define MACHINES_REGISTRY_MAX MACHINES_PLANTPOTS
 
-var/global/list/processing_machines = generate_machinery_processing_buckets()
+var/global/list/list/list/processing_machines = generate_machinery_processing_buckets()
 var/global/list/machine_registry = generate_machine_registry()
 
 /proc/generate_machine_registry()

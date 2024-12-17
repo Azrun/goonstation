@@ -6,6 +6,8 @@ client/proc/open_dj_panel()
 	set name = "DJ Panel"
 	set desc = "Get your groove on!" //"funny function names???? first you use the WRONG INDENT STYLE and now this????" --that fuckhead on the forums
 	SET_ADMIN_CAT(ADMIN_CAT_FUN)
+	ADMIN_ONLY
+	SHOW_VERB_DESC
 	if (!isadmin(src) && !src.non_admin_dj)
 		boutput(src, "Only administrators or those with access may use this command.")
 		return FALSE
@@ -21,7 +23,7 @@ client/proc/open_dj_panel()
 	var/loaded_sound = null // holds current song file
 	var/sound_volume = 50
 	var/sound_frequency = 1
-	var/admin_sound_channel = 1014
+	var/list/preloaded_sounds = list()
 
 /datum/dj_panel/ui_state(mob/user)
 	return tgui_always_state
@@ -52,6 +54,7 @@ client/proc/open_dj_panel()
 		"volume" = sound_volume,
 		"frequency" = sound_frequency,
 		"announceMode" = user.client?.djmode,
+		"preloadedSounds" = preloaded_sounds,
 	)
 
 /datum/dj_panel/ui_act(action, params)
@@ -66,7 +69,7 @@ client/proc/open_dj_panel()
 	switch(action)
 
 		if("set-file")
-			var/foundsound = input(usr, "Upload a file:", "File Uploader - No 50MB songs!", null) as null|sound
+			var/foundsound = input(usr, "Upload a file:", "File Uploader - Do not use for full songs, use ]remotemusic in discord instead!!!", null) as null|sound
 			loaded_sound = foundsound
 			. = TRUE
 
@@ -92,10 +95,10 @@ client/proc/open_dj_panel()
 			if (!usr.client)
 				return TRUE
 			usr.client.djmode = !usr.client.djmode
-			boutput(usr, "<span class='notice'>DJ mode now [(usr.client.djmode ? "On" : "Off")].</span>")
+			boutput(usr, SPAN_NOTICE("DJ mode now [(usr.client.djmode ? "On" : "Off")]."))
 
-			logTheThing("admin", usr, null, "set their DJ mode to [(usr.client.djmode ? "On" : "Off")]")
-			logTheThing("diary", usr, null, "set their DJ mode to [(usr.client.djmode ? "On" : "Off")]", "admin")
+			logTheThing(LOG_ADMIN, usr, "set their DJ mode to [(usr.client.djmode ? "On" : "Off")]")
+			logTheThing(LOG_DIARY, usr, "set their DJ mode to [(usr.client.djmode ? "On" : "Off")]", "admin")
 			message_admins("[key_name(usr)] set their DJ mode to [(usr.client.djmode ? "On" : "Off")]")
 			. = TRUE
 
@@ -108,8 +111,8 @@ client/proc/open_dj_panel()
 			. = TRUE
 
 		if("play-ambience")
-			logTheThing("admin", usr, null, "played ambient sound [loaded_sound]")
-			logTheThing("diary", usr, null, "played ambient sound [loaded_sound]", "admin")
+			logTheThing(LOG_ADMIN, usr, "played ambient sound [loaded_sound]")
+			logTheThing(LOG_DIARY, usr, "played ambient sound [loaded_sound]", "admin")
 			message_admins("[admin_key(usr.client)] played ambient sound [loaded_sound]")
 			playsound(usr, loaded_sound, sound_volume, sound_frequency)
 
@@ -119,19 +122,35 @@ client/proc/open_dj_panel()
 		if("play-player")
 			var/client/C = input(usr, "Choose a client:", "Choose a client:", usr) as null|anything in clients
 			if (!C) return FALSE
-			logTheThing("admin", usr, null, "played sound [loaded_sound] to [C]")
-			logTheThing("diary", usr, null, "played sound [loaded_sound] to [C]", "admin")
-			message_admins("[admin_key(usr)] played sound [loaded_sound] to [C]")
+			logTheThing(LOG_ADMIN, usr, "played sound [loaded_sound] to [C]")
+			logTheThing(LOG_DIARY, usr, "played sound [loaded_sound] to [C]", "admin")
+			message_admins("[admin_key(usr.client)] played sound [loaded_sound] to [C]")
 			playsound(C.mob, loaded_sound, sound_volume, sound_frequency)
 
+		if("preload-sound")
+			preloaded_sounds["[loaded_sound]"] = loaded_sound
+			for (var/client/C in clients)
+				C << load_resource(loaded_sound, -1)
+			message_admins("[admin_key(usr.client)] preloaded sound [loaded_sound]")
+
+		if("play-preloaded")
+			var/selected = tgui_input_list(usr, "Which sound?", "Sound Selector", preloaded_sounds, timeout = 5 MINUTES, allowIllegal = TRUE)
+			if (selected && (selected in preloaded_sounds))
+				var/sound/selected_sound = preloaded_sounds[selected]
+				usr.client?.play_music_real(selected_sound, sound_frequency)
+				preloaded_sounds.Remove(selected)
+
 		if("toggle-player-dj")
-			var/dude = input(usr, "Choose a client:", "Choose a client:", null) as null|anything in clients
-			if (!dude) return FALSE
-			toggledj(dude, usr)
+			if(isadmin(usr.client))
+				var/dude = input(usr, "Choose a client:", "Choose a client:", null) as null|anything in clients
+				if (!dude) return FALSE
+				toggledj(dude, usr)
+			else
+				boutput(usr, "You must be an admin to use this command.")
 
 		if("stop-sound")
 			move_admin_sound_channel(TRUE)
-			SPAWN_DBG(0)
+			SPAWN(0)
 				var/sound/stopsound = sound(null, wait = 0, channel=admin_sound_channel)
 				for (var/client/C in clients)
 					C << stopsound
@@ -139,7 +158,7 @@ client/proc/open_dj_panel()
 			. = TRUE
 
 		if("stop-radio")
-			SPAWN_DBG(0)
+			SPAWN(0)
 				var/sound/stopsound = sound(null, wait = 0, channel=1013)
 				for (var/client/C in clients)
 					C << stopsound
@@ -153,15 +172,15 @@ client/proc/open_dj_panel()
  */
 /datum/dj_panel/proc/move_admin_sound_channel(backwards = FALSE)
 	if (backwards)
-		if (admin_sound_channel > 1014)
+		if (admin_sound_channel > SOUNDCHANNEL_ADMIN_LOW)
 			admin_sound_channel--
-		else //At 1014, set it bring it up 10.
-			admin_sound_channel = 1024
+		else
+			admin_sound_channel = SOUNDCHANNEL_ADMIN_HIGH
 	else
-		if (admin_sound_channel < 1024)
+		if (admin_sound_channel < SOUNDCHANNEL_ADMIN_HIGH)
 			admin_sound_channel++
-		else //At 1024, set it back down 10.
-			admin_sound_channel = 1014
+		else
+			admin_sound_channel = SOUNDCHANNEL_ADMIN_LOW
 
 /**
  * Toggles the DJ Mode for a given client
@@ -178,7 +197,7 @@ client/proc/open_dj_panel()
 		C.verbs -= /client/proc/cmd_dectalk
 		C.verbs -= /client/proc/open_dj_panel
 
-	logTheThing("admin", actor, C, "has [C.non_admin_dj ? "given" : "removed"] the ability for [constructTarget(C,"admin")] to DJ and use dectalk.")
-	logTheThing("diary", actor, C, "has [C.non_admin_dj ? "given" : "removed"] the ability for [constructTarget(C,"diary")] to DJ and use dectalk.", "admin")
+	logTheThing(LOG_ADMIN, actor, "has [C.non_admin_dj ? "given" : "removed"] the ability for [constructTarget(C,"admin")] to DJ and use dectalk.")
+	logTheThing(LOG_DIARY, actor, "has [C.non_admin_dj ? "given" : "removed"] the ability for [constructTarget(C,"diary")] to DJ and use dectalk.", "admin")
 	message_admins("[key_name(actor)] has [C.non_admin_dj ? "given" : "removed"] the ability for [key_name(C)] to DJ and use dectalk.")
-	boutput(C, "<span class='alert'><b>You [C.non_admin_dj ? "can now" : "no longer can"] DJ with the 'DJ Panel' and use text2speech with 'Dectalk' commands under 'Special Verbs'.</b></span>")
+	boutput(C, SPAN_ALERT("<b>You [C.non_admin_dj ? "can now" : "no longer can"] DJ with the 'DJ Panel' and use text2speech with 'Dectalk' commands under 'Special Verbs'.</b>"))

@@ -1,96 +1,87 @@
 /obj/machinery/atmospherics/unary
-	dir = SOUTH
-	initialize_directions = SOUTH
-
+	/// Our sweet sweet air.
 	var/datum/gas_mixture/air_contents
-
+	/// Our sole connection to other atmospheric devices.
 	var/obj/machinery/atmospherics/node
-
+	/// The pipe network we belong to.
 	var/datum/pipe_network/network
 
-	New()
-		..()
-		initialize_directions = dir
-		air_contents = unpool(/datum/gas_mixture)
+/obj/machinery/atmospherics/unary/New()
+	..()
+	initialize_directions = dir
+	air_contents = new /datum/gas_mixture
 
-		air_contents.volume = 200
+	air_contents.volume = 200
 
-	disposing()
-		if(node)
-			node.disconnect(src)
-			if (network)
-				network.dispose()
+/obj/machinery/atmospherics/unary/disposing()
+	node?.disconnect(src)
+	node = null
+	network?.dispose()
+	network = null
 
-		if(air_contents)
-			pool(air_contents)
-			air_contents = null
+	qdel(air_contents)
+	air_contents = null
+	..()
 
-		node = null
-		network = null
-		..()
-//
 // Housekeeping and pipe network stuff below
-	network_disposing(datum/pipe_network/reference)
-		if (network == reference)
-			network = null
+/obj/machinery/atmospherics/unary/network_disposing(datum/pipe_network/reference)
+	if (network == reference)
+		network = null
 
-	network_expand(datum/pipe_network/new_network, obj/machinery/atmospherics/pipe/reference)
-		if(reference == node)
-			network = new_network
+/obj/machinery/atmospherics/unary/network_expand(datum/pipe_network/new_network, obj/machinery/atmospherics/pipe/reference)
+	if(reference == node)
+		network = new_network
 
-		if(new_network.normal_members.Find(src))
-			return 0
+	if(src in new_network.normal_members)
+		return FALSE
 
-		new_network.normal_members += src
+	new_network.normal_members += src
 
-		return null
+/obj/machinery/atmospherics/unary/initialize(player_caused_init)
+	var/node_connect = dir
 
-	initialize()
-		if(node) return
+	for(var/obj/machinery/atmospherics/target in get_step(src,node_connect))
+		if(target.initialize_directions & get_dir(target,src))
+			if(src.cant_connect(target, get_dir(target,src)) || target.cant_connect(src, get_dir(src,target)))
+				continue
+			node = target
+			break
+	if(player_caused_init)
+		src.node?.initialize(FALSE)
+	UpdateIcon()
 
-		var/node_connect = dir
+/obj/machinery/atmospherics/unary/build_network()
+	if(!network && node)
+		network = new /datum/pipe_network()
+		network.normal_members += src
+		network.build_network(node, src)
 
-		for(var/obj/machinery/atmospherics/target in get_step(src,node_connect))
-			if(target.initialize_directions & get_dir(target,src))
-				node = target
-				break
-
-		update_icon()
-
+/obj/machinery/atmospherics/unary/return_network(obj/machinery/atmospherics/reference)
 	build_network()
-		if(!network && node)
-			network = new /datum/pipe_network()
-			network.normal_members += src
-			network.build_network(node, src)
 
+	if(reference==node)
+		return network
 
-	return_network(obj/machinery/atmospherics/reference)
-		build_network()
+/obj/machinery/atmospherics/unary/reassign_network(datum/pipe_network/old_network, datum/pipe_network/new_network)
+	if(network == old_network)
+		network = new_network
 
-		if(reference==node)
-			return network
+	return TRUE
 
-		return null
+/obj/machinery/atmospherics/unary/return_network_air(datum/pipe_network/reference)
+	var/list/results = null
 
-	reassign_network(datum/pipe_network/old_network, datum/pipe_network/new_network)
-		if(network == old_network)
-			network = new_network
+	if(network == reference)
+		results = list(air_contents)
 
-		return 1
+	return results
 
-	return_network_air(datum/pipe_network/reference)
-		var/list/results = list()
+/obj/machinery/atmospherics/unary/return_air(direct = FALSE)
+	return air_contents
 
-		if(network == reference)
-			results += air_contents
-
-		return results
-
-	disconnect(obj/machinery/atmospherics/reference)
-		if(reference==node)
-			if (network)
-				network.dispose()
-				network = null
-			node = null
-
-		return null
+/obj/machinery/atmospherics/unary/disconnect(obj/machinery/atmospherics/reference)
+	if(reference==node)
+		network?.dispose()
+		network = null
+		node = null
+	UpdateIcon()

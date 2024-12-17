@@ -1,5 +1,7 @@
-/// Internal flag that will always interrupt any action.
+/// Internal flag that will always interrupt any action, and disables action resumability
 #define INTERRUPT_ALWAYS -1
+/// dont
+#define INTERRUPT_NONE 0
 /// Interrupted when object moves
 #define INTERRUPT_MOVE 1
 /// Interrupted when object does anything
@@ -25,3 +27,7 @@
 #define ACTIONSTATE_FINISH 32
 /// Will not finish unless interrupted.
 #define ACTIONSTATE_INFINITE 64
+
+#define SHOWOFF_COOLDOWN 2 SECONDS
+
+#define ACTION_CONTROLLER_INTERVAL 0.5 SECONDS

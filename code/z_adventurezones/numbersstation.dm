@@ -4,16 +4,18 @@ var/global/shut_up_about_the_fucking_numbers_station = 1
 	set name = "Toggle Numbers Station Alerts"
 	set desc = "I DON'T CARE WHEN SPACE NUMBERS STATION LINCOLNSHIRE IS BROADCASTING SO SHUT UP ABOUT IT"
 	SET_ADMIN_CAT(ADMIN_CAT_SERVER_TOGGLES)
-	admin_only
+	ADMIN_ONLY
+	SHOW_VERB_DESC
 
 	shut_up_about_the_fucking_numbers_station = !(shut_up_about_the_fucking_numbers_station)
-	logTheThing("admin", usr, null, "toggled numbers station alerts [shut_up_about_the_fucking_numbers_station ? "off" : "on"].")
-	logTheThing("diary", usr, null, "toggled numbers station alerts [shut_up_about_the_fucking_numbers_station ? "off" : "on"].", "admin")
+	logTheThing(LOG_ADMIN, usr, "toggled numbers station alerts [shut_up_about_the_fucking_numbers_station ? "off" : "on"].")
+	logTheThing(LOG_DIARY, usr, "toggled numbers station alerts [shut_up_about_the_fucking_numbers_station ? "off" : "on"].", "admin")
 	message_admins("[key_name(usr)] toggled numbers station alerts [shut_up_about_the_fucking_numbers_station ? "off" : "on"]")
 
 /area/spyshack
 	name = "Space Shack"
 	icon_state = "yellow"
+	lightswitch = FALSE
 
 /obj/item/paper/mission_outline
 	name = "gibberish note"
@@ -222,7 +224,7 @@ Nanotrasen, Inc.<br>
 	configure_mode = 0
 	random_code = 1
 	spawn_contents = list(/obj/item/paper/requisitionF49B,
-	/obj/item/spacecash/thousand, /obj/item/spacecash/thousand, /obj/item/reagent_containers/food/drinks/bottle/fancy_beer)
+	/obj/item/currency/spacecash/thousand, /obj/item/currency/spacecash/thousand, /obj/item/reagent_containers/food/drinks/bottle/fancy_beer)
 
 /obj/item/storage/secure/ssafe/pilot_cargo3
 	name = "pilot's lockbox"
@@ -232,7 +234,7 @@ Nanotrasen, Inc.<br>
 	/obj/item/reagent_containers/emergency_injector/random,/obj/item/reagent_containers/emergency_injector/random,
 	/obj/item/reagent_containers/food/drinks/bottle/hobo_wine)
 
-
+var/global/datum/numbers_station/lincolnshire = null
 
 /datum/numbers_station // This is not a physical entity!
 	var/name = "Space Lincolnshire"
@@ -254,8 +256,12 @@ Nanotrasen, Inc.<br>
 		else
 			next_play = play_interval
 		next_warning = next_play - 300
-		SPAWN_DBG(20 SECONDS)
-			apiHandler.queryAPI("numbers/get")
+		try
+			var/datum/apiRoute/numbersstation/get/getNumbers = new
+			var/datum/apiModel/NumbersStationPasswordResource/numbersStationPassword = apiHandler.queryAPI(getNumbers)
+			lincolnshire_numbers(numbersStationPassword.numbers)
+		catch
+			// pass
 
 	proc/gather_listeners()
 		listeners = list()
@@ -264,7 +270,7 @@ Nanotrasen, Inc.<br>
 			for (var/obj/item/device/radio/Hs in H)
 				if (Hs.frequency == frequency)
 					listeners += H
-					boutput(H, "<span class='notice'>A peculiar noise intrudes upon the radio frequency of your [Hs].</span>")
+					boutput(H, SPAN_NOTICE("A peculiar noise intrudes upon the radio frequency of your [Hs.name]."))
 				break
 		for (var/mob/living/silicon/robot/R in mobs)
 			LAGCHECK(LAG_LOW)
@@ -272,7 +278,7 @@ Nanotrasen, Inc.<br>
 				var/obj/item/device/radio/Hs = R.radio
 				if (Hs.frequency == frequency)
 					listeners += R
-					boutput(R, "<span class='notice'>A peculiar noise intrudes upon your radio frequency.</span>")
+					boutput(R, SPAN_NOTICE("A peculiar noise intrudes upon your radio frequency."))
 
 	proc/play_all_numbers()
 		var/batch = 0
@@ -294,12 +300,12 @@ Nanotrasen, Inc.<br>
 			next_play += play_interval
 			if (!shut_up_about_the_fucking_numbers_station)
 				message_coders("Numbers station [name] broadcasting now.")
-			logTheThing("debug", null, null, "<b>Numbers station</b>: [name] is broadcasting on frequency [frequency / 10].")
+			logTheThing(LOG_DEBUG, null, "<b>Numbers station</b>: [name] is broadcasting on frequency [frequency / 10].")
 			gather_listeners()
 			if (!listeners.len)
-				logTheThing("debug", null, null, "<b>Numbers station:</b> [name] broadcast aborted: no listeners.")
+				logTheThing(LOG_DEBUG, null, "<b>Numbers station:</b> [name] broadcast aborted: no listeners.")
 				return
-			SPAWN_DBG(1 SECOND)
+			SPAWN(1 SECOND)
 				broadcast_sound(login_signal)
 				play_all_numbers()
 				var/doop = get_vox_by_string("doop")
@@ -312,7 +318,7 @@ Nanotrasen, Inc.<br>
 	proc/broadcast_sound(var/soundfile)
 		for (var/mob/M in listeners)
 			if (M.client)
-				M << sound(soundfile, volume = 100, channel = sound_channel, wait = 1)
+				M.playsound_local_not_inworld(soundfile, vol=50, wait=TRUE)
 
 	proc/get_tens(var/n)
 		if (n >= 20)
@@ -402,29 +408,24 @@ Nanotrasen, Inc.<br>
 		if (ogg)
 			broadcast_sound(ogg)
 
-var/global/datum/numbers_station/lincolnshire = new
-
 /proc/debug_lincolnshire()
 	lincolnshire.next_warning = 0
 	lincolnshire.process()
 	lincolnshire.next_play = 0
 	lincolnshire.process()
 
-/proc/lincolnshire_numbers(data)
-	if (islist(data))
-		logTheThing("debug", null, null, "<b>Numbers station</b>: numbers: [data["numbers"]]")
-		var/TP = data["numbers"]
-		if (TP == null)
-			return 1
-		var/list/nums = splittext(TP, " ")
-		if (nums.len < 21)
-			logTheThing("debug", null, null, "<b>Numbers station</b> got too few numbers.")
-			return 2
-		for (var/i = 1, i <= 21, i++)
-			lincolnshire.numbers[i] = text2num(nums[i])
-		logTheThing("debug", null, null, "<b>Numbers station</b> woo success")
-		return 0
-	return 3
+/proc/lincolnshire_numbers(numbers)
+	logTheThing(LOG_DEBUG, null, "<b>Numbers station</b>: numbers: [numbers]")
+	if (numbers == null)
+		return FALSE
+	var/list/nums = splittext(numbers, " ")
+	if (length(nums) < 21)
+		logTheThing(LOG_DEBUG, null, "<b>Numbers station</b> got too few numbers.")
+		return FALSE
+	for (var/i = 1, i <= 21, i++)
+		lincolnshire.numbers[i] = text2num(nums[i])
+	logTheThing(LOG_DEBUG, null, "<b>Numbers station</b> woo success")
+	return TRUE
 
 
 // This particular edition of the handbook is used as the cipher for the numbers station.

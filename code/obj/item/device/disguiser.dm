@@ -1,16 +1,18 @@
+TYPEINFO(/obj/item/device/disguiser)
+	mats = 8
+
 /obj/item/device/disguiser
 	name = "holographic disguiser"
 	icon_state = "enshield0"
-	uses_multiple_icon_states = 1
 	desc = "Experimental device that projects a hologram of a randomly generated appearance onto the user, hiding their real identity."
-	flags = FPRINT | TABLEPASS| CONDUCT | EXTRADELAY | ONBELT
+	flags = TABLEPASS | CONDUCT | EXTRADELAY
+	c_flags = ONBELT
 	item_state = "electronic"
 	throwforce = 5
 	throw_speed = 1
 	throw_range = 5
 	w_class = W_CLASS_SMALL
 	is_syndicate = 1
-	mats = 8
 	var/datum/appearanceHolder/oldAH = new
 	var/anti_spam = 1 // In relation to world time.
 	var/active = 0
@@ -26,7 +28,7 @@
 
 	dropped(mob/user)
 		..()
-		SPAWN_DBG(0) // Ported from cloaking device. Spawn call is necessary for some reason (Convair880).
+		SPAWN(0) // Ported from cloaking device. Spawn call is necessary for some reason (Convair880).
 			if (!src) return
 			if (ismob(src.loc) && src.loc == user)
 				if (ishuman(user))
@@ -69,9 +71,9 @@
 		for (var/obj/item/device/disguiser/D in user)
 			if (D.active)
 				number_of_devices += D
-		if (number_of_devices.len > 0)
+		if (length(number_of_devices) > 0)
 			return 0
-		RegisterSignal(user, COMSIG_DISGUISER_DEACTIVATE, .proc/deactivate)
+		RegisterSignal(user, COMSIG_MOB_DISGUISER_DEACTIVATE, PROC_REF(deactivate))
 		src.active = 1
 		src.icon_state = "enshield1"
 		src.change_appearance(user, 0)
@@ -79,16 +81,16 @@
 		var/obj/overlay/T = new/obj/overlay(get_turf(src))
 		T.icon = 'icons/effects/effects.dmi'
 		flick("emppulse",T)
-		SPAWN_DBG(0.8 SECONDS)
+		SPAWN(0.8 SECONDS)
 			if (T) qdel(T)
 		return 1
 
 	proc/deactivate(mob/user as mob, var/voluntary)
-		UnregisterSignal(user, COMSIG_DISGUISER_DEACTIVATE)
+		UnregisterSignal(user, COMSIG_MOB_DISGUISER_DEACTIVATE)
 		if(src.active && istype(user))
 			elecflash(src)
 			if (!voluntary)
-				user.visible_message("<span class='notice'><b>[user]'s disguiser is disrupted!</b></span>")
+				user.visible_message(SPAN_NOTICE("<b>[user]'s disguiser is disrupted!</b>"))
 			else
 				user.show_text("You deactivate the [src.name].", "blue")
 			src.change_appearance(user, 1)
@@ -96,7 +98,7 @@
 			var/obj/overlay/T = new/obj/overlay(get_turf(src))
 			T.icon = 'icons/effects/effects.dmi'
 			flick("emppulse",T)
-			SPAWN_DBG(0.8 SECONDS)
+			SPAWN(0.8 SECONDS)
 				if (T) qdel(T)
 		src.active = 0
 		src.icon_state = "enshield0"
@@ -122,9 +124,9 @@
 		if (!reset_to_normal)
 			oldAH.CopyOther(AH)
 			if (AH.mob_appearance_flags & FIX_COLORS)	// mods the special colors so it doesnt mess things up if we stop being special
-				AH.customization_first_color = fix_colors(AH.customization_first_color)
-				AH.customization_second_color = fix_colors(AH.customization_second_color)
-				AH.customization_third_color = fix_colors(AH.customization_third_color)
+				AH.customizations["hair_bottom"].color = fix_colors(AH.customizations["hair_bottom"].color)
+				AH.customizations["hair_middle"].color = fix_colors(AH.customizations["hair_middle"].color)
+				AH.customizations["hair_top"].color = fix_colors(AH.customizations["hair_top"].color)
 			src.real_name = user.real_name
 			randomize_look(user, 0, 0, 0, 1, 0, 0) // randomize: gender 0, blood type 0, age 0, name 1, underwear 0, remove effects 0
 			user.update_colorful_parts()
@@ -132,6 +134,7 @@
 		// Restore original appearance.
 		else
 			user.real_name = src.real_name
+			user.on_realname_change()
 			AH.CopyOther(oldAH)
 			if (user.limbs)
 				user.limbs.reset_stone()

@@ -87,11 +87,19 @@ var/global/list/smart_string_pickers = list()
 			if(additional_defs && (thing in additional_defs))
 				thing = additional_defs[thing]
 				if(istext(thing))
-					//
+					; // nothing to do
 				else if(isnum(thing))
 					thing = "[thing]"
+				else if(isatom(thing))
+					thing = "[thing]"
 				else
-					thing = call(thing)(arglist(params))
+					try
+						thing = call(thing)(arglist(params))
+					catch(var/exception/e)
+						if(e.name != "bad proc")
+							throw e
+						else
+							CRASH("invalid embedded value in smart string picker [thing]")
 				return thing
 			else if(thing in src.definitions)
 				return src.generate(thing, additional_defs)
@@ -122,6 +130,8 @@ var/global/list/smart_string_pickers = list()
 		return jointext(., "")
 
 proc/pick_smart_string(var/filename, var/key, var/additional_defs=null)
+	if (!findtext(filename, ".txt"))
+		CRASH("Filename isn't a .txt!")
 	if(!(filename in smart_string_pickers))
 		smart_string_pickers[filename] = new/datum/smart_string_picker("strings/[filename]")
 	var/datum/smart_string_picker/SC = smart_string_pickers[filename]

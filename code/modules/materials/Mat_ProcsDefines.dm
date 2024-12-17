@@ -1,106 +1,63 @@
-/proc/testMat()
-	boutput(world, "[materialProps.len]")
-	sleep(1 SECOND)
-	usr.client.debug_variables(material_cache["cerenkite"])
-	sleep(1 SECOND)
-	usr.client.debug_variables(new/datum/material/metal/cerenkite())
-	return
 
-var/global/list/material_cache = list()
+var/global/list/material_cache
+
 /atom/var/datum/material/material = null
+/atom/var/material_amt = 1
 
 /proc/isExploitableObject(var/atom/A)
 	if(istype(A, /obj/item/tile) || istype(A, /obj/item/rods) || istype(A, /obj/item/sheet) || istype(A, /obj/item/cable_coil) || istype(A, /obj/item/raw_material/shard)) return 1
 	return 0
 
-/// This contains the names of the trigger lists on materials. Required for copying materials. Remember to keep this updated if you add new triggers.
-var/global/list/triggerVars = list("triggersOnBullet", "triggersOnEat", "triggersFail", "triggersTemp", "triggersChem", "triggersPickup", "triggersDrop", "triggersExp", "triggersOnAdd", "triggersOnLife", "triggersOnAttack", "triggersOnAttacked", "triggersOnEntered")
+
 
 /// Returns one of the base materials by id.
-/proc/getMaterial(var/mat)
-	if(!istext(mat) || !length(mat)) return null
-	if(!material_cache.len) buildMaterialCache()
-	if(mat in material_cache)
-		return material_cache[mat]
-	return null
+/proc/getMaterial(mat)
+	#ifdef CHECK_MORE_RUNTIMES
+	if (!istext(mat))
+		CRASH("getMaterial() called with a non-text argument [mat].")
+	if (!(mat in material_cache))
+		CRASH("getMaterial() called with an invalid material id [mat].")
+	#endif
+	if(!istext(mat))
+		return null
+	return material_cache?[mat]
 
-/proc/mergeProperties(var/list/l1, var/list/l2, var/bias=0.5)
-	var/oBias = 1 - bias
+/proc/mergeProperties(var/list/leftProps, var/list/rightProps, var/rightBias=0.5)
+	var/leftBias = 1 - rightBias
 
 	var/list/merged = list()
 
-	for(var/o in l1)
+	for(var/o in leftProps)
 		//merged.Add(o)
-		merged[o] = l1[o]
+		merged[o] = leftProps[o] * leftBias
 
-	if(l2)
-		for(var/x in l2)
+	if(rightProps)
+		for(var/x in rightProps)
 			if(x in merged)
-				merged[x] = round(merged[x] * oBias + l2[x] * bias)
+				merged[x] += rightProps[x] * rightBias
 			else
 				merged.Add(x)
-				merged[x] = l2[x]
+				merged[x] = rightProps[x] * rightBias
+
+	for(var/x in merged)
+		merged[x] = round(merged[x])
 
 	return merged
-
-/// Returns a copy of a given material.
-/proc/copyMaterial(var/datum/material/base)
-	if(!base || !istype(base, /datum/material))
-		var/datum/material/M = new/datum/material()
-		return M
-	else
-		var/datum/material/M = new base.type ()
-		M.properties = mergeProperties(base.properties)
-		for(var/X in base.vars)
-			if(X == "type" || X == "parent_type" || X == "tag" || X == "vars" || X == "properties") continue
-
-			if(X in triggerVars)
-				M.vars[X] = getFusedTriggers(base.vars[X], list(), M) //Pass in an empty list to basically copy the first one.
-			else
-				if(X in M.vars)
-					if(istype(base.vars[X],/list))
-						var/list/oldList = base.vars[X]
-						M.vars[X] = oldList.Copy()
-					else
-						M.vars[X] = base.vars[X]
-		return M
-
-/proc/isSameMaterial(var/datum/material/M1, var/datum/material/M2) //Compares two materials to determine if stacking should be allowed.
-	if(isnull(M1) != isnull(M2))
-		return 0
-	if(isnull(M1) && isnull(M2))
-		return 1
-	if(M1.properties.len != M2.properties.len || M1.mat_id != M2.mat_id)
-		return 0
-	if(M1.value != M2.value || M1.name != M2.name  || M1.color != M2.color ||M1.alpha != M2.alpha || M1.material_flags != M2.material_flags || M1.texture != M2.texture)
-		return 0
-
-	for(var/datum/material_property/P1 in M1.properties)
-		if(M2.getProperty(P1.id) != M1.properties[P1]) return 0
-	for(var/datum/material_property/P2 in M2.properties)
-		if(M1.getProperty(P2.id) != M2.properties[P2]) return 0
-
-	for(var/X in triggerVars)
-		for(var/datum/material_property/A in M1.vars[X])
-			if(!(locate(A.type) in M2.vars[X])) return 0
-
-		for(var/datum/material_property/B in M2.vars[X])
-			if(!(locate(B.type) in M1.vars[X])) return 0
-
-	return 1
 
 
 /// Called AFTER the material of the object was changed.
 /atom/proc/onMaterialChanged()
 	if(istype(src.material))
-		explosion_resistance = material.hasProperty("density") ? round(material.getProperty("density") / 33) : explosion_resistance
-		explosion_protection = material.hasProperty("density") ? round(material.getProperty("density") / 33) : explosion_protection
-		if( !(flags & CONDUCT) && (src.material.getProperty("electrical") >= 50)) flags |= CONDUCT
-	return
+		explosion_resistance = material.hasProperty("density") ? sqrt(round(max(4, material.getProperty("density")) - 4)) : explosion_resistance
+		explosion_protection = material.hasProperty("density") ? sqrt(round(max(4, material.getProperty("density")) - 4)) : explosion_protection
+		if( !(flags & CONDUCT) && (src.material.getProperty("electrical") >= 5)) flags |= CONDUCT
 
 
 /// Simply removes a material from an object.
 /atom/proc/removeMaterial()
+	if(src.material)
+		src.material.UnregisterSignal(src, COMSIG_ATOM_CROSSED)
+
 	if(src.mat_changename)
 		src.remove_prefixes(99)
 		src.remove_suffixes(99)
@@ -110,113 +67,141 @@ var/global/list/triggerVars = list("triggersOnBullet", "triggersOnEat", "trigger
 	if(src.mat_changedesc)
 		src.desc = initial(src.desc)
 
-	src.alpha = initial(src.alpha)
-	src.color = initial(src.color)
-
-	if(src.material?.owner_hasentered_added)
-		if (isturf(src.loc))
-			var/turf/T = src.loc
-			T.checkinghasentered = max(T.checkinghasentered-1, 0)
-		src.event_handler_flags &= ~USE_HASENTERED
-
-	src.UpdateOverlays(null, "material")
-
+	src.setMaterialAppearance(null)
 	src.material = null
-	return
 
-//Time for some super verbose proc names.
-/proc/get_material_trait_desc(var/datum/material/mat1)
-	var/string = ""
-	var/list/allTriggers = (mat1.triggersFail + mat1.triggersTemp + mat1.triggersChem + mat1.triggersPickup + mat1.triggersDrop + mat1.triggersExp + mat1.triggersOnAdd + mat1.triggersOnLife + mat1.triggersOnAttack + mat1.triggersOnAttacked + mat1.triggersOnEntered)
-	for(var/datum/materialProc/P in allTriggers)
-		if(length(P.desc))
-			if(length(string))
-				if(!findtext(string,P.desc))
-					string += " " + P.desc
-			else
-				string = P.desc
-	return string
-
-/// if a material is listed in here then we don't take on its color/alpha (maybe, if this works)
-/atom/var/list/mat_appearances_to_ignore = null
-
-/proc/getMaterialPrefixList(datum/material/base)
-	. = list()
-
-	for(var/datum/material_property/P in base.properties)
-		if(base.properties[P] >= P.prefix_high_min)
-			. |= P.getAdjective(base)
-			continue
-		else if(base.properties[P] <= P.prefix_low_max)
-			. |= P.getAdjective(base)
-			continue
 
 /// Sets the material of an object. PLEASE USE THIS TO SET MATERIALS UNLESS YOU KNOW WHAT YOU'RE DOING.
-/atom/proc/setMaterial(var/datum/material/mat1, var/appearance = 1, var/setname = 1, var/copy = 1, var/use_descriptors = 0)
-	if(!mat1 ||!istype(mat1, /datum/material)) return
-	if(copy) mat1 = copyMaterial(mat1)
-	var/traitDesc = get_material_trait_desc(mat1)
-	var/strPrefix = jointext(mat1.prefixes, " ")
-	var/strSuffix = jointext(mat1.suffixes, " ")
+/atom/proc/setMaterial(datum/material/mat1, appearance = TRUE, setname = TRUE, mutable = FALSE, use_descriptors = FALSE)
+	if(istext(mat1))
+		CRASH("setMaterial() called with a string instead of a material datum.")
+	if(!mat1 ||!istype(mat1, /datum/material))
+		return
+	if(mutable)
+		mat1 = mat1.getMutable()
 
-	for(var/X in getMaterialPrefixList(mat1))
-		strPrefix += " [X]"
-	trim(strPrefix)
+	src.material?.UnregisterSignal(src, COMSIG_ATOM_CROSSED)
+
+	if(mat1?.countTriggers(TRIGGERS_ON_ENTERED))
+		mat1.RegisterSignal(src, COMSIG_ATOM_CROSSED, /datum/material/proc/triggerOnEntered)
+
+	if(mat1.getID() == default_material && !src.uses_default_material_name)
+		setname = FALSE
 
 	if (src.mat_changename && setname)
 		src.remove_prefixes(99)
 		src.remove_suffixes(99)
-		if(use_descriptors)
-			src.name_prefix(strPrefix ? strPrefix : "")
-			src.name_prefix(length(getQualityName(mat1.quality)) ? getQualityName(mat1.quality) : "")
-		src.name_prefix(mat1.name ? mat1.name : "")
-		if(use_descriptors)
-			src.name_suffix(strSuffix ? "of [strSuffix]" : "")
-		src.UpdateName()
+		if(mat1.usesSpecialNaming())
+			src.UpdateName()
+			src.name = mat1.specialNaming(src)
+		else
+			if(use_descriptors)
+				var/strPrefix = jointext(mat1.getPrefixes(), " ")
+				for(var/X in mat1.getMaterialPrefixList())
+					strPrefix += " [X]"
+				strPrefix = trimtext(strPrefix)
+				src.name_prefix(strPrefix ? strPrefix : "")
+			src.name_prefix(mat1.getName() ? mat1.getName() : "")
+			if(use_descriptors)
+				var/strSuffix = jointext(mat1.getSuffixes(), " ")
+				src.name_suffix(strSuffix ? "of [strSuffix]" : "")
+			src.UpdateName()
 
 	if (src.mat_changedesc && setname)
+		var/traitDesc = mat1.getMaterialTraitDesc()
 		if (istype(src, /obj))
 			var/obj/O2 = src
-			O2.desc = "[!isnull(O2.real_desc) ? "[O2.real_desc]" : "[initial(O2.desc)]"] It is made of [mat1.name].[length(traitDesc) ? " " + traitDesc : ""]"
+			O2.desc = "[!isnull(O2.real_desc) ? "[O2.real_desc]" : "[initial(O2.desc)]"] It is made of [mat1.getName()].[length(traitDesc) ? " " + traitDesc : ""]"
 		else
-			src.desc = "[initial(src.desc)] It is made of [mat1.name].[length(traitDesc) ? " " + traitDesc : ""]"
-		if (mat1.mat_id == "gold") //marks material gold as not a good choice to sell for people who dont already know
+			src.desc = "[initial(src.desc)] It is made of [mat1.getName()].[length(traitDesc) ? " " + traitDesc : ""]"
+		if (mat1.getID() == "gold") //marks material gold as not a good choice to sell for people who dont already know
 			src.desc += " It's probably not very valuable to a reputable buyer."
-
-	var/set_color_alpha = 1
-	src.alpha = 255
-	src.color = null
-	src.UpdateOverlays(null, "material")
-	if (islist(src.mat_appearances_to_ignore) && length(src.mat_appearances_to_ignore))
-		if (mat1.name in src.mat_appearances_to_ignore)
-			set_color_alpha = 0
-	if (set_color_alpha && src.mat_changeappearance && appearance && mat1.applyColor)
-		if (mat1.texture)
-			src.setTexture(mat1.texture, mat1.texture_blend, "material")
-		src.alpha = mat1.alpha
-		src.color = mat1.color
-
+	if(appearance)
+		src.setMaterialAppearance(mat1)
+	src.material_applied_appearance = appearance //set the flag for whether we want to reapply material appearance on icon update
+	src.material?.triggerOnRemove(src)
 	src.material = mat1
-	mat1.owner = src
 	mat1.triggerOnAdd(src)
 	src.onMaterialChanged()
+
+/atom/proc/materialless_icon_state()
+	. = src.icon_state ? splittext(src.icon_state,"$$")[1] : ""
+
+/image/proc/materialless_icon_state()
+	. = src.icon_state ? splittext(src.icon_state,"$$")[1] : ""
+
+/// sets the *appearance* of a material, but does not trigger any tiggerOnAdd or onMaterialChanged behaviour
+/// Order of precedence is as follows:
+/// if the material is in the list of appearences to ignore, do nothing
+/// If an iconstate exists in the icon for iconstate$$materialID, that is chosen
+/// If the material has mat_changeappaerance set, then first texture is applied, then color (including alpha)
+/atom/proc/setMaterialAppearance(datum/material/mat1)
+	src.alpha = initial(src.alpha) // these two are technically not ideal but better than nothing I guess
+	src.color = initial(src.color)
+	var/base_icon_state = materialless_icon_state()
+
+	if (isnull(mat1) || (mat1.getID() in src.get_typeinfo().mat_appearances_to_ignore) || \
+			mat1.getID() == default_material && !src.uses_default_material_appearance)
+		src.icon_state = base_icon_state
+		src.setTexture(null, key="material")
+		return
+
+	var/potential_new_icon_state = "[base_icon_state]$$[mat1.getID()]"
+	if(src.is_valid_icon_state(potential_new_icon_state))
+		src.icon_state = potential_new_icon_state
+		src.setTexture(null, key="material")
+		return
+
+	if (src.mat_changeappearance)
+		if (mat1.getTexture())
+			src.setTexture(mat1.getTexture(), mat1.getTextureBlendMode(), "material")
+		else
+			src.setTexture(null, key="material")
+		if(mat1.shouldApplyColor())
+			src.alpha = mat1.getAlpha()
+			src.color = mat1.getColor()
+
+/// Applies material icon_state override to an /image based on this atom's material (or the material provided)
+/atom/proc/setMaterialAppearanceForImage(image/img, datum/material/mat=null)
+	if(isnull(mat))
+		mat = src.material
+	var/base_icon_state = img.materialless_icon_state()
+	if (isnull(mat) || (mat.getID() in src.get_typeinfo().mat_appearances_to_ignore))
+		img.icon_state = base_icon_state
+		return
+	var/potential_new_icon_state = "[base_icon_state]$$[mat.getID()]"
+	if(src.is_valid_icon_state(potential_new_icon_state))
+		img.icon_state = potential_new_icon_state
+		return
+
+/atom/proc/is_valid_icon_state(var/state, icon=null)
+	if(isnull(icon))
+		icon = src.icon
+	if(isnull(global.valid_icon_states[icon]))
+		global.valid_icon_states[icon] = list()
+		var/start_time = TIME
+		for(var/icon_state in icon_states(icon))
+			global.valid_icon_states[icon][icon_state] = 1
+		if (TIME != start_time) //we took longer than a tick
+			logTheThing(LOG_DEBUG, src, "is_valid_icon_state took [TIME - start_time] ticks(!!!) to cache [icon]")
+	return state in global.valid_icon_states[icon]
 
 /proc/getProcessedMaterialForm(var/datum/material/MAT)
 	if (!istype(MAT))
 		return /obj/item/material_piece // just in case
 
 	// higher on this list means higher priority, be careful with it!
-	if (MAT.material_flags & MATERIAL_CRYSTAL)
+	if (MAT.getMaterialFlags() & MATERIAL_CRYSTAL)
 		return /obj/item/material_piece/block
-	if (MAT.material_flags & MATERIAL_METAL)
-		return /obj/item/material_piece
-	if (MAT.material_flags & MATERIAL_ORGANIC)
+	if (MAT.getMaterialFlags() & MATERIAL_METAL)
+		return /obj/item/material_piece/metal
+	if (MAT.getMaterialFlags() & MATERIAL_ORGANIC)
 		return /obj/item/material_piece/wad
-	if (MAT.material_flags & MATERIAL_CLOTH)
+	if (MAT.getMaterialFlags() & MATERIAL_CLOTH)
 		return /obj/item/material_piece/cloth
-	if (MAT.material_flags & MATERIAL_RUBBER)
+	if (MAT.getMaterialFlags() & MATERIAL_RUBBER)
 		return /obj/item/material_piece/block
-	if (MAT.material_flags & MATERIAL_ENERGY)
+	if (MAT.getMaterialFlags() & MATERIAL_ENERGY)
 		return /obj/item/material_piece/sphere
 
 	return /obj/item/material_piece
@@ -241,8 +226,6 @@ var/global/list/triggerVars = list("triggersOnBullet", "triggersOnEat", "trigger
 			if(varCopy == "type" || varCopy == "id" || varCopy == "parent_type" || varCopy == "tag" || varCopy == "vars") continue
 			if(!issaved(toCopy.vars[varCopy])) continue
 			P.vars[varCopy] = toCopy.vars[varCopy]
-		if(newMat)
-			P.owner = newMat
 
 	for(var/datum/materialProc/A in L2) //Go through second list
 		if((locate(A.type) in newList))	//We already have that trigger type from the other list
@@ -257,102 +240,77 @@ var/global/list/triggerVars = list("triggersOnBullet", "triggersOnEat", "trigger
 				if(varCopy == "type" || varCopy == "id" || varCopy == "parent_type" || varCopy == "tag" || varCopy == "vars") continue
 				if(!issaved(A.vars[varCopy])) continue
 				newProc.vars[varCopy] = A.vars[varCopy]
-			if(newMat)
-				newProc.owner = newMat
 	return newList
 
 /// Merges two materials and returns result as new material.
 /proc/getFusedMaterial(var/datum/material/mat1,var/datum/material/mat2)
-	return getInterpolatedMaterial(mat1, mat2, 0.5)
+	return new /datum/material/interpolated(mat1, mat2, 0.5)
 
-/proc/getInterpolatedMaterial(var/datum/material/mat1,var/datum/material/mat2,var/t)
-	var/ot = 1 - t
-	var/datum/material/newMat = new()
+//custom matsci event procs
+//Use these if you want the stom in general to interact in a special way with the items procs e.g. spears on attack triggering the tip, but on pickup the shafts material
+//situation_modifier is for when you want something like specifying "chest" or "L_hand" for clothes
 
-	newMat.quality = round(mat1.quality * ot + mat2.quality * t)
+/// Called when a mob holding this atom is attacked for mat effects
+/atom/proc/material_trigger_on_mob_attacked(var/mob/attacker, var/mob/attacked, var/atom/weapon, var/situation_modifier)
+	if (src.material)
+		src.material.triggerOnAttacked(src, attacker, attacked, weapon)
+	return
 
-	newMat.prefixes = (mat1.prefixes | mat2.prefixes)
-	newMat.suffixes = (mat1.suffixes | mat2.suffixes)
+/// Called when an atom is hit by a bullet for mat effects
+/atom/proc/material_trigger_on_bullet(var/atom/attacked, var/obj/projectile/projectile, var/situation_modifier)
+	if (src.material)
+		src.material.triggerOnBullet(src, attacked, projectile)
+	return
 
-	newMat.value = round(mat1.value * ot + mat2.value * t)
-	newMat.name = getInterpolatedName(mat1.name, mat2.name, 0.5)
-	newMat.mat_id = "([mat1.mat_id]+[mat2.mat_id])"
-	newMat.alpha = round(mat1.alpha * ot + mat2.alpha * t)
-	newMat.color = rgb(round(GetRedPart(mat1.color) * ot + GetRedPart(mat2.color) * t), round(GetGreenPart(mat1.color) * ot + GetGreenPart(mat2.color) * t), round(GetBluePart(mat1.color) * ot + GetBluePart(mat2.color) * t))
-	newMat.properties = mergeProperties(mat1.properties, mat2.properties, t)
+/// Called when an atom is hit by a bullet for mat effects
+/atom/proc/material_trigger_on_chems(var/chem, var/amount)
+	if (src.material)
+		src.material.triggerChem(src, chem, amount)
+	return
 
-	newMat.edible_exact = round(mat1.edible_exact * ot + mat2.edible_exact * t)
-	if(newMat.edible_exact >= 0.5) newMat.edible = 1
-	else newMat.edible = 0
+/// Called when an atom or someone wearing the material is attacked for mat effects
+/atom/proc/material_trigger_on_blob_attacked(var/blobPower, var/situation_modifier)
+	if (src.material)
+		src.material.triggerOnBlobHit(src, blobPower)
+	return
 
-	newMat.mixOnly = 0
+/// Called when an atom is used for an attack a atom for mat effects
+/atom/proc/material_on_attack_use(var/mob/attacker, var/atom/attacked)
+	if (src.material)
+		src.material.triggerOnAttack(src, attacker, attacked)
+	return
 
-	//--
-	newMat.triggersFail = getFusedTriggers(mat1.triggersFail, mat2.triggersFail, newMat)
-	newMat.triggersTemp = getFusedTriggers(mat1.triggersTemp, mat2.triggersTemp, newMat)
-	newMat.triggersChem = getFusedTriggers(mat1.triggersChem, mat2.triggersChem, newMat)
-	newMat.triggersPickup = getFusedTriggers(mat1.triggersPickup, mat2.triggersPickup, newMat)
-	newMat.triggersDrop = getFusedTriggers(mat1.triggersDrop, mat2.triggersDrop, newMat)
-	newMat.triggersExp = getFusedTriggers(mat1.triggersExp, mat2.triggersExp, newMat)
-	newMat.triggersOnAdd = getFusedTriggers(mat1.triggersOnAdd, mat2.triggersOnAdd, newMat)
-	newMat.triggersOnLife = getFusedTriggers(mat1.triggersOnLife, mat2.triggersOnLife, newMat)
-	newMat.triggersOnAttack = getFusedTriggers(mat1.triggersOnAttack, mat2.triggersOnAttack, newMat)
-	newMat.triggersOnAttacked = getFusedTriggers(mat1.triggersOnAttacked, mat2.triggersOnAttacked, newMat)
-	newMat.triggersOnEntered = getFusedTriggers(mat1.triggersOnEntered, mat2.triggersOnEntered, newMat)
+/// Called when an atom is caught in an explosion
+/atom/proc/material_trigger_on_explosion(var/severity)
+	if (src.material)
+		src.material.triggerExp(src, severity)
+	return
 
-	handleTriggerGenerations(newMat.triggersFail)
-	handleTriggerGenerations(newMat.triggersTemp)
-	handleTriggerGenerations(newMat.triggersChem)
-	handleTriggerGenerations(newMat.triggersPickup)
-	handleTriggerGenerations(newMat.triggersDrop)
-	handleTriggerGenerations(newMat.triggersExp)
-	handleTriggerGenerations(newMat.triggersOnAdd)
-	handleTriggerGenerations(newMat.triggersOnLife)
-	handleTriggerGenerations(newMat.triggersOnAttack)
-	handleTriggerGenerations(newMat.triggersOnAttacked)
-	handleTriggerGenerations(newMat.triggersOnEntered)
+/// Called when an atom is affected by a heat change
+/atom/proc/material_trigger_on_temp(var/temperature_applied)
+	if (src.material)
+		src.material.triggerTemp(src, temperature_applied)
+	return
 
-	//Make sure the newly merged properties are informed about the fact that they just changed. Has to happen after triggers.
-	for(var/datum/material_property/nProp in newMat.properties)
-		nProp.onValueChanged(newMat, newMat.properties[nProp])
+/// Called when the item is attacked with another atom for mat effects.
+/// If someone is smashed against the item or with hands, the mob itself is expected to be passed as attackatom
+/atom/proc/material_trigger_when_attacked(var/atom/attackatom, var/mob/attacker, var/meleeorthrow, var/situation_modifier)
+	if (src.material)
+		src.material.triggerOnHit(src, attackatom, attacker, meleeorthrow)
+	return
 
-	//--
+///Called when an item is picked up for mat effects
+/obj/item/proc/material_on_pickup(mob/user)
+	if (src.material)
+		src.material.triggerPickup(user, src)
+	return
 
-	//Texture merging. SUPER DUPER UGLY AAAAH
-	if(mat2.texture && !mat1.texture)
-		newMat.texture = mat2.texture
-		newMat.texture_blend = mat2.texture_blend
-	else if (mat1.texture && !mat2.texture)
-		newMat.texture = mat1.texture
-		newMat.texture_blend = mat1.texture_blend
-	else if (mat1.texture && mat2.texture)
-		if(mat1.generation == mat2.generation)
-			//Mat1 has higher priority in this case. Optional: implement some shitty blended texture thing. probably a bad idea.
-			newMat.texture = mat1.texture
-			newMat.texture_blend = mat1.texture_blend
-		else
-			if(mat1.generation < mat2.generation)
-				newMat.texture = mat1.texture
-				newMat.texture_blend = mat1.texture_blend
-			else
-				newMat.texture = mat2.texture
-				newMat.texture_blend = mat2.texture_blend
-	//
+///Called when an item is dropped for mat effects
+/obj/item/proc/material_on_drop(mob/user)
+	if (src.material)
+		src.material.triggerDrop(user, src)
+	return
 
-	//This is sub-optimal and only used because im dumb
-	if(mat1.material_flags & MATERIAL_CRYSTAL || mat2.material_flags & MATERIAL_CRYSTAL) newMat.material_flags |= MATERIAL_CRYSTAL
-	if(mat1.material_flags & MATERIAL_METAL || mat2.material_flags & MATERIAL_METAL) newMat.material_flags |= MATERIAL_METAL
-	if(mat1.material_flags & MATERIAL_CLOTH || mat2.material_flags & MATERIAL_CLOTH) newMat.material_flags |= MATERIAL_CLOTH
-	if(mat1.material_flags & MATERIAL_ORGANIC || mat2.material_flags & MATERIAL_ORGANIC) newMat.material_flags |= MATERIAL_ORGANIC
-	if(mat1.material_flags & MATERIAL_ENERGY || mat2.material_flags & MATERIAL_ENERGY) newMat.material_flags |= MATERIAL_ENERGY
-	if(mat1.material_flags & MATERIAL_RUBBER || mat2.material_flags & MATERIAL_RUBBER) newMat.material_flags |= MATERIAL_RUBBER
-
-	newMat.parent_materials.Add(mat1)
-	newMat.parent_materials.Add(mat2)
-
-	//RUN VALUE CHANGED ON ALL PROPERTIES TO TRIGGER PROPERS EVENTS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-	return newMat
 
 /// Merges two material names into one.
 /proc/getInterpolatedName(var/mat1, var/mat2, var/t)
@@ -409,63 +367,17 @@ var/global/list/triggerVars = list("triggersOnBullet", "triggersOnEat", "trigger
 		else
 			return "Unknown"
 
-/// Simply returns a string for a given quality. Used as prefix for objects.
-/proc/getQualityName(var/quality)
-	switch(quality)
-		if(-INFINITY to -101)
-			return "useless"
-		if(-100 to -91)
-			return "atrocious"
-		if(-90 to -81)
-			return "wretched"
-		if(-80 to -71)
-			return "crap"
-		if(-70 to -61)
-			return "awful"
-		if(-60 to -51)
-			return "terrible"
-		if(-50 to -41)
-			return "bad"
-		if(-40 to -31)
-			return "shabby"
-		if(-30 to -21)
-			return "mediocre"
-		if(-20 to -11)
-			return "low-quality"
-		if(-10 to -1)
-			return "poor"
-		if(0)
-			return ""
-		if(1 to 10)
-			return "decent"
-		if(11 to 20)
-			return "fine"
-		if(21 to 30)
-			return "good"
-		if(31 to 40)
-			return "great"
-		if(41 to 50)
-			return "high-quality"
-		if(51 to 60)
-			return "excellent"
-		if(61 to 70)
-			return "superb"
-		if(71 to 80)
-			return "incredible"
-		if(81 to 90)
-			return "amazing"
-		if(91 to 100)
-			return "supreme"
-		if(101 to INFINITY)
-			return "perfect"
-		else
-			return "odd"
-
 /// Checks if a material matches a recipe and returns the recipe if a match is found. returns null if nothing matches it.
 /proc/matchesMaterialRecipe(var/datum/material/M)
 	for(var/datum/material_recipe/R in materialRecipes)
 		if(R.validate(M)) return R
 	return null
+
+/proc/findRecipeName(var/obj/item/One,var/obj/item/Two)
+	var/tempmerge = getFusedMaterial(One.material, Two.material)
+	for(var/datum/material_recipe/R in materialRecipes)
+		if(R.validate(tempmerge)) return R
+	return getInterpolatedName(One.material.getName(), Two.material.getName(), 0.5)
 
 /**
 	* Searches the parent materials of the given material, up to a given generation, for an id.
@@ -479,16 +391,16 @@ var/global/list/triggerVars = list("triggersOnBullet", "triggersOnEat", "trigger
 
 /proc/searchMatTree(var/datum/material/M, var/id, var/current_depth, var/max_depth = 3)
 	if(!M || !id) return null
-	if(!M.parent_materials.len) return null
-	for(var/datum/material/CM in M.parent_materials)
-		if(CM.mat_id == id) return CM
+	if(!length(M.getParentMaterials())) return null
+	for(var/datum/material/CM in M.getParentMaterials())
+		if(CM.getID() == id) return CM
 		if(current_depth + 1 <= max_depth)
 			var/temp = searchMatTree(CM, id, current_depth + 1, max_depth)
 			if(temp) return temp
 	return null
 
 /// Yes hello apparently we need a proc for this because theres a million types of different wires and cables.
-/proc/applyCableMaterials(var/atom/C, var/datum/material/insulator, var/datum/material/conductor)
+/proc/applyCableMaterials(atom/C, datum/material/insulator, datum/material/conductor, copy_material = FALSE)
 	if(!conductor) return // silly
 
 	if(istype(C, /obj/cable))
@@ -497,24 +409,49 @@ var/global/list/triggerVars = list("triggersOnBullet", "triggersOnEat", "trigger
 		cable.conductor = conductor
 
 		if (cable.insulator)
-			cable.setMaterial(cable.insulator)
-			cable.name = "[cable.insulator.name]-insulated [cable.conductor.name]-cable"
-			cable.color = cable.insulator.color
+			cable.setMaterial(cable.insulator, mutable = copy_material)
+			cable.name = "[cable.insulator.getName()]-insulated [cable.conductor.getName()]-cable"
+			cable.color = cable.insulator.getColor()
 		else
-			cable.setMaterial(cable.conductor)
-			cable.name = "uninsulated [cable.conductor.name]-cable"
-			cable.color = cable.conductor.color
+			cable.setMaterial(cable.conductor, mutable = copy_material)
+			cable.name = "uninsulated [cable.conductor.getName()]-cable"
+			cable.color = cable.conductor.getColor()
 
-	if(istype(C, /obj/item/cable_coil))
+	else if(istype(C, /obj/item/cable_coil))
 		var/obj/item/cable_coil/coil = C
 
 		coil.insulator = insulator
 		coil.conductor = conductor
 
 		if (coil.insulator)
-			coil.setMaterial(coil.insulator)
-			coil.color = coil.insulator.color
+			coil.setMaterial(coil.insulator, mutable = copy_material)
+			coil.color = coil.insulator.getColor()
 		else
-			coil.setMaterial(coil.conductor)
-			coil.color = coil.conductor.color
+			coil.setMaterial(coil.conductor, mutable = copy_material)
+			coil.color = coil.conductor.getColor()
 		coil.updateName()
+
+/**
+ * Returns the thermal conductivity between two materials, based on thermal and electrical conductivity mat property.
+ * Thermal conductivity ranges from 0 (perfect insulator) to infinity. Excellent conductors like copper are about 100
+*/
+proc/calculateHeatTransferCoefficient(var/datum/material/matA, var/datum/material/matB)
+	var/hTC1 = 5
+	var/hTC2 = 5
+	if(matA)
+		if(matA.hasProperty("thermal") && matA.hasProperty("electrical"))
+			hTC1 = (max(matA.getProperty("thermal"),0) + max(matA.getProperty("electrical"),0))/2
+		else if(matA.hasProperty("thermal"))
+			hTC1 = max(matA.getProperty("thermal"),0)
+		else if(matA.hasProperty("electrical"))
+			hTC1 = max(matA.getProperty("electrical"),0)
+	if(matB)
+		if(matB.hasProperty("thermal") && matB.hasProperty("electrical"))
+			hTC2 = (max(matB.getProperty("thermal"),0) + max(matB.getProperty("electrical"),0))/2
+		else if(matB.hasProperty("thermal"))
+			hTC2 = max(matB.getProperty("thermal"),0)
+		else if(matB.hasProperty("electrical"))
+			hTC2 = max(matB.getProperty("electrical"),0)
+	//average thermal conductivity approximated as 10^(x/5)-1
+	//common values 0 = 0, 5 = 10, 10 = 100
+	return ((10**(hTC1/5)-1)+(10**(hTC2/5)-1))/2

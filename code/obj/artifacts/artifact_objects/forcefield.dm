@@ -5,6 +5,7 @@
 /datum/artifact/forcefield_gen
 	associated_object = /obj/artifact/forcefield_generator
 	type_name = "Forcefield Generator"
+	type_size = ARTIFACT_SIZE_LARGE
 	rarity_weight = 450
 	validtypes = list("wizard","eldritch","precursor")
 	validtriggers = list(/datum/artifact_trigger/force,/datum/artifact_trigger/carbon_touch,
@@ -34,27 +35,27 @@
 		if (!..())
 			return 0
 		if (ticker.round_elapsed_ticks < next_activate)
-			O.visible_message("<span class='alert'>[O] emits a loud pop and lights up momentarily but nothing happens!</span>")
+			O.visible_message(SPAN_ALERT("[O] emits a loud pop and lights up momentarily but nothing happens!"))
 			return 0
 		return 1
 
 	effect_activate(var/obj/O,var/mob/living/user)
 		if (..())
 			return
-		O.anchored = 1
+		O.anchored = ANCHORED
 		var/turf/Aloc = get_turf(O)
 		for (var/turf/T in range(field_radius,Aloc))
-			if(get_dist(O,T) == field_radius)
+			if(GET_DIST(O,T) == field_radius)
 				var/obj/forcefield/wand/FF = new /obj/forcefield/wand(T,0,src.icon_state,O)
 				src.forcefields += FF
-		SPAWN_DBG(field_time)
+		SPAWN(field_time)
 			if (O)
 				O.ArtifactDeactivated()
 
 	effect_deactivate(obj/O)
 		if(..())
 			return
-		O.anchored = 0
+		O.anchored = UNANCHORED
 		for (var/obj/forcefield/F in src.forcefields)
 			src.forcefields -= F
 			qdel(F)

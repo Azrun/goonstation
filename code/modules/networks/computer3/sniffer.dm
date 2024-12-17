@@ -15,12 +15,17 @@
 	var/list/packet_data = list()
 	var/max_logs = 8
 
+	New()
+		..()
+		if (global.current_state < GAME_STATE_PLAYING)
+			new /obj/item/paper/packets(src.loc)
+
 	attack_ai(mob/user as mob)
 		if(mode)
 			src.interacted(user)
 		return
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if(mode)
 			src.interacted(user)
 			return
@@ -38,7 +43,7 @@
 						src.link = test_link
 						src.link.master = src
 
-						anchored = 1
+						anchored = ANCHORED
 						mode = 1
 						user.visible_message("[user] attaches the [src] to the data terminal.","You attach the [src] to the data terminal.")
 
@@ -46,14 +51,14 @@
 
 					else
 
-						boutput(user, "<span class='alert'>The [src] couldn't be attached here!</span>")
+						boutput(user, SPAN_ALERT("The [src] couldn't be attached here!"))
 						return
 
 				else
 					boutput(user, "Device must be placed over a free data terminal to attach to it.")
 					return
 			else
-				anchored = 0
+				anchored = UNANCHORED
 				mode = 0
 				user.visible_message("[user] detaches the [src] from the data terminal.","You detach the [src] from the data terminal.")
 				icon_state = "sniffer0"
@@ -88,7 +93,7 @@
 		..()
 
 		if (!issilicon(usr) && !isAIeye(usr))
-			if (!(src in usr.contents) && !(src.master in usr.contents) && !(istype(src.loc, /turf) && IN_RANGE(src, usr, 1)))
+			if (!(src in usr.contents) && !(src.master in usr.contents) && !(istype(src.loc, /turf) && (BOUNDS_DIST(src, usr) == 0)))
 				return
 			if (usr.stat || usr.restrained())
 				return
@@ -146,18 +151,18 @@
 			return
 
 		if(!src.last_intercept || src.last_intercept + 40 <= world.time)
-			playsound(src.loc, "sound/machines/twobeep.ogg", 25, 1)
+			playsound(src.loc, 'sound/machines/twobeep.ogg', 25, 1)
 		//src.packet_data = signal.data:Copy()
 		var/newdat = "<b>\[[time2text(world.timeofday,"mm:ss")]:[(world.timeofday%10)]\]:</b>"
 		for (var/i in signal.data)
-			newdat += "[i][isnull(signal.data[i]) ? "; " : "=[signal.data[i]]; "]"
+			newdat += "[strip_html(i)][isnull(signal.data[i]) ? "; " : "=[strip_html(signal.data[i])]; "]"
 
 		if (signal.data_file)
 			. = signal.data_file.asText()
-			newdat += "<br>Included file ([signal.data_file.name], [signal.data_file.extension]): [. ? . : "Not printable."]"
+			newdat += "<br>Included file ([strip_html(signal.data_file.name)], [strip_html(signal.data_file.extension)]): [. ? . : "Not printable."]"
 
 		src.packet_data += newdat
-		if (src.packet_data.len > src.max_logs)
+		if (length(src.packet_data) > src.max_logs)
 			src.packet_data.Cut(1,2)
 		src.last_intercept = world.time
 		src.updateIntDialog()

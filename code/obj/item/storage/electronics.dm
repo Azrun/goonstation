@@ -24,13 +24,14 @@
 		/obj/item/disk/data/cartridge/syndicate,
 		/obj/item/disk/data/cartridge/ai,
 		/obj/item/disk/data/cartridge/cyborg,
-		/obj/item/disk/data/cartridge/ringtone_syndie)
+		/obj/item/disk/data/cartridge/ringtone_syndie,
+		/obj/item/disk/data/cartridge/hos)
 
 		var/list/spawnable = typesof(/obj/item/disk/data/cartridge)
 		spawnable -= invalid_carts
 		for (var/i = 1, i <= 3, i++)
 			var/cartpath = pick(spawnable)
-			new cartpath(src)
+			src.storage.add_contents(new cartpath(src))
 
 /obj/item/storage/box/diskbox
 	name = "diskette box"
@@ -58,7 +59,7 @@
 	desc = "A useful kit for building guardbuddies. All you need is a module!"
 	spawn_contents = list(/obj/item/guardbot_frame,\
 	/obj/item/guardbot_core,\
-	/obj/item/parts/robot_parts/arm/right,\
+	/obj/item/parts/robot_parts/arm/right/standard,\
 	/obj/item/cell)
 
 /obj/item/storage/box/lightbox
@@ -138,5 +139,5 @@
 				/obj/item/device/light/glowstick/yellow,
 				/obj/item/device/light/glowstick/pink,
 				/obj/item/device/light/glowstick/purple)
-				new glowstick(src)
+				src.storage.add_contents(new glowstick(src))
 

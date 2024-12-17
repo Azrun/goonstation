@@ -83,7 +83,7 @@
 			p2.status = 1
 
 			if(src.active)
-				R.part1.armed = 1
+				R.part1.armed = TRUE
 				R.part1.icon_state = text("motion[]", 1)
 				R.c_state(1, src)
 
@@ -132,7 +132,7 @@
 			PT.air_contents.temperature = btemp1 + T0C
 			OT.air_contents.temperature = btemp2 + T0C
 
-			V.update_icon()
+			V.UpdateIcon()
 
 		// proximity
 		if (1)
@@ -155,7 +155,7 @@
 			PT.air_contents.temperature = btemp1 + T0C
 			OT.air_contents.temperature = btemp2 + T0C
 
-			V.update_icon()
+			V.UpdateIcon()
 
 
 		// timer
@@ -178,7 +178,7 @@
 			PT.air_contents.temperature = btemp1 + T0C
 			OT.air_contents.temperature = btemp2 + T0C
 
-			V.update_icon()
+			V.UpdateIcon()
 	qdel(src)
 
 
@@ -218,14 +218,14 @@
 		if(!isturf(src.loc))
 			dispose()
 			return
-		SPAWN_DBG(2 SECONDS)
+		SPAWN(2 SECONDS)
 			explode()
 
 	Bumped(atom/A)
 		if(ismob(A))
 			walk(src, get_dir(A, src), 1)
 
-	Bump(atom/O)
+	bump(atom/O)
 		walk(src, 0)
 
 	ex_act(severity)
@@ -240,7 +240,7 @@
 			dispose()
 			return
 		src.icon = null
-		src.anchored = 1
+		src.anchored = ANCHORED
 		src.set_density(0)
 		var/list/atom/movable/overlay/boom = list()
 		var/list/atom/movable/overlay/boom_tips = list()
@@ -252,13 +252,13 @@
 		for(var/turf/T in oview(3, src))
 			if((T.x != src.x && T.y != src.y) || T.density)
 				continue
-			var/dist = get_dist(src.loc, T)
+			var/dist = GET_DIST(src.loc, T)
 			var/rel_dir = get_dir(src.loc, T)
 			if(dist <= 3)
 				for(var/atom/A in T)
 					if(isliving(A))
 						affected_mobs.Add(A)
-					if(istype(A, /obj/window) || istype(A, /obj/grille))
+					if(istype(A, /obj/window) || istype(A, /obj/mesh/grille))
 						affected_objs.Add(A)
 					if(istype(A, /obj/blob))
 						affected_objs.Add(A)
@@ -286,9 +286,35 @@
 			// drsingh for Cannot execute null.ex act()
 			if (!isnull(O)) O.ex_act(rand(1,2))
 		playsound(src.loc, "explosion", 100, 1)
-		playsound(src.loc, "sound/effects/explosionfar.ogg", 100, 1, 14)
-		SPAWN_DBG(1 SECOND)
+		playsound(src.loc, 'sound/effects/explosionfar.ogg', 100, 1, 14)
+		SPAWN(1 SECOND)
 			animation.dispose()
 			for(var/atom/movable/overlay/A in (boom + boom_tips))
 				A.dispose()
 			src.dispose()
+
+
+
+/obj/spawner/mail
+	name = "mail spawner"
+	icon = 'icons/obj/items/items.dmi'
+	icon_state = "mail-1"
+	var/amount_to_make = 1
+
+	New()
+		..()
+		create_random_mail(src.loc, src.amount_to_make)
+		qdel(src)
+
+	two
+		name = "mail spawner (x2)"
+		amount_to_make = 2
+	five
+		name = "mail spawner (x5)"
+		amount_to_make = 5
+	ten
+		name = "mail spawner (x10)"
+		amount_to_make = 10
+	fifty
+		name = "mail spawner (x50)"
+		amount_to_make = 50

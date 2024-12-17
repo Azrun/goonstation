@@ -2,7 +2,7 @@
 	icon = null
 	name = "Sparks"
 	desc = "Dangerous looking sparks."
-	anchored = 1
+	anchored = ANCHORED
 	density = 0
 	opacity = 0
 	var/can_move = 1
@@ -12,29 +12,35 @@
 	var/vision_radius = 3
 	var/mob/the_user = null
 	//Prolonged use causes damage.
-	New(mob/target, atom/location)
+	New(atom/location, mob/target)
 		..()
 		src.set_loc(location)
-		the_user = target
-		target.set_loc(src)
-		img = image('icons/effects/effects.dmi',src ,"energyorb")
-		target << img
+		if(target)
+			the_user = target
+			target.set_loc(src)
+			img = image('icons/effects/effects.dmi',src ,"energyorb")
+			target << img
+		RegisterSignal(the_user, COMSIG_MOB_DROPPED, PROC_REF(handle_dropped_item))
+		APPLY_ATOM_PROPERTY(the_user, PROP_MOB_CANTTHROW, src)
 
-		//SPAWN_DBG(0) check() but why
+		//SPAWN(0) check() but why
+
+	proc/handle_dropped_item(mob/user, atom/movable/AM)
+		AM.set_loc(get_turf(user))
 
 	remove_air(amount as num)
-		var/datum/gas_mixture/Air = unpool(/datum/gas_mixture)
+		var/datum/gas_mixture/Air = new /datum/gas_mixture
 		Air.oxygen = amount
 		Air.temperature = 310
 		return Air
 
 	proc/spawn_sparks()
-		SPAWN_DBG(0)
+		SPAWN(0)
 			// Check spawn limits
 			if(limiter.canISpawn(/obj/effects/sparks))
-				var/obj/effects/sparks/O = unpool(/obj/effects/sparks)
+				var/obj/effects/sparks/O = new /obj/effects/sparks
 				O.set_loc(src.loc)
-				SPAWN_DBG(2 SECONDS) if (O) pool(O)
+				SPAWN(2 SECONDS) if (O) qdel(O)
 
 	relaymove(mob/user, direction)
 
@@ -55,11 +61,12 @@
 
 				src.set_loc(new_loc)
 				can_move = 0
-				SPAWN_DBG(speed) can_move = 1
+				SPAWN(speed) can_move = 1
 		return
 
 	disposing()
-		the_user.client.images -= cableimgs
+		the_user?.client.images -= cableimgs
+		REMOVE_ATOM_PROPERTY(the_user, PROP_MOB_CANTTHROW, src)
 		the_user = null
 		return ..()
 
@@ -93,12 +100,11 @@
 	var/on_cooldown = 0
 	var/power = 100
 	var/power_icon = ""
-	module_research = list("devices" = 5, "energy" = 20, "miniaturization" = 20)
 	var/list/cableimgs = list()
 	var/vision_radius = 2
 	New()
 		handle_overlay()
-		SPAWN_DBG(0)
+		SPAWN(0)
 			check()//ohly fucke pls rewrite me
 		cableimgs = new/list((vision_radius*2+1)**2)
 		var/obj/cable/ctype = /obj/cable
@@ -106,7 +112,7 @@
 		for(var/i = 1, i <= cableimgs.len, i++)
 			var/image/cimg = image(cicon)
 			cimg.layer = 100
-			cimg.plane = 100
+			cimg.plane = PLANE_ABOVE_BLACKNESS
 			cableimgs[i] = cimg//@MBC this is how you'd do phasing
 		return ..()
 
@@ -195,20 +201,20 @@
 							continue
 						var/image/img = cableimgs[idx]
 						img.appearance = C.appearance
-						img.invisibility = 0
+						img.invisibility = INVIS_NONE
 						img.alpha = 255
 						img.layer = 100
-						img.plane = 100
+						img.plane = PLANE_ABOVE_BLACKNESS
 						img.loc = locate(C.x, C.y, C.z)
 				power = round(power)
 				power--
 				handle_overlay()
 				if(power == 20)
-					boutput(target, "<span class='alert'>The [src] is dangerously low on power. Your energy pattern is destabilizing.</span>")
+					boutput(target, SPAN_ALERT("The [src] is dangerously low on power. Your energy pattern is destabilizing."))
 				if(power < 20)
 					random_brute_damage(target, 4)
 				if(power <= 0)
-					boutput(target, "<span class='alert'>The [src] is out of energy.</span>")
+					boutput(target, SPAN_ALERT("The [src] is out of energy."))
 					var/mob/old_trg = target
 					deactivate()
 					old_trg.changeStatus("stunned", 20 SECONDS)
@@ -220,16 +226,16 @@
 		activating = 1
 
 		on_cooldown = 1
-		SPAWN_DBG(3 SECONDS) on_cooldown = 0
+		SPAWN(3 SECONDS) on_cooldown = 0
 
 		var/atom/dummy = D
 		if(D)
-			dummy.invisibility = 101
+			dummy.invisibility = INVIS_ALWAYS
 
-		playsound(src, "sound/effects/shielddown2.ogg", 40, 1)
+		playsound(src, 'sound/effects/shielddown2.ogg', 40, TRUE)
 		var/obj/overlay/O = new/obj/overlay(get_turf(target))
 		O.name = "Energy"
-		O.anchored = 1
+		O.anchored = ANCHORED
 		O.layer = MOB_EFFECT_LAYER
 		target.transforming = 1
 		O.icon = 'icons/effects/effects.dmi'
@@ -249,21 +255,21 @@
 		if(activating) return
 		var/turf/T = get_turf(src)
 		if(isrestrictedz(T.z))
-			boutput(user, "<span class='notice'>The [src] buzzes oddly, and nothing further happens.</span>")
+			boutput(user, SPAN_NOTICE("The [src] buzzes oddly, and nothing further happens."))
 			return
 
 		if(locate(/obj/cable) in get_turf(src))
 
 			if(on_cooldown)
-				boutput(user, "<span class='alert'>The [src] is still recharging.</span>")
+				boutput(user, SPAN_ALERT("The [src] is still recharging."))
 				return
 
 			activating = 1
 
-			playsound(src, "sound/effects/singsuck.ogg", 40, 1)
+			playsound(src, 'sound/effects/singsuck.ogg', 40, TRUE)
 			var/obj/overlay/O = new/obj/overlay(get_turf(user))
 			O.name = "Energy"
-			O.anchored = 1
+			O.anchored = ANCHORED
 			O.layer = MOB_EFFECT_LAYER
 			user.transforming = 1
 			O.icon = 'icons/effects/effects.dmi'
@@ -272,19 +278,19 @@
 			user.transforming = 0
 			qdel(O)
 
-			D = new/obj/dummy/voltron(user, get_turf(src))
+			D = new/obj/dummy/voltron(get_turf(src), user)
 
 			target = user
 			active = 1
 			activating = 0
 		else
-			boutput(user, "<span class='alert'>This needs to be used while standing on a cable.</span>")
+			boutput(user, SPAN_ALERT("This needs to be used while standing on a cable."))
 
 	attack_self(mob/user as mob)
 		if(activating) return
 
 		if(active)
-			boutput(target, "<span class='notice'>You deactivate the [src].</span>")
+			boutput(target, SPAN_NOTICE("You deactivate the [src]."))
 			deactivate()
 		else
 			if(istype(user.l_hand,/obj/item/phone_handset) || istype(user.r_hand,/obj/item/phone_handset)) // travel through space line
@@ -311,13 +317,13 @@
 					return
 				EXIT = PH.parent.linked.handset
 				user.visible_message("[user] enters the phone line using their [src].", "You enter the phone line using your [src].", "You hear a strange sucking noise.")
-				playsound(user.loc, "sound/effects/singsuck.ogg", 40, 1)
+				playsound(user.loc, 'sound/effects/singsuck.ogg', 40, 1)
 				user.drop_item(PH)
 				user.set_loc(target_loc)
-				playsound(user.loc, "sound/effects/singsuck.ogg", 40, 1)
+				playsound(user.loc, 'sound/effects/singsuck.ogg', 40, 1)
 				user.visible_message("[user] suddenly emerges from the [EXIT]. [pick("","What the fuck?")]", "You emerge from the [EXIT].", "You hear a strange sucking noise.")
 			else
-				boutput(user, "<span class='notice'>You activate the [src].</span>")
+				boutput(user, SPAN_NOTICE("You activate the [src]."))
 				activate(user)
 			power -= 5
 			handle_overlay()

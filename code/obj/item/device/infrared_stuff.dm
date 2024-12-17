@@ -8,30 +8,33 @@ Contains:
 
 //////////////////////////////////////// Laser tripwire //////////////////////////////
 
+TYPEINFO(/obj/item/device/infra)
+	mats = 3
+
 /obj/item/device/infra
 	name = "Laser Tripwire"
 	desc = "Emits a visible or invisible beam and is triggered when the beam is interrupted."
 	icon_state = "infrared0"
-	var/obj/beam/i_beam/first = null
-	var/state = 0.0
-	var/visible = 0.0
-	flags = FPRINT | TABLEPASS| CONDUCT
+	var/state = 0
+	var/visible = 0
+	flags = TABLEPASS | CONDUCT
 	w_class = W_CLASS_SMALL
 	item_state = "electronic"
 	m_amt = 150
-	mats = 3
 
 ///////////////////////////////////////// Infrared sensor ///////////////////////////////////////////
+
+TYPEINFO(/obj/item/device/infra_sensor)
+	mats = 4
 
 /obj/item/device/infra_sensor
 	name = "Infrared Sensor"
 	desc = "Scans for infrared beams in the vicinity."
 	icon_state = "infra_sensor"
-	var/passive = 1.0
-	flags = FPRINT | TABLEPASS| CONDUCT
+	var/passive = 1
+	flags = TABLEPASS | CONDUCT
 	item_state = "electronic"
 	m_amt = 150
-	mats = 4
 
 /* When/if someone ever gets around to fixing these uncomment this
 /obj/item/device/infra_sensor/process()
@@ -49,13 +52,13 @@ Contains:
 		I.left = 10
 	for(var/obj/item/device/infra/I in range(src.loc))
 		I.visible = 1
-		SPAWN_DBG( 0 )
+		SPAWN( 0 )
 			if (I?.first)
 				I.first.vis_spread(1)
 			return
 	for(var/obj/item/assembly/rad_infra/I in range(src.loc))
 		I.part2.visible = 1
-		SPAWN_DBG( 0 )
+		SPAWN( 0 )
 			if ((I.part2 && I.part2.first))
 				I.part2.first.vis_spread(1)
 			return
@@ -72,13 +75,13 @@ Contains:
 	..()
 	if (usr.stat || usr.restrained())
 		return
-	if ((usr.contents.Find(src) || (usr.contents.Find(src.master) || ((get_dist(src, usr) <= 1) && istype(src.loc, /turf)))))
+	if ((usr.contents.Find(src) || (usr.contents.Find(src.master) || ((BOUNDS_DIST(src, usr) == 0) && istype(src.loc, /turf)))))
 		src.add_dialog(usr)
 		if (href_list["passive"])
 			src.passive = !( src.passive )
 			if(passive) processing_items |= src
 		if (href_list["active"])
-			SPAWN_DBG( 0 )
+			SPAWN( 0 )
 				src.burst()
 				return
 		if (!( src.master ))
@@ -104,7 +107,7 @@ Contains:
 
 /obj/item/device/infra/proc/hit()
 	if (src.master)
-		SPAWN_DBG(0)
+		SPAWN(0)
 			var/datum/signal/signal = new
 			signal.data["message"] = "ACTIVATE"
 			src.master.receive_signal(signal)
@@ -133,7 +136,7 @@ Contains:
 			src.first = I
 			//boutput(world, "infra : vis_spread")
 			I.vis_spread(src.visible)
-			SPAWN_DBG( 0 )
+			SPAWN( 0 )
 				if (I)
 					//boutput(world, "infra: setting limit")
 					I.limit = 20
@@ -141,11 +144,11 @@ Contains:
 					I.process()
 				return
 	if (!( src.state ))
-		//src.first = null
 		qdel(src.first)
+		//src.first = null
 	return
 
-/obj/item/device/infra/attackby(obj/item/device/radio/signaler/S as obj, mob/user as mob)
+/obj/item/device/infra/attackby(obj/item/device/radio/signaler/S, mob/user)
 	if ((!( istype(S, /obj/item/device/radio/signaler) ) || !( S.b_stat )))
 		return
 	var/obj/item/assembly/rad_infra/R = new /obj/item/assembly/rad_infra( user )
@@ -185,7 +188,7 @@ Contains:
 			if(state) processing_items |= src
 		if (href_list["visible"])
 			src.visible = !( src.visible )
-			SPAWN_DBG( 0 )
+			SPAWN( 0 )
 				if (src.first)
 					src.first.vis_spread(src.visible)
 				return
@@ -212,8 +215,8 @@ Contains:
 	return
 
 /obj/item/device/infra/attack_hand()
-	//src.first = null
 	qdel(src.first)
+	//src.first = null
 	..()
 	return
 
@@ -221,8 +224,8 @@ Contains:
 	var/t = src.dir
 	..()
 	src.set_dir(t)
-	//src.first = null
 	qdel(src.first)
+	//src.first = null
 	return
 
 /obj/item/device/infra/verb/rotate()
@@ -242,7 +245,7 @@ Contains:
 	var/obj/item/device/radio/signaler/part1 = null
 	var/obj/item/device/infra/part2 = null
 	status = null
-	flags = FPRINT | TABLEPASS | CONDUCT
+	flags = TABLEPASS | CONDUCT
 
 /obj/item/assembly/rad_infra/c_state(n)
 	src.icon_state = text("infrared-radio[]", n)
@@ -254,7 +257,7 @@ Contains:
 	..()
 	return
 
-/obj/item/assembly/rad_infra/attackby(obj/item/W as obj, mob/user as mob)
+/obj/item/assembly/rad_infra/attackby(obj/item/W, mob/user)
 	if (!W)
 		return
 	if (iswrenchingtool(W) && !(src.status))
@@ -273,9 +276,9 @@ Contains:
 		return
 	src.status = !(src.status)
 	if (src.status)
-		user.show_message("<span class='notice'>The infrared laser is now secured!</span>", 1)
+		user.show_message(SPAN_NOTICE("The infrared laser is now secured!"), 1)
 	else
-		user.show_message("<span class='notice'>The infrared laser is now unsecured!</span>", 1)
+		user.show_message(SPAN_NOTICE("The infrared laser is now unsecured!"), 1)
 	src.part1.b_stat = !(src.status)
 	src.add_fingerprint(user)
 	return
@@ -306,8 +309,8 @@ Contains:
 	var/t = src.dir
 	..()
 	src.set_dir(t)
-	//src.part2.first = null
 	qdel(src.part2.first)
+	//src.part2.first = null
 	return
 
 /obj/item/assembly/rad_infra/attack_hand(M)

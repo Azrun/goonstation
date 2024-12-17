@@ -1,54 +1,58 @@
 /datum/datacore
 	var/name = "datacore"
-	var/list/datum/data/record/medical = list(  )
-	var/list/datum/data/record/general = list(  )
-	var/list/datum/data/record/security = list(  )
-	var/list/datum/data/record/bank = list (  )
-	var/list/datum/fine/fines = list (  )
-	var/list/datum/ticket/tickets = list (  )
+	var/datum/record_database/medical = new(list("name", "id"))
+	var/datum/record_database/general = new(list("name", "id"))
+	var/datum/record_database/security = new(list("name", "id"))
+	var/datum/record_database/bank = new(list("name", "id"))
+	var/list/datum/fine/fines = list()
+	var/list/datum/ticket/tickets = list()
 	var/obj/machinery/networked/mainframe/mainframe = null
 
-/datum/datacore/proc/addManifest(var/mob/living/carbon/human/H as mob, var/sec_note = "", var/med_note = "")
+/datum/datacore/proc/addManifest(mob/living/carbon/human/H as mob, sec_note = "", med_note = "", pda_net_id = null, synd_int_note = "")
 	if (!H || !H.mind)
 		return
 
-	var/datum/data/record/G = new /datum/data/record(  )
-	var/datum/data/record/M = new /datum/data/record(  )
-	var/datum/data/record/S = new /datum/data/record(  )
-	var/datum/data/record/B = new /datum/data/record(  )
+	var/datum/db_record/G = new
+	var/datum/db_record/M = new
+	var/datum/db_record/S = new
+	var/datum/db_record/B = new
 
 	if (H.mind.assigned_role)
-		G.fields["rank"] = H.mind.assigned_role
+		G["rank"] = H.mind.assigned_role
 	else
-		G.fields["rank"] = "Unassigned"
+		G["rank"] = "Unassigned"
 
-	G.fields["name"] = H.real_name
-	G.fields["full_name"] = H.real_name
+	G["name"] = H.real_name
+	G["full_name"] = H.real_name
 	if (H.client && H.client.preferences && length(H.client.preferences.name_middle))
 		var/list/namecheck = splittext(H.real_name, " ")
-		if (namecheck.len >= 2)
+		if (length(namecheck) >= 2)
 			namecheck.Insert(2, H.client.preferences.name_middle)
-			G.fields["full_name"] = jointext(namecheck, " ")
-	G.fields["id"] = "[add_zero(num2hex(rand(1, 1.6777215E7), 0), 6)]"
-	M.fields["name"] = G.fields["name"]
-	M.fields["id"] = G.fields["id"]
-	S.fields["name"] = G.fields["name"]
-	S.fields["id"] = G.fields["id"]
+			G["full_name"] = jointext(namecheck, " ")
+	G["id"] = "[add_zero(num2hex(rand(1, 0xffffff), 0), 6)]"
+	M["name"] = G["name"]
+	M["id"] = G["id"]
+	S["name"] = G["name"]
+	S["id"] = G["id"]
 
-	B.fields["name"] = G.fields["name"]
-	B.fields["id"] = G.fields["id"]
+	H.datacore_id = G["id"]
+
+	B["name"] = G["name"]
+	B["id"] = G["id"]
 
 	if (H.gender == FEMALE)
-		G.fields["sex"] = "Female"
+		G["sex"] = "Female"
 	else
-		G.fields["sex"] = "Male"
+		G["sex"] = "Male"
 
-	G.fields["age"] ="[H.bioHolder.age]"
-	G.fields["fingerprint"] = "[H.bioHolder.uid_hash]"
-	G.fields["dna"] = H.bioHolder.Uid
-	G.fields["p_stat"] = "Active"
-	G.fields["m_stat"] = "Stable"
-	SPAWN_DBG(2 SECONDS)
+	G["pronouns"] = H.get_pronouns().name
+
+	G["age"] ="[H.bioHolder.age]"
+	G["fingerprint"] = "[H.bioHolder.fingerprints]"
+	G["dna"] = H.bioHolder.Uid
+	G["p_stat"] = "Active"
+	G["m_stat"] = "Stable"
+	SPAWN(2 SECONDS)
 		if (H && G)
 			var/icon/I = H.build_flat_icon(SOUTH)
 			H.flat_icon = I
@@ -57,51 +61,74 @@
 				IMG.ourIcon = I
 				IMG.img_name = "photo of [H.real_name]"
 				IMG.img_desc = "You can see [H.real_name] in the photo."
-				G.fields["file_photo"] = IMG
+				G["file_photo"] = IMG
 
-	M.fields["bioHolder.bloodType"] = "[H.bioHolder.bloodType]"
-	M.fields["mi_dis"] = "None"
-	M.fields["mi_dis_d"] = "No minor disabilities have been declared."
-	M.fields["ma_dis"] = "None"
-	M.fields["ma_dis_d"] = "No major disabilities have been diagnosed."
-	M.fields["alg"] = "None"
-	M.fields["alg_d"] = "No allergies have been detected in this patient."
-	M.fields["cdi"] = "None"
-	M.fields["cdi_d"] = "No diseases have been diagnosed at the moment."
+	if(!length(synd_int_note))
+		G["syndint"] = null
+	else
+		G["syndint"] = synd_int_note
 
-	M.fields["h_imp"] = "No health implant detected."
+	M["bioHolder.bloodType"] = "[H.bioHolder.bloodType]"
+	M["mi_dis"] = "None"
+	M["mi_dis_d"] = MEDREC_DISABILITY_MINOR_DEFAULT
+	M["ma_dis"] = "None"
+	M["ma_dis_d"] = MEDREC_DISABILITY_MAJOR_DEFAULT
+	M["alg"] = "None"
+	M["alg_d"] = MEDREC_ALLERGY_DEFAULT
+	M["cdi"] = "None"
+	M["cdi_d"] = MEDREC_DISEASE_DEFAULT
+	M["cl_def"] = MEDREC_CLONE_DEFECT_DEFAULT
+	M["cl_def_d"] = "None"
+	M["h_imp"] = MEDREC_NO_IMPLANT
 
 	if(!length(med_note))
-		M.fields["notes"] = "No notes."
+		M["notes"] = "No notes."
 	else
-		M.fields["notes"] = med_note
+		M["notes"] = med_note
 
-	M.fields["dnasample"] = create_new_dna_sample_file(H)
+	M["dnasample"] = create_new_dna_sample_file(H)
 
-	var/traitStr = ""
+	var/list/minorDisabilities = list()
+	var/list/minorDisabilityDesc = list()
+	var/list/majorDisabilities = list()
+	var/list/majorDisabilityDesc = list()
+
 	if(H.traitHolder)
-		for(var/X in H.traitHolder.traits)
-			var/obj/trait/T = getTraitById(X)
-			if(length(traitStr)) traitStr += " | [T.cleanName]"
-			else traitStr = T.cleanName
-			if (istype(T, /obj/trait/random_allergy))
-				var/obj/trait/random_allergy/AT = T
-				if (M.fields["alg"] == "None") //is it in its default state?
-					M.fields["alg"] = reagent_id_to_name(AT.allergic_players[H])
-					M.fields["alg_d"] = "Allergy information imported from CentCom database."
-				else
-					M.fields["alg"] += ", [reagent_id_to_name(AT.allergic_players[H])]"
+		for(var/id in H.traitHolder.traits)
+			var/datum/trait/T = H.traitHolder.traits[id]
 
-	M.fields["traits"] = traitStr
+			if (istype(T, /datum/trait/random_allergy))
+				var/datum/trait/random_allergy/AT = T
+				if (M["alg"] == "None") //is it in its default state?
+					M["alg"] = reagent_id_to_name(AT.allergen)
+					M["alg_d"] = "Allergy information imported from CentCom database."
+				else
+					M["alg"] += ", [reagent_id_to_name(AT.allergen)]"
+				continue
+
+			switch(T.disability_type)
+				if (TRAIT_DISABILITY_MAJOR)
+					majorDisabilities.Add(T.disability_name)
+					majorDisabilityDesc.Add(T.disability_desc)
+				if (TRAIT_DISABILITY_MINOR)
+					minorDisabilities.Add(T.disability_name)
+					minorDisabilityDesc.Add(T.disability_desc)
+
+	if(length(minorDisabilities))
+		M["mi_dis"] = jointext(minorDisabilities, ", ")
+		M["mi_dis_d"] = jointext(minorDisabilityDesc, ". ")
+	if(length(majorDisabilities))
+		M["ma_dis"] = jointext(majorDisabilities, ", ")
+		M["ma_dis_d"] = jointext(majorDisabilityDesc, ". ")
 
 	if(!length(sec_note))
-		S.fields["notes"] = "No notes."
+		S["notes"] = "No notes."
 	else
-		S.fields["notes"] = sec_note
+		S["notes"] = sec_note
 
 	if(H.traitHolder.hasTrait("jailbird"))
-		S.fields["criminal"] = "*Arrest*"
-		S.fields["mi_crim"] = pick(\
+		S["criminal"] = ARREST_STATE_ARREST
+		S["mi_crim"] = pick(\
 								"Public urination.",\
 								"Reading highly confidential private information.",\
 								"Vandalism.",\
@@ -121,9 +148,29 @@
 								"Illegal haircutting.",\
 								"Staring at a bee for over an hour.",\
 								"Not showering before entering pool.",\
-								"Rampant idiocy.")
-		S.fields["mi_crim_d"] = "No details provided."
-		S.fields["ma_crim"] = pick(\
+								"Rampant idiocy.",\
+								"Never tipping the catering staff.",\
+								"Disregarding previous tickets.",\
+								"Fashion crimes.",\
+								"Gambling.",\
+								"Bribery.",\
+								"Sleeping on the job.",\
+								"Unauthorized stamp collecting.",\
+								"Refusing to wash their hands.",\
+								"Maintenance lurking.",\
+								"Dumpster diving.",\
+								"Not covering their mouth when sneezing.",\
+								"Open mouth chewing.",\
+								"Riding pods without a license.",\
+								"Breathing loudly.",\
+								"Riding a segway directly into the captain.",\
+								"Wearing their shirt backwards.",\
+								"Excessive swearing",\
+								"Cutting in line.",\
+								"Tying the captain's shoelaces together.",\
+								"Forgetting the captain's birthday.")
+		S["mi_crim_d"] = "No details provided."
+		S["ma_crim"] = pick(\
 								"Grand theft apidae.",\
 								"Bee murder.",\
 								"Superfarted on the captain.",\
@@ -139,53 +186,74 @@
 								"Dismemberment and decapitation.",\
 								"Running around with a chainsaw.",\
 								"Throwing explosive tomatoes at people.",\
-								"Caused multiple seemingly unrelated accidents.")
-		S.fields["ma_crim_d"] = "No details provided."
+								"Caused multiple seemingly unrelated accidents.",\
+								"Dabbing.",\
+								"Assembling explosives.",\
+								"Being in the wrong place at the wrong time.",\
+								"Assault.",\
+								"Tossing someone in space.",\
+								"Over-escalation.",\
+								"Manslaughter",\
+								"Refusing to share their meth.",\
+								"Grand larceny.")
+		S["ma_crim_d"] = "No details provided."
+		H.update_arrest_icon()
+
 
 		var/randomNote = pick("Huge nerd.", "Total jerkface.", "Absolute dingus.", "Insanely endearing.", "Worse than clown.", "Massive crapstain.");
-		if(S.fields["notes"] == "No notes.")
-			S.fields["notes"] = randomNote
+		if(S["notes"] == "No notes.")
+			S["notes"] = randomNote
 		else
-			S.fields["notes"] += " [randomNote]"
+			S["notes"] += " [randomNote]"
 
-		boutput(H, "<span class='notice'>You are currently on the run because you've committed the following crimes:</span>")
-		boutput(H, "<span class='notice'>- [S.fields["mi_crim"]]</span>")
-		boutput(H, "<span class='notice'>- [S.fields["ma_crim"]]</span>")
+		boutput(H, SPAN_NOTICE("You are currently on the run because you've committed the following crimes:"))
+		boutput(H, SPAN_NOTICE("- [S["mi_crim"]]"))
+		boutput(H, SPAN_NOTICE("- [S["ma_crim"]]"))
 
 		H.mind.store_memory("You've committed the following crimes before arriving on the station:")
-		H.mind.store_memory("- [S.fields["mi_crim"]]")
-		H.mind.store_memory("- [S.fields["ma_crim"]]")
+		H.mind.store_memory("- [S["mi_crim"]]")
+		H.mind.store_memory("- [S["ma_crim"]]")
 	else
-		S.fields["criminal"] = "None"
-		S.fields["mi_crim"] = "None"
-		S.fields["mi_crim_d"] = "No minor crime convictions."
-		S.fields["ma_crim"] = "None"
-		S.fields["ma_crim_d"] = "No major crime convictions."
+		if (H.mind?.assigned_role == "Clown")
+			S["criminal"] = ARREST_STATE_CLOWN
+			S["mi_crim"] = "Clown"
+			H.update_arrest_icon()
+		else
+			S["criminal"] = ARREST_STATE_NONE
+			S["mi_crim"] = "None"
+
+		S["mi_crim_d"] = "No minor crime convictions."
+		S["ma_crim"] = "None"
+		S["ma_crim_d"] = "No major crime convictions."
+
+	S["sec_flag"] = "None"
 
 
-	B.fields["job"] = H.job
-	B.fields["current_money"] = 100.0
-	B.fields["notes"] = "No notes."
+	B["job"] = H.job
+	B["current_money"] = 100
+	B["pda_net_id"] = pda_net_id
+	B["notes"] = "No notes."
 
 	// If it exists for a job give them the correct wage
 	var/wageMult = 1
 	if(H.traitHolder.hasTrait("unionized"))
 		wageMult = 1.5
 
-	if(wagesystem.jobs[H.job])
-		B.fields["wage"] = round(wagesystem.jobs[H.job] * wageMult)
-	// Otherwise give them a default wage
+	var/datum/job/J
+	if (H.job != null && istext(H.job))
+		J = find_job_in_controller_by_string(H.job)
 	else
-		var/datum/job/J = find_job_in_controller_by_string(G.fields["rank"])
-		if (J?.wages)
-			B.fields["wage"] = round(J.wages * wageMult)
-		else
-			B.fields["wage"] = 0
+		J = find_job_in_controller_by_string(H.mind.assigned_role)
+	if (J?.wages)
+		B["wage"] = round(J.wages * wageMult)
+	else
+		B["wage"] = 0
 
-	src.general += G
-	src.medical += M
-	src.security += S
-	src.bank += B
+	src.general.add_record(G)
+	src.medical.add_record(M)
+	src.security.add_record(S)
+	src.bank.add_record(B)
+	wagesystem.payroll_stipend += B["wage"] * 1.1
 
 	//Add email group
 	if ("[H.mind.assigned_role]" in job_mailgroup_list)
@@ -231,6 +299,111 @@
 			return
 		return
 
+///Returns the crew manifest, but sorted according to the individual's rank. include_cryo includes a list of individuals in cryogenic storage
+///Set `synd_int_request_device` to the object calling the proc to get Syndicate Intelligence.
+/proc/get_manifest(include_cryo = TRUE, obj/synd_int_request_device = null)
+	var/list/sorted_manifest
+	var/list/Command = list()
+	var/list/Security = list()
+	var/list/Engineering = list()
+	var/list/Medsci = list()
+	var/list/Service = list()
+	var/list/Unassigned = list()
+	var/medsci_integer = 0 // Used to check if one of medsci's two heads has already been added to the manifest
+	for(var/datum/db_record/staff_record as anything in data_core.general.records)
+		if (staff_record["p_stat"] == "In Cryogenic Storage")
+			continue
+		var/rank = staff_record["rank"]
+		if(synd_int_request_device && !length(staff_record["syndint"]))
+			continue
+		var/entry = "[staff_record["name"]] - [staff_record["rank"]][synd_int_request_device ? " - <a href='byond://?src=\ref[synd_int_request_device];select_exp=\ref[staff_record]'>Info</a>" : ""]<br>"
+		if(rank in command_jobs)
+			if(rank == "Captain")
+				Command.Insert(1, entry)
+				continue // Only Continue as Captain, as non-captain command staff appear both in the command section and their departmental section
+			else
+				Command.Add(entry)
+				if(rank == "Communications Officer")
+					continue
+
+		if((rank in security_jobs) || (rank in security_gimmicks))
+			if(rank in command_jobs)
+				Security.Insert(1, "<b>[entry]</b>")
+			else if(rank in command_gimmicks)
+				Security.Insert(2, "<b>[entry]</b>")
+			else
+				Security.Add(entry)
+			continue
+
+		if((rank in engineering_jobs) || (rank in engineering_gimmicks))
+			if(rank in command_jobs)
+				Engineering.Insert(1, "<b>[entry]</b>")
+			else if(rank in command_gimmicks)
+				Engineering.Insert(2, "<b>[entry]</b>")
+			else
+				Engineering.Add(entry)
+			continue
+		if((rank in medsci_jobs) || (rank in medsci_gimmicks))
+			if(rank in command_jobs)
+				Medsci.Insert(1, "<b>[entry]</b>")
+				medsci_integer++
+			else if(rank in command_gimmicks)
+				Medsci.Insert(medsci_integer + 1, "<b>[entry]</b>") // If there are two heads, both an MD and RD, medsci_integer will be at two, thus the Head Surgeon gets placed at 3 in the manifest
+			else
+				Medsci.Add(entry)
+			continue
+
+		if((rank in service_jobs) || (rank in service_gimmicks))
+			if(rank in command_jobs)
+				Service.Insert(1, "<b>[entry]</b>")
+			else if(rank in command_gimmicks)
+				Service.Insert(2, "<b>[entry]</b>") //Future proofing, just in case
+			else
+				Service.Add(entry)
+			continue
+#ifdef MAP_OVERRIDE_OSHAN // Radio host is on Oshan
+		if(rank == "Radio Show Host" || rank == "Talk Show Host")
+			Service.Add(entry)
+#endif
+			continue
+		Unassigned += entry
+
+	if(length(Command))
+		sorted_manifest += "<b><u>Station Command:</u></b><br>"
+		for(var/crew in Command)
+			sorted_manifest += crew
+	if(length(Security))
+		sorted_manifest += "<b><u>Station Security:</u></b><br>"
+		for(var/crew in Security)
+			sorted_manifest += crew
+	if(length(Engineering))
+		sorted_manifest += "<b><u>Engineering and Supply:</u></b><br>"
+		for(var/crew in Engineering)
+			sorted_manifest += crew
+	if(length(Medsci))
+		sorted_manifest += "<b><u>Medical and Research:</u></b><br>"
+		for(var/crew in Medsci)
+			sorted_manifest += crew
+	if(length(Service))
+		sorted_manifest += "<b><u>Crew Service:</u></b><br>"
+		for(var/crew in Service)
+			sorted_manifest += crew
+	if(length(Unassigned))
+		sorted_manifest += "<b><u>Unassigned and Civilians:</u></b><br>"
+		for(var/crew in Unassigned)
+			sorted_manifest += crew
+
+	if (include_cryo)
+		var/stored = ""
+		if(length(by_type[/obj/cryotron]))
+			var/obj/cryotron/cryo_unit = pick(by_type[/obj/cryotron])
+			for(var/L as anything in cryo_unit.stored_crew_names)
+				stored += "<i>- [L]<i><br>"
+		if(length(stored))
+			sorted_manifest += "<br><b>In Cryogenic Storage:</b><hr>[stored]<br>"
+
+	return sorted_manifest
+
 /datum/ticket
 	var/name = "ticket"
 	var/target = null
@@ -243,8 +416,10 @@
 
 	New()
 		..()
-		SPAWN_DBG(1 SECOND)
-			statlog_ticket(src, usr)
+		SPAWN(1 SECOND)
+			var/datum/eventRecord/Ticket/ticketEvent = new()
+			ticketEvent.buildAndSend(src, usr)
+
 
 /datum/fine
 	var/ID = null
@@ -258,7 +433,7 @@
 	var/approver_job = null
 	var/paid_amount = 0
 	var/paid = 0
-	var/datum/data/record/bank_record = null
+	var/datum/db_record/bank_record = null
 	var/target_byond_key = null
 	var/issuer_byond_key = null
 	var/approver_byond_key = null
@@ -266,40 +441,49 @@
 	New()
 		..()
 		generate_ID()
-		SPAWN_DBG(1 SECOND)
-			for(var/datum/data/record/B in data_core.bank) //gross
-				if(B.fields["name"] == target)
-					bank_record = B
-					break
+		SPAWN(1 SECOND)
+			bank_record = data_core.bank.find_record("name", target)
 			if(!bank_record) qdel(src)
-			statlog_fine(src, usr)
+			var/datum/eventRecord/Fine/fineEvent = new()
+			fineEvent.buildAndSend(src, usr)
 
 /datum/fine/proc/approve(var/approved_by,var/their_job)
 	if(approver || paid) return
-	if(!(their_job in list("Captain","Head of Security","Head of Personnel"))) return
+	if (amount > MAX_FINE_NO_APPROVAL && !(JOBS_CAN_TICKET_BIG)) return
+	if (!(their_job in JOBS_CAN_TICKET_SMALL)) return
 
 	approver = approved_by
 	approver_job = their_job
 	approver_byond_key = get_byond_key(approver)
+	logTheThing(LOG_ADMIN, usr, "approved a fine using [approver]([their_job])'s PDA. It is a [amount] credit fine on <b>[target]</b> with the reason: [reason].")
 
-	if(bank_record.fields["current_money"] >= amount)
-		bank_record.fields["current_money"] -= amount
+	if (bank_record["pda_net_id"])
+		var/datum/signal/pdaSignal = get_free_signal()
+		pdaSignal.data = list("address_1"=bank_record["pda_net_id"], "command"="text_message", "sender_name"="FINE-MAILBOT", "sender"="00000000", "message"="Notification: You have been fined [amount] credits by [issuer] for [reason].")
+		radio_controller.get_frequency(FREQ_PDA).post_packet_without_source(pdaSignal)
+
+	if(bank_record["current_money"] >= amount)
+		bank_record["current_money"] -= amount
+		wagesystem.station_budget += amount
 		paid = 1
 		paid_amount = amount
 	else
-		paid_amount += bank_record.fields["current_money"]
-		bank_record.fields["current_money"] = 0
-		SPAWN_DBG(30 SECONDS) process_payment()
+		paid_amount += bank_record["current_money"]
+		wagesystem.station_budget += bank_record["current_money"]
+		bank_record["current_money"] = 0
+		SPAWN(30 SECONDS) process_payment()
 
 /datum/fine/proc/process_payment()
-	if(bank_record.fields["current_money"] >= (amount-paid_amount))
-		bank_record.fields["current_money"] -= (amount-paid_amount)
+	if(bank_record["current_money"] >= (amount-paid_amount))
+		bank_record["current_money"] -= (amount-paid_amount)
+		wagesystem.station_budget += (amount-paid_amount)
 		paid = 1
 		paid_amount = amount
 	else
-		paid_amount += bank_record.fields["current_money"]
-		bank_record.fields["current_money"] = 0
-		SPAWN_DBG(30 SECONDS) process_payment()
+		paid_amount += bank_record["current_money"]
+		wagesystem.station_budget += bank_record["current_money"]
+		bank_record["current_money"] = 0
+		SPAWN(30 SECONDS) process_payment()
 
 /datum/fine/proc/generate_ID()
 	if(!ID) ID = (data_core.fines.len + 1)

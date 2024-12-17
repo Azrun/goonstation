@@ -9,6 +9,7 @@
 	var/list/adminghosts = list()
 
 	var/nextpopcheck = 0
+	var/schedule_override = null
 
 	setup()
 		name = "Mob"
@@ -33,14 +34,16 @@
 			nextpopcheck = TIME + 4 MINUTES
 			var/clients_num = total_clients()
 			if (clients_num >= SLOWEST_LIFE_PLAYERCOUNT)
-				schedule_interval = 8 SECONDS
+				schedule_interval = 4 SECONDS
 				footstep_extrarange = -10
 			else if (clients_num >= SLOW_LIFE_PLAYERCOUNT)  //hacky lag saving measure
-				schedule_interval = 6.5 SECONDS
-				footstep_extrarange = 0
+				schedule_interval = 3 SECONDS
+				footstep_extrarange = -5
 			else
-				schedule_interval = 4 SECONDS
+				schedule_interval = 2 SECONDS
 				footstep_extrarange = 0
+			if(isnum_safe(schedule_override))
+				schedule_interval = schedule_override
 
 		for(var/X in src.mobs)
 			last_object = X
@@ -50,19 +53,16 @@
 				M.Life(src)
 				if (!(c++ % 5))
 					scheck()
-			else if(istype(X, /mob/wraith))
-				var/mob/wraith/W = X
-				W.Life(src)
-				scheck()
 			else if(istype(X, /mob/dead))
 				var/mob/dead/G = X
 				#ifdef HALLOWEEN
-				if (TRUE)
+				G:Life(src)
+				scheck()
 				#else
 				if (isadminghost(G) || IS_TWITCH_CONTROLLED(G))
-				#endif
 					G:Life(src)
 					scheck()
+				#endif
 
 	tickDetail()
 		if (length(detailed_count))

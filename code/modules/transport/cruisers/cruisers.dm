@@ -1,14 +1,16 @@
-/obj/machinery/cruiser/test
+/obj/machinery/cruiser/syndicate
 	name = "Experimental BX-1 Cruiser"
 	desc = "An experimental type of syndicate cruiser based on drone technology."
 	interior_area = /area/cruiser/syndicate
 	upper_area = /area/cruiser/syndicate/upper
+	prefab_type = /datum/mapPrefab/allocated/cruiser_syndicate
 
-/obj/machinery/cruiser/test2
+/obj/machinery/cruiser/nanotrasen
 	name = "Experimental BX-2 Cruiser"
 	desc = "An experimental type of syndicate cruiser based on drone technology."
 	interior_area = /area/cruiser/nanotrasen
 	upper_area = /area/cruiser/nanotrasen/upper
+	prefab_type = /datum/mapPrefab/allocated/cruiser_nanotrasen
 
 /obj/cruiser_shield_visual//This is dumb but required because icons and images don't animate properly as overlays AND their icon_state cannot be changed properly once added (images)
 	name = ""
@@ -19,7 +21,7 @@
 	bound_width = 160
 	bound_height = 160
 	density = 0
-	anchored = 1
+	anchored = ANCHORED
 	layer = 4
 
 	bullet_act(var/obj/projectile/P)
@@ -36,8 +38,8 @@
 	bound_width = 160
 	bound_height = 160
 	density = 1
-	anchored = 1
-	dir = 1
+	anchored = ANCHORED
+	dir = NORTH
 	plane = PLANE_FLOOR
 	var/obj/cruiser_shield_visual/shield_obj
 
@@ -92,11 +94,12 @@
 
 	var/ramming = 0 //How many ramming hits we have left.
 
+	var/datum/mapPrefab/allocated/prefab_type = null
+	var/datum/allocated_region/region
 	var/area/cruiser/interior_area //interior area to use for this cruiser
 	var/area/cruiser/upper_area // upper deck area
 	var/obj/cruiser_camera_dummy/camera //used to control camera position
 
-	var/datum/particleSystem/barrelSmoke/smokeParticles
 	var/list/crew = list()
 
 	var/atmos_fail_count = 5 //counts down when life support is offline. once it his 0, life support fails.
@@ -106,6 +109,9 @@
 
 	var/list/pooList = list()
 	var/list/interiorViewers = list()
+
+	var/turf/entrance
+	var/turf/center
 
 	proc/internal_sound(var/atom/source, soundin, vol as num, vary, extrarange as num, pitch)
 		playsound(source, soundin, vol, vary, extrarange, pitch)
@@ -184,28 +190,42 @@
 			damageArmor(damage, D_KINETIC)
 			shakeCruiser(6, 2, 0.2)
 
-		if(shields <= 0 && prob(75))
+		if(length(src.interior_area.contents) && shields <= 0 && prob(75))
 			var/atom/source = pick(src.interior_area.contents)
-			explosion_new(source, source, max(min(1,4-severity), 5))
+			explosion_new(source, source, clamp(4 - severity, 1, 3))
 		return
 
 	New()
 		..()
-		if(interior_area)
-			interior_area = locate(interior_area)
-			interior_area.ship = src
-		else
-			del(src)
+
+		var/datum/mapPrefab/allocated/prefab = get_singleton(src.prefab_type)
+		src.region = prefab.load()
+		for(var/turf/T in REGION_TURFS(src.region))
+			if(istype(T.loc, src.interior_area))
+				src.interior_area = T.loc
+				src.interior_area.ship = src
+			else if(istype(T.loc, src.upper_area))
+				src.upper_area = T.loc
+				src.upper_area.ship = src
+
+		if(!istype(interior_area))
+			CRASH("No interior area found for cruiser")
 
 		shield_obj = new(src.loc)
 		var/matrix/mtx = new
-		var/turf/center
+
 		for(var/turf/T in landmarks[LANDMARK_CRUISER_CENTER])
-			if(istype(T.loc, upper_area))
+			if(T.loc == upper_area)
 				center = T
 				break
-		for(var/turf/T in get_area_turfs(upper_area))
+		for(var/turf/T in landmarks[LANDMARK_CRUISER_ENTRANCE])
+			if(T.loc == interior_area)
+				entrance = T
+				break
+
+		for(var/turf/T in upper_area)
 			var/obj/overlay/pooObj = new
+			pooObj.mouse_opacity = FALSE
 			pooObj.screen_loc = "CENTER,CENTER"
 			mtx.Reset()
 			mtx.Translate( (T.x - center.x) * world.icon_size, (T.y - center.y) * world.icon_size)
@@ -236,12 +256,29 @@
 	disposing()
 		STOP_TRACKING_CAT(TR_CAT_PODS_AND_CRUISERS)
 
-		del(camera)
-		if(interior_area)
-			interior_area = null
+		qdel(src.shield_obj)
+		src.shield_obj = null
+
+		landmarks[LANDMARK_CRUISER_CENTER] -= src.center
+		landmarks[LANDMARK_CRUISER_ENTRANCE] -= src.entrance
+
+		for(var/obj/machinery/cruiser_destroyable/cruiser_pod/C in src.upper_area)
+			for(var/mob/M in C)
+				C.exitPod(M)
+		src.region.move_movables_to(src.loc)
+		for(var/mob/M in src.loc)
+			unsubscribe_interior(M)
+			M.set_eye(null)
+		src.region.clean_up(/turf/space, /turf/space)
+
+		qdel(src.region)
+
+		qdel(camera)
+		interior_area = null
+		upper_area = null
 		..()
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		return MouseDrop_T(user, user)
 
 	MouseDrop_T(atom/movable/O as obj, mob/user as mob)
@@ -292,19 +329,19 @@
 		switch(firemode)
 			if(CRUISER_FIREMODE_BOTH)
 				firemode = CRUISER_FIREMODE_ALT
-				boutput(usr, "<span class='alert'>Fire mode now: Alternate</span>")
+				boutput(usr, SPAN_ALERT("Fire mode now: Alternate"))
 			if(CRUISER_FIREMODE_ALT)
 				firemode = CRUISER_FIREMODE_LEFT
-				boutput(usr, "<span class='alert'>Fire mode now: Left only</span>")
+				boutput(usr, SPAN_ALERT("Fire mode now: Left only"))
 			if(CRUISER_FIREMODE_LEFT)
 				firemode = CRUISER_FIREMODE_RIGHT
-				boutput(usr, "<span class='alert'>Fire mode now: Right only</span>")
+				boutput(usr, SPAN_ALERT("Fire mode now: Right only"))
 			if(CRUISER_FIREMODE_RIGHT)
 				firemode = CRUISER_FIREMODE_BOTH
-				boutput(usr, "<span class='alert'>Fire mode now: Simultaneous</span>")
+				boutput(usr, SPAN_ALERT("Fire mode now: Simultaneous"))
 		return
 
-	Bump(atom/O)
+	bump(atom/O)
 		..(O)
 		if(ramming)
 			ramming--
@@ -329,7 +366,7 @@
 		internal_sound(src.loc, 'sound/machines/boost.ogg', 100, 1, -1)
 		src.speed_mod -= 2
 		src.ramming += 8
-		SPAWN_DBG(10 SECONDS)
+		SPAWN(10 SECONDS)
 			src.speed_mod += 2
 			src.removePowerUse("rammingMode")
 			src.ramming = max(src.ramming - 8, 0)
@@ -341,7 +378,7 @@
 		src.addPowerUse("weaponOverload", 90, -1)
 		internal_sound(src.loc, 'sound/machines/weaponoverload.ogg', 80, 1, -1)
 		src.weapon_cooldown_mod -= 3
-		SPAWN_DBG(10 SECONDS)
+		SPAWN(10 SECONDS)
 			src.weapon_cooldown_mod += 3
 			src.removePowerUse("weaponOverload")
 		return
@@ -354,7 +391,7 @@
 		I.alpha = 150
 		shield_obj.overlays += I
 		internal_sound(src.loc, 'sound/machines/shieldoverload.ogg', 80, 0, -1)
-		SPAWN_DBG(15 SECONDS)
+		SPAWN(15 SECONDS)
 			src.removePowerUse("shieldOverload")
 			src.shield_regen_always -= 1
 			src.shield_regen_boost -= 5
@@ -401,8 +438,8 @@
 		for(var/U in powerUse) //v FUCK BYOND. FUCK. DOUBLEFUCK. TRIPLEFUCK.
 			var/params = powerUse[U]
 			var/list/L = params2list(params)
-			var/usage = text2num(L[1])
-			var/rounds = text2num(L[L[1]])
+			var/usage = text2num_safe(L[1])
+			var/rounds = text2num_safe(L[L[1]])
 			power_used += usage
 			if(rounds > 0)
 				if((--rounds) <= 0) removePowerUse(U)
@@ -485,9 +522,9 @@
 	proc/adjustShields(var/amount, var/type = D_SPECIAL)
 		shields_last = shields
 		shields += amount
-		shields = max(min(shields, shields_max), 0)
+		shields = clamp(shields, 0, shields_max)
 
-		var/percent_shields = max(min((shields / shields_max), 1), 0)
+		var/percent_shields = clamp((shields / shields_max), 0, 1)
 		if(shields_last > 0 && shields <= 0) //Collapse
 			if(shield_obj.icon_state != "shield_collapse")
 				internal_sound(src.loc, 'sound/machines/shielddown.ogg', 100, 1, -1)
@@ -530,7 +567,7 @@
 		var/image/warpOverlay = image('icons/obj/large/160x160.dmi',"warp")
 		overlays.Add(warpOverlay)
 		animate(src, alpha = 0, time = 10)
-		shield_obj.invisibility = 101
+		shield_obj.invisibility = INVIS_ALWAYS
 
 		sleep(2 SECONDS)
 
@@ -539,7 +576,7 @@
 
 		sleep(1.5 SECONDS)
 		overlays.Cut()
-		shield_obj.invisibility = 0
+		shield_obj.invisibility = INVIS_NONE
 		warping = 0
 		return
 
@@ -630,7 +667,7 @@
 		return
 
 	proc/startFire(var/amount = 1)
-		if(interior_area)
+		if(interior_area && length(interior_area))
 			var/list/hotspot_turfs = list()
 			for(var/turf/T in interior_area)
 				if(T.density) continue
@@ -638,7 +675,7 @@
 
 			for(var/i=0, i<amount, i++)
 				var/turf/A = pick(hotspot_turfs)
-				fireflash(A, 1)
+				fireflash(A, 1, chemfire = CHEM_FIRE_RED)
 		return
 
 	proc/destroy()
@@ -646,24 +683,26 @@
 		return
 
 	proc/updateIndicators()
-		var/percent_health = max(min((health / health_max), 1), 0)
+		var/percent_health = clamp((health / max(1,health_max)), 0, 1)
 		bar_top.transform = matrix(percent_health, 1, MATRIX_SCALE)
 		bar_top.pixel_x = -nround( ((81 - (81 * percent_health)) / 2) )
 
-		var/percent_shields = max(min((shields / shields_max), 1), 0)
+		var/percent_shields = clamp((shields / shields_max), 0, 1)
 		bar_middle.transform = matrix(percent_shields, 1, MATRIX_SCALE)
 		bar_middle.pixel_x = -nround( ((81 - (81 * percent_shields)) / 2) )
 
-		var/percent_power = max(min((power_used_last / max(1,power_produced_last)), 1), 0)
+		var/percent_power = clamp((power_used_last / max(1,power_produced_last)), 0, 1)
 		bar_bottom.transform = matrix(percent_power, 1, MATRIX_SCALE)
 		bar_bottom.pixel_x = -nround( ((81 - (81 * percent_power)) / 2) )
 
 		if(interior_area)
 			for(var/obj/machinery/cruiser_status_panel/S in interior_area)
 				S.setValues(percent_health, percent_shields, percent_power)
+			for(var/obj/machinery/cruiser_status_panel/S in upper_area)
+				S.setValues(percent_health, percent_shields, percent_power)
 		return
 
-	proc/recieveMovement(var/direction)
+	proc/receiveMovement(var/direction)
 		if(!hasPower() || !(direction == NORTH || direction == EAST || direction == SOUTH || direction == WEST))
 			return
 
@@ -721,11 +760,11 @@
 
 		if(turret_left)
 			if(get_dir(origins["left"], target) != src.dir && get_dir(origins["left"], target) != turn(src.dir,45) && get_dir(origins["left"], target) != turn(src.dir,-45))
-				//internal_sound(src.loc, 'sound/machines/shielddown.ogg', 100, 1, -1)
+				; //internal_sound(src.loc, 'sound/machines/shielddown.ogg', 100, 1, -1)
 			else
 				if(!(firemode & CRUISER_FIREMODE_RIGHT))
 					if((firemode & CRUISER_FIREMODE_ALT && alt_weapon == 0) || !(firemode & CRUISER_FIREMODE_ALT))
-						var/obj/projectile/proj_left = initialize_projectile_ST(origins["left"], turret_left.current_projectile, target)
+						var/obj/projectile/proj_left = initialize_projectile_pixel_spread(origins["left"], turret_left.current_projectile, target)
 						proj_left.launch()
 						proj_left.shooter = src
 
@@ -737,11 +776,11 @@
 
 		if(turret_right)
 			if(get_dir(origins["right"], target) != src.dir && get_dir(origins["right"], target) != turn(src.dir,45) && get_dir(origins["right"], target) != turn(src.dir,-45))
-				//internal_sound(src.loc, 'sound/machines/shielddown.ogg', 100, 1, -1)
+				; //internal_sound(src.loc, 'sound/machines/shielddown.ogg', 100, 1, -1)
 			else
 				if(!(firemode & CRUISER_FIREMODE_LEFT))
 					if((firemode & CRUISER_FIREMODE_ALT && alt_weapon == 1) || !(firemode & CRUISER_FIREMODE_ALT))
-						var/obj/projectile/proj_right = initialize_projectile_ST(origins["right"], turret_right.current_projectile, target)
+						var/obj/projectile/proj_right = initialize_projectile_pixel_spread(origins["right"], turret_right.current_projectile, target)
 						proj_right.launch()
 						proj_right.shooter = src
 
@@ -767,25 +806,20 @@
 			user.set_loc(getExitLoc())
 			if(ismob(user)) crew.Remove(user)
 		else
-			boutput(user, "<span class='alert'>The exit is blocked.</span>")
+			boutput(user, SPAN_ALERT("The exit is blocked."))
 		return
 
 	proc/enterShip(atom/movable/O as obj, mob/user as mob)
 		if(!interior_area || O == src) return
-		var/turf/entrance
-		for(var/turf/T in landmarks[LANDMARK_CRUISER_ENTRANCE])
-			if(T.loc == interior_area)
-				entrance = T
-				break
 
 		if(entrance)
-			if(get_dist(O, getExitLoc()) <= 1)
+			if(BOUNDS_DIST(O, getExitLoc()) == 0)
 				O.set_loc(entrance)
 				if(ismob(O))
 					crew.Add(O)
-				boutput(user, "<span class='alert'>You put [O] into [src].</span>")
+				boutput(user, SPAN_ALERT("You put [O] into [src]."))
 			else
-				boutput(user, "<span class='alert'>[O] is too far away from [src]'s airlock.</span>")
+				boutput(user, SPAN_ALERT("[O] is too far away from [src]'s airlock."))
 		return
 
 	proc/shakeCruiser(duration, strength=1, delay=0.2)
@@ -809,41 +843,63 @@
 	icon = 'icons/turf/areas.dmi'
 	icon_state = "eshuttle_transit"
 	var/obj/machinery/cruiser/ship
+	var/is_upper = FALSE
 	requires_power = 1
+
+	Entered(var/atom/movable/A, atom/oldloc)
+		. = ..()
+		if(!src.is_upper || !ismob(A))
+			return
+		var/mob/user = A
+		src.ship.subscribe_interior(user)
+		user.set_eye(src.ship)
+
+	Exited(atom/movable/A)
+		. = ..()
+		if(!ismob(A))
+			return
+		if(get_area(A) == src)
+			return
+		var/mob/user = A
+		src.ship.unsubscribe_interior(user)
+		user.set_eye(null)
+
 /area/cruiser/syndicate/lower
 	name = "Syndicate cruiser interior"
 	sound_group = "cruiser_syndicate"
 /area/cruiser/syndicate/upper
 	name = "Syndicate cruiser interior"
 	sound_group = "cruiser_syndicate"
+	is_upper = TRUE
 /area/cruiser/nanotrasen/lower
 	name = "Nanotrasen cruiser interior"
 	sound_group = "cruiser_nanotrasen"
 /area/cruiser/nanotrasen/upper
 	name = "Nanotrasen cruiser interior"
 	sound_group = "cruiser_nanotrasen"
+	is_upper = TRUE
 
 
 /obj/cruiser_camera_dummy
 	name = ""
-	invisibility = 101
-	anchored = 1
+	invisibility = INVIS_ALWAYS
+	anchored = ANCHORED
 	density = 0
 
 	New()
 		. = ..()
-		START_TRACKING
+		START_TRACKING_CAT(TR_CAT_GHOST_OBSERVABLES)
 
 	disposing()
 		. = ..()
-		STOP_TRACKING
+		STOP_TRACKING_CAT(TR_CAT_GHOST_OBSERVABLES)
 
 /obj/machinery/cruiser_status_panel
 	name = "Status panel"
 	icon = 'icons/obj/ship.dmi'
 	icon_state = "statpanel"
 	density = 0
-	anchored = 1
+	anchored = ANCHORED
 	var/image/barTop
 	var/image/barMid
 	var/image/barBot
@@ -906,7 +962,7 @@
 	icon = 'icons/obj/ship.dmi'
 	icon_state = "wpanel0"
 	density = 0
-	anchored = 1
+	anchored = ANCHORED
 	var/ignore = 0 //Wont count towards health / max health and won't break.
 	var/broken = 0
 	var/health = 50
@@ -929,10 +985,10 @@
 	ex_act(var/severity)
 		return
 
-	attackby(obj/item/W as obj, mob/user as mob)
+	attackby(obj/item/W, mob/user)
 		if (rebooting) return
 		if (istype(W, tool_type) && (broken || health < health_max))
-			playsound(src.loc, "sound/machines/repairing.ogg", 85, 1)
+			playsound(src.loc, 'sound/machines/repairing.ogg', 85, 1)
 			var/health_adj = 1 - (health / health_max) //90% = 0,1, 10% = 0,9
 			var/repair_time_adj = round(repair_time * health_adj)
 			actions.start(new/datum/action/bar/icon/cruiser_repair(src, W, repair_time_adj), user)
@@ -941,7 +997,7 @@
 
 	proc/reboot() //Called when the device is rebooted / in override mode.
 		rebooting = 1
-		SPAWN_DBG(1 SECOND) rebooting = 0
+		SPAWN(1 SECOND) rebooting = 0
 		return "Reboot complete"
 
 	proc/adjustHealth(var/amount)
@@ -1007,7 +1063,7 @@
 		if(open) icon_state = icon_state_open
 		else icon_state = icon_state_closed
 
-	attackby(obj/item/W as obj, mob/user as mob)
+	attackby(obj/item/W, mob/user)
 		if(!..())
 			if(open)
 				user.drop_item()
@@ -1042,10 +1098,10 @@
 				break
 		if(check_blocked && blocked && !ignore_blocked)
 			if(user)
-				boutput(user, "<span class='alert'>Something is preventing the [src] from opening.</span>")
+				boutput(user, SPAN_ALERT("Something is preventing the [src] from opening."))
 		else
 			ready = 0
-			SPAWN_DBG(1 SECOND) ready = 1
+			SPAWN(1 SECOND) ready = 1
 			playsound(src.loc, 'sound/machines/hydraulic.ogg', 50, 0, -1)
 			open = 1
 			setIcon()
@@ -1056,10 +1112,10 @@
 	proc/close(var/mob/user = null)
 		if(!open) return
 		if(rebooting)
-			boutput(user, "<span class='alert'>This device is currently disabled.</span>")
+			boutput(user, SPAN_ALERT("This device is currently disabled."))
 			return
 		ready = 0
-		SPAWN_DBG(1 SECOND) ready = 1
+		SPAWN(1 SECOND) ready = 1
 		playsound(src.loc, 'sound/machines/weapons-deploy.ogg', 60, 0, -1)
 		open = 0
 		setIcon()
@@ -1067,7 +1123,7 @@
 		set_density(0)
 		return
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if(!ready) return
 		if(open)
 			if(broken)
@@ -1179,7 +1235,7 @@
 	desc = "This airlock leads out of the ship."
 	icon = 'icons/obj/doors/blastdoor.dmi'
 	icon_state = "bdoorsingle1"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 	ignore = 1
 
@@ -1188,23 +1244,23 @@
 	ex_act(var/severity)
 		return
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		var/area/cruiser/interior = get_area(src)
 		if(interior.ship)
 			interior.ship.leaveShip(user)
 
-	attackby(var/obj/item/grab/G as obj, mob/user as mob)
+	attackby(var/obj/item/grab/G, mob/user)
 		if ((!( istype(G, /obj/item/grab) ) || !( ismob(G.affecting) )))
 			return
-		if (!G.state)
-			boutput(user, "<span class='alert'>You need a tighter grip!</span>")
+		if (G.state == GRAB_PASSIVE)
+			boutput(user, SPAN_ALERT("You need a tighter grip!"))
 			return
 		var/mob/M = G.affecting
 		var/area/cruiser/interior = get_area(src)
 		if(interior.ship)
-			user.visible_message("<span class='alert'><b>[user] throws [M] out of \the [src]!", "<span class='alert'><b>You throw [M] out of \the [src]!</b></span>")
+			user.visible_message(SPAN_ALERT("<b>[user] throws [M] out of \the [src]!"), SPAN_ALERT("<b>You throw [M] out of \the [src]!</b>"))
 			interior.ship.leaveShip(M)
-			M.changeStatus("weakened", 2 SECONDS)
+			M.changeStatus("knockdown", 2 SECONDS)
 		qdel(G)
 		return
 
@@ -1213,9 +1269,9 @@
 	icon = 'icons/obj/stationobjs.dmi'
 	icon_state = "telescreen"
 	density = 1
-	anchored = 1
+	anchored = ANCHORED
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		/*
 		if(1) return//todo remove
 		if(istype(user.abilityHolder, /datum/abilityHolder/composite))
@@ -1240,15 +1296,16 @@
 	bound_height = 32
 	texture_size = 64
 	density = 1
-	anchored = 1
+	anchored = ANCHORED
 	health = 85
 	health_max = 85
 
 	remove_air(amount)
 		return src.loc.remove_air(amount)
 
-	return_air()
-		return src.loc.return_air()
+	return_air(direct = FALSE)
+		if (!direct)
+			return src.loc.return_air()
 
 	bullet_act(var/obj/projectile/P)
 		for(var/atom/A in src)
@@ -1293,12 +1350,12 @@
 		for(var/T in abilities)
 			AbHolder.addAbility(T)
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if(broken)
-			boutput(user, "<span class='alert'>This pod is broken and must be repaired before it can be used again.</span>")
+			boutput(user, SPAN_ALERT("This pod is broken and must be repaired before it can be used again."))
 			return
 		if(using)
-			boutput(user, "<span class='alert'>This pod is already being used.</span>")
+			boutput(user, SPAN_ALERT("This pod is already being used."))
 			return
 		else
 			enterPod(user)
@@ -1310,7 +1367,7 @@
 	proc/enterPod(mob/user as mob)
 		var/obj/machinery/cruiser/C = interior.ship
 		if(rebooting)
-			boutput(user, "<span class='alert'>This device is currently disabled.</span>")
+			boutput(user, SPAN_ALERT("This device is currently disabled."))
 			return
 		using = user
 		user.set_loc(src)
@@ -1371,7 +1428,7 @@
 	relaymove(mob/user, direction)
 		var/obj/machinery/cruiser/C = interior.ship
 		if (C)
-			C.recieveMovement(direction)
+			C.receiveMovement(direction)
 		return
 
 /obj/machinery/cruiser_destroyable/cruiser_pod/security
@@ -1390,24 +1447,10 @@
 
 /obj/ladder/cruiser
 	id = "cruiser"
-	var/obj/machinery/cruiser/ship
 
 	New()
 		..()
-		var/area/cruiser/A = get_area(src)
-		if (istype(A, /area/cruiser))
-			ship = A.ship
-		else
-			qdel(src)
-
-	climb(mob/user as mob)
-		..()
-		if (src.icon_state == "ladder") // going down to lower deck
-			ship.unsubscribe_interior(user)
-			user.set_eye(user)
-		else // going up to upper deck
-			ship.subscribe_interior(user)
-			user.set_eye(ship)
+		src.update_id("[src.id][src.x][src.z][world.time]")
 
 /obj/ladder/cruiser/syndicate
 	id = "cruiser_syndicate"

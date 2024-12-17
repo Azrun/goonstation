@@ -15,15 +15,10 @@ var/global/datum/antagWeighter/antagWeighter
 		..()
 		src.debug = debugMode ? debugMode : 0
 
-		//All picks during ass day are random
-#if ASS_JAM
-			src.variance = 100
-#endif
-
 
 	proc/debugLog(msg)
-		out(world, msg)
-		//logTheThing("debug", null, null, "<b>AntagWeighter</b> [msg]")
+		boutput(world, msg)
+		//logTheThing(LOG_DEBUG, null, "<b>AntagWeighter</b> [msg]")
 
 
 	/**
@@ -34,20 +29,20 @@ var/global/datum/antagWeighter/antagWeighter
 	 * @param string ckey Ckey of the person we're looking up
 	 * @return list List of history details
 	 */
-	proc/history(role = "", ckey = "")
-		if (!role || !ckey)
-			throw EXCEPTION("Incorrect parameters given")
+	// proc/history(role = "", ckey = "")
+	// 	if (!role || !ckey)
+	// 		throw EXCEPTION("Incorrect parameters given")
 
-		var/list/response = apiHandler.queryAPI("antags/history", list(
-			"role" = role,
-			"players" = ckey,
-			"amount" = 1
-		), 1)
+	// 	var/list/response = apiHandler.queryAPI("antags/history", list(
+	// 		"role" = role,
+	// 		"players" = ckey,
+	// 		"amount" = 1
+	// 	), 1)
 
-		if (response["error"])
-			throw EXCEPTION(response["error"])
+	// 	if (response["error"])
+	// 		throw EXCEPTION(response["error"])
 
-		return response["history"]
+	// 	return response["history"]
 
 	/**
 	* Get the entire antag selection history for a player (all roles, all modes)
@@ -55,27 +50,27 @@ var/global/datum/antagWeighter/antagWeighter
 	* @param string ckey Ckey of the person we're looking up
 	* @return list List of history details
 	*/
-	proc/completeHistory(ckey = "")
-		if (!ckey)
-			throw EXCEPTION("No ckey given")
-		if (!config.goonhub_api_token)
-			throw EXCEPTION("You must have the goonhub API token to use this command!")
+	// proc/completeHistory(ckey = "")
+	// 	if (!ckey)
+	// 		throw EXCEPTION("No ckey given")
+	// 	if (!config.goonhub_api_token)
+	// 		throw EXCEPTION("You must have the goonhub API token to use this command!")
 
-		var/list/response
-		try
-			response = apiHandler.queryAPI("antags/completeHistory", list(
-				"player" = ckey,
-			), 1)
-		catch ()
-			throw EXCEPTION("API is currently having issues, try again later")
+	// 	var/list/response
+	// 	try
+	// 		response = apiHandler.queryAPI("antags/completeHistory", list(
+	// 			"player" = ckey,
+	// 		), 1)
+	// 	catch ()
+	// 		throw EXCEPTION("API is currently having issues, try again later")
 
-		if (response["error"])
-			throw EXCEPTION(response["error"])
+	// 	if (response["error"])
+	// 		throw EXCEPTION(response["error"])
 
-		if (length(response["history"]) < 1)
-			throw EXCEPTION("No history for that player")
+	// 	if (length(response["history"]) < 1)
+	// 		throw EXCEPTION("No history for that player")
 
-		return response["history"]
+	// 	return response["history"]
 
 	/**
 	 * Simulates a history response from the API, so local development doesn't fuck up
@@ -171,12 +166,20 @@ var/global/datum/antagWeighter/antagWeighter
 	 * @param list pool List of minds under consideration for antag picking
 	 * @param string role Name of the antag role we're picking for (e.g. traitor, spy_thief)
 	 * @param int amount Max amount of players to choose for this role
-	 * @param boolean recordChosen When true, triggers a src.recordMultiple() for the chosen players
+	 * @param boolean recordChosen When true, triggers a src.record() for the chosen players
 	 * @return list List of minds chosen
 	 */
 	proc/choose(list/pool = list(), role = "", amount = 0, recordChosen = 0)
-		if (!pool.len || !role || !amount)
-			throw EXCEPTION("Incorrect parameters given")
+		. = list()
+		if (!length(pool))
+			stack_trace("Incorrect parameters given to antagWeighter.choose(): Pool is empty.")
+			return
+		if (!role)
+			stack_trace("Incorrect parameters given to antagWeighter.choose(): No rank provided.")
+			return
+		if (!amount)
+			stack_trace("Incorrect parameters given to antagWeighter.choose(): Requested antag amount is 0.")
+			return
 
 		if (src.debug)
 			src.debugLog("---------- Starting antagWeighter.choose with role: [role] and amount: [amount] ----------")
@@ -198,23 +201,25 @@ var/global/datum/antagWeighter/antagWeighter
 		if (!ckeyMinds.len)
 			throw EXCEPTION("No minds with valid ckeys were given")
 
-		logTheThing("debug", null, null, "<b>AntagWeighter</b> Selecting [amount] out of [ckeyMinds.len] candidates for [role].")
+		logTheThing(LOG_DEBUG, null, "<b>AntagWeighter</b> Selecting [amount] out of [ckeyMinds.len] candidates for [role].")
 
 		if (src.debug)
 			src.debugLog("Sending payload: [json_encode(apiPayload)]")
 
 		var/list/response
-		if (config.goonhub_api_token && apiHandler.enabled)
-			//YO API WADDUP
-			try
-				response = apiHandler.queryAPI("antags/history", apiPayload, 1)
-			catch ()
-				//If the API is in the process of failing, we need to gracefully fail so that SOME antags can be picked
-				response = src.simulateHistory(role, ckeyMinds)
+		// if (config.goonhub_api_token && apiHandler.enabled)
+		// 	//YO API WADDUP
+		// 	try
+		// 		response = apiHandler.queryAPI("antags/history", apiPayload, 1)
+		// 	catch ()
+		// 		out(world, "FAILED AAAAAAAA")
+		// 		//If the API is in the process of failing, we need to gracefully fail so that SOME antags can be picked
+		// 		response = src.simulateHistory(role, ckeyMinds)
 
-		else
-			//Fallback for no API set, for local dev (or API is unavailable)
-			response = src.simulateHistory(role, ckeyMinds)
+		// else
+		// 	//Fallback for no API set, for local dev (or API is unavailable)
+		// 	response = src.simulateHistory(role, ckeyMinds)
+		response = src.simulateHistory(role, ckeyMinds)
 
 		if (response && response["error"])
 			throw EXCEPTION(response["error"])
@@ -266,19 +271,20 @@ var/global/datum/antagWeighter/antagWeighter
 
 		//Shortcut to record selection for players chosen
 		if (recordChosen)
-			var/list/record = list()
+			// var/list/record = list()
 			for (var/datum/mind/M in chosen)
-				record[M.ckey] = role
-				logTheThing("debug", null, null, "<b>AntagWeighter</b> Selected [M.ckey] for [role]. (Weight: [chosen[M]["weight"]], Seen: [chosen[M]["seen"]])")
+				// record[M.ckey] = role
+				logTheThing(LOG_DEBUG, null, "<b>AntagWeighter</b> Selected [M.ckey] for [role]. (Weight: [chosen[M]["weight"]], Seen: [chosen[M]["seen"]])")
+				src.record(role, M.get_player())
 			for (var/datum/mind/M in pool)
 				if(!M.ckey)
 					continue
 				if(M in chosen)
 					continue
-				logTheThing("debug", null, null, "<b>AntagWeighter</b> Did <b>not</b> select [M.ckey] for [role]. (Weight: [history[M.ckey]["weight"]], Seen: [history[M.ckey]["seen"]])")
+				logTheThing(LOG_DEBUG, null, "<b>AntagWeighter</b> Did <b>not</b> select [M.ckey] for [role]. (Weight: [history[M.ckey]["weight"]], Seen: [history[M.ckey]["seen"]])")
 
 
-			src.recordMultiple(players = record)
+			// src.recordMultiple(players = record)
 
 		return chosen
 
@@ -287,23 +293,30 @@ var/global/datum/antagWeighter/antagWeighter
 	 * Records an antag selection for a single player
 	 *
 	 * @param string role Name of the antag role we're recording a selection for
-	 * @param string ckey Ckey of the player
+	 * @param string P The player being recorded
 	 * @param boolean latejoin Whether this record is a latejoin antag selection
 	 * @return null
 	 */
-	proc/record(role = "", ckey = "", latejoin = 0)
-		if (!role || !ckey)
+	proc/record(role = "", datum/player/P = null, latejoin = 0)
+		if (!role || !P)
 			throw EXCEPTION("Incorrect parameters given")
 
 		if (src.debug)
-			src.debugLog("Recording selection of role: [role] for ckey: [ckey]. latejoin: [latejoin]")
+			src.debugLog("Recording selection of role: [role] for player: [P.ckey]. latejoin: [latejoin]")
 
-		//Fire and forget
-		apiHandler.queryAPI("antags/record", list(
-			"role" = role,
-			"players" = ckey,
-			"latejoin" = latejoin
-		))
+		try
+			var/datum/apiRoute/players/antags/addAntag = new
+			addAntag.buildBody(
+				P.id,
+				roundId,
+				role,
+				latejoin,
+				null
+			)
+			apiHandler.queryAPI(addAntag)
+		catch (var/exception/e)
+			var/datum/apiModel/Error/error = e.name
+			logTheThing(LOG_DEBUG, null, "<b>AntagWeighter</b> Failed to record antag to API because: [error.message]")
 
 
 	/**
@@ -316,34 +329,23 @@ var/global/datum/antagWeighter/antagWeighter
 	 * 		)
 	 * @return null
 	 */
-	proc/recordMultiple(list/players = list())
-		if (!players.len)
-			throw EXCEPTION("Incorrect parameters given")
+	// proc/recordMultiple(list/players = list())
+	// 	if (!players.len)
+	// 		throw EXCEPTION("Incorrect parameters given")
 
-		if (src.debug)
-			src.debugLog("Recording multiple selections for: [json_encode(players)]")
+	// 	if (src.debug)
+	// 		src.debugLog("Recording multiple selections for: [json_encode(players)]")
 
-		//Build an API-friendly list of players
-		var/list/apiPlayers = list()
-		var/count = 0
-		for (var/ckey in players)
-			apiPlayers["players\[[count]]\[role]"] = players[ckey]
-			apiPlayers["players\[[count]]\[ckey]"] = ckey
-			count++
+	// 	//Build an API-friendly list of players
+	// 	var/list/apiPlayers = list()
+	// 	var/count = 0
+	// 	for (var/ckey in players)
+	// 		apiPlayers["players\[[count]]\[role]"] = players[ckey]
+	// 		apiPlayers["players\[[count]]\[ckey]"] = ckey
+	// 		count++
 
-		//Selections during ass day don't count for weighting (but we still want to record that sweet sweet data yo)
-#if ASS_JAM
-			apiPlayers["assday"] = 1
-#endif
+	// 	if (src.debug)
+	// 		src.debugLog("Players list sending to API: [json_encode(apiPlayers)]")
 
-		if (src.debug)
-			src.debugLog("Players list sending to API: [json_encode(apiPlayers)]")
-
-		//Fire and forget
-		apiHandler.queryAPI("antags/record", apiPlayers)
-
-
-world/New()
-	. = ..()
-	antagWeighter = new()
-	//antagWeighter = new(1) //Enables debug mode
+	// 	//Fire and forget
+	// 	apiHandler.queryAPI("antags/record", apiPlayers)

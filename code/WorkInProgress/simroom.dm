@@ -1,11 +1,11 @@
-
 /obj/machinery/sim/transmitter
 	name = "Sim Mainframe"
 	desc = "Controls the simulation room and V-space"
 	icon = 'icons/misc/simroom.dmi'
 	icon_state = "mastercomp"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
+	power_usage = 100
 	var/active = 1
 	var/id = 1
 	var/vspace_id = 1
@@ -17,7 +17,7 @@
 
 /*
 /obj/machinery/sim/transmitter/New()
-	SPAWN_DBG(1 SECOND)
+	SPAWN(1 SECOND)
 		Connect()
 	..()
 */
@@ -36,7 +36,7 @@
 		if(!active)
 			src.active = 1
 
-	use_power(3000)
+	..()
 //	src.updateDialog()
 
 /*
@@ -64,7 +64,7 @@
 
 
 /obj/machinery/sim/transmitter/proc/interact(mob/user)
-	if ( (get_dist(src, user) > 1 ) || (status & (BROKEN|NOPOWER)) )
+	if ( (BOUNDS_DIST(src, user) > 0 ) || (status & (BROKEN|NOPOWER)) )
 		if (!issilicon(user))
 			user.machine = null
 			user.Browse(null, "window=mm")
@@ -127,7 +127,7 @@
 	desc = "Lets a user access V-space"
 	icon = 'icons/misc/simroom.dmi'
 	icon_state = "simchair"
-	anchored = 1
+	anchored = ANCHORED
 	density = 0
 	machine_registry_idx = MACHINES_SIM
 	var/active = 0
@@ -140,16 +140,16 @@
 	if (!ticker)
 		boutput(user, "You can't buckle anyone in before the game starts.")
 		return
-	if ((!( iscarbon(M) ) || get_dist(src, user) > 1 || M.loc != src.loc || user.restrained() || user.stat))
+	if ((!( iscarbon(M) ) || BOUNDS_DIST(src, user) > 0 || M.loc != src.loc || user.restrained() || user.stat))
 		return
 	if (M.buckled)	return
 
 	if (M == user)
-		user.visible_message("<span class='notice'>[user] buckles in!</span>")
+		user.visible_message(SPAN_NOTICE("[user] buckles in!"))
 	else
-		M.visible_message("<span class='notice'>[M] is buckled in by [user]!</span>")
+		M.visible_message(SPAN_NOTICE("[M] is buckled in by [user]!"))
 
-	M.anchored = 1
+	M.anchored = ANCHORED
 	M.buckled = src
 	M.set_loc(src.loc)
 	M.network_device = src
@@ -159,15 +159,15 @@
 	src.add_fingerprint(user)
 	return
 
-/obj/machinery/sim/chair/attack_hand(mob/user as mob)
+/obj/machinery/sim/chair/attack_hand(mob/user)
 	if (src.con_user)
 		var/mob/living/M = src.con_user
 		if (M != user)
-			M.visible_message("<span class='notice'>[M] is unbuckled by [user].</span>")
+			M.visible_message(SPAN_NOTICE("[M] is unbuckled by [user]."))
 		else
-			M.visible_message("<span class='notice'>[M] is unbuckles.</span>")
+			M.visible_message(SPAN_NOTICE("[M] is unbuckles."))
 
-		M.anchored = 0
+		M.anchored = UNANCHORED
 		M.buckled = null
 		M.network_device = null
 		src.active = 0
@@ -183,7 +183,7 @@
 	desc = "An advanced pod that lets the user enter V-space"
 	icon = 'icons/misc/simroom.dmi'
 	icon_state = "vrbed"//_0"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 	deconstruct_flags = DECON_MULTITOOL
 	machine_registry_idx = MACHINES_SIM
@@ -193,31 +193,31 @@
 	var/mob/living/con_user = null
 	var/mob/occupant = null
 	var/image/image_lid = null
-	var/time = 30.0
-	var/timing = 0.0
+	var/time = 30
+	var/timing = 0
 	var/last_tick = 0
 	//var/emagged = 0
 
 /obj/machinery/sim/vr_bed/New()
 	..()
-	src.update_icon()
+	src.UpdateIcon()
 
 /obj/machinery/sim/vr_bed/disposing()
 	go_out()
 	. = ..()
 
 
-/obj/machinery/sim/vr_bed/proc/update_icon()
+/obj/machinery/sim/vr_bed/update_icon()
 	ENSURE_IMAGE(src.image_lid, src.icon, "lid[!isnull(occupant)]")
 	src.UpdateOverlays(src.image_lid, "lid")
 
-/obj/machinery/sim/vr_bed/attackby(obj/item/O as obj, mob/user as mob)
+/obj/machinery/sim/vr_bed/attackby(obj/item/O, mob/user)
 	if(istype(O,/obj/item/grab))
 		var/obj/item/grab/G = O
 		if (!ismob(G.affecting))
 			return
 		if (src.occupant)
-			boutput(user, "<span class='notice'><B>The VR pod is already occupied!</B></span>")
+			boutput(user, SPAN_NOTICE("<B>The VR pod is already occupied!</B>"))
 			return
 		if(..())
 			return
@@ -245,11 +245,11 @@
 	if (src.occupant && !isobserver(M))
 		if(M == src.occupant)
 			return src.go_out()
-		boutput(M, "<span class='notice'><B>The VR pod is already occupied!</B></span>")
+		boutput(M, SPAN_NOTICE("<B>The VR pod is already occupied!</B>"))
 		return
 
 	if (!iscarbon(M) && !isobserver(M))
-		boutput(M, "<span class='notice'><B>You cannot possibly fit into that!</B></span>")
+		boutput(M, SPAN_NOTICE("<B>You cannot possibly fit into that!</B>"))
 		return
 
 	if (!isobserver(M) || isAIeye(M))
@@ -271,7 +271,7 @@
 	Station_VNet.Enter_Vspace(M, src, src.network)
 	for(var/obj/O in src)
 		O.set_loc(src.loc)
-	src.update_icon()
+	src.UpdateIcon()
 	return
 
 /obj/machinery/sim/vr_bed/Click(location,control,params)
@@ -293,7 +293,14 @@
 		return
 	src.log_in(usr)
 	src.add_fingerprint(usr)
+	if (!isobserver(usr))
+		playsound(src, 'sound/machines/sleeper_close.ogg', 50, 1)
 	return
+
+/obj/machinery/sim/vr_bed/MouseDrop_T(mob/living/target, mob/user)
+	if (BOUNDS_DIST(user, src) > 0 || !in_interact_range(src,user)) return
+	if (target == user)
+		move_inside()
 
 /obj/machinery/sim/vr_bed/verb/move_eject()
 	set src in oview(1)
@@ -315,7 +322,7 @@
 /obj/machinery/sim/vr_bed/remove_air(amount)
 	return src.loc.remove_air(amount)
 
-/obj/machinery/sim/vr_bed/attack_hand(var/mob/user as mob)
+/obj/machinery/sim/vr_bed/attack_hand(var/mob/user)
 	if(..())
 		return
 	var/dat = "<HTML><BODY><TT><B>VR pod timer</B>"
@@ -339,12 +346,13 @@
 		O.set_loc(get_turf(src.loc))
 //	src.verbs -= /mob/proc/jack_in
 	src.occupant?.set_loc(get_turf(src.loc))
-	src.occupant?.changeStatus("weakened", 2 SECONDS)
+	src.occupant?.changeStatus("knockdown", 2 SECONDS)
 	src.occupant?.network_device = null
 	src.occupant = null
 	src.active = 0
 	src.con_user = null
-	src.update_icon()
+	src.UpdateIcon()
+	playsound(src, 'sound/machines/sleeper_open.ogg', 50, 1)
 	return
 
 /obj/machinery/sim/vr_bed/Exited(atom/movable/thing, newloc)
@@ -387,20 +395,15 @@
 		src.add_dialog(usr)
 		if (href_list["time"])
 			if(src.allowed(usr))
-				src.timing = text2num(href_list["time"])
+				src.timing = text2num_safe(href_list["time"])
 		else
 			if (href_list["tp"])
 				if(src.allowed(usr))
-					var/tp = text2num(href_list["tp"])
+					var/tp = text2num_safe(href_list["tp"])
 					src.time += tp
-					src.time = min(max(round(src.time), 0), 300)
+					src.time = clamp(round(src.time), 0, 300)
 		src.updateUsrDialog()
 	return
-
-/obj/machinery/sim/vr_bed/CanPass(atom/movable/O as mob|obj, target as turf, height=0, air_group=0)
-	if (air_group || (height==0))
-		return 1
-	..()
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -409,7 +412,7 @@
 	desc = "Controls part of V-space"
 	icon = 'icons/misc/simroom.dmi'
 	icon_state = "simcomp"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 	var/id = "none"
 	var/network = "none"
@@ -468,7 +471,7 @@
 			var/mob/living/carbon/human/virtual/V = usr
 
 			if(src.network == "prison")
-				boutput(V, "<span class='alert'>Leaving this network from the inside has been disabled!</span>")
+				boutput(V, SPAN_ALERT("Leaving this network from the inside has been disabled!"))
 				return
 			Station_VNet.Leave_Vspace(V)
 
@@ -509,7 +512,7 @@
 	for(var/turf/T in landmarks["[network]_critter_spawn"])
 		switch(program)
 			if("zombies")
-				new/obj/critter/zombie(T)
+				new /mob/living/critter/zombie(T)
 			else
 				break
 

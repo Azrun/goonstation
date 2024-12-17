@@ -12,7 +12,6 @@
 	var/echo_input = 1
 	var/log_errors = 1
 	var/list/peripherals = list()
-	var/authenticated = null //Is anyone logged in?
 
 	var/setup_version_name = "ThinkDOS 0.7.2"
 	var/setup_needs_authentication = 1 //Do we need to present an ID to use this?
@@ -167,7 +166,7 @@
 				if("rename","ren") //Sets name of file arg1 to arg2
 					var/to_rename = null
 					var/new_name = null
-					if(command_list.len >= 2)
+					if(length(command_list) >= 2)
 						to_rename = command_list[1]
 						new_name = command_list[2]
 						new_name = copytext(strip_html(new_name), 1, 16)
@@ -244,6 +243,9 @@
 						src.print_error_text("<b>Error:</b> File not found.")
 						return
 
+					if(target.dont_copy)
+						src.print_error_text("<b>Error:</b> File unable to be copied.")
+						return
 					src.clipboard = target
 					src.print_text("File marked.")
 
@@ -345,11 +347,11 @@
 							var/pcommand = null
 							var/sig_filename = null
 
-							if(command_list.len >= 3) //These two args are needed for this mode
-								id = round(text2num(command_list[2]))
+							if(length(command_list) >= 3) //These two args are needed for this mode
+								id = round(text2num_safe(command_list[2]))
 								pcommand = strip_html(command_list[3])
 
-							if(command_list.len >= 4) //Having a signal file is optional, however
+							if(length(command_list) >= 4) //Having a signal file is optional, however
 								sig_filename = ckey(command_list[4])
 
 							if(!pcommand) //Check for command first, if they skip it they also don't get the id and it complains about that and aaaa
@@ -383,7 +385,7 @@
 											else
 												signal.data += entry
 
-									if (command_list.len > 4)
+									if (length(command_list) > 4)
 										signal.data_file = get_file_name(ckey(command_list[5]), src.current_folder)
 										if (istype(signal.data_file, /datum/computer/file))
 											signal.data_file = signal.data_file.copy_file()
@@ -424,8 +426,8 @@
 
 						if("kill", "k") //Okay now that we know them it is time to BE RID OF THEM
 							var/target_id = 0
-							if(command_list.len >= 2)
-								target_id = round(text2num(command_list[2]))
+							if(length(command_list) >= 2)
+								target_id = round(text2num_safe(command_list[2]))
 							else
 								src.print_error_text("Target ID Required.")
 								return
@@ -444,8 +446,8 @@
 
 						if("switch", "s")
 							var/target_id = 0
-							if(command_list.len >= 2)
-								target_id = round(text2num(command_list[2]))
+							if(length(command_list) >= 2)
+								target_id = round(text2num_safe(command_list[2]))
 							else
 								src.print_error_text("Target ID Required.")
 								return
@@ -483,7 +485,7 @@
 								"}
 
 					var/anger_text = "A clown? On a space station? what"
-					if(istype(command_list) && (command_list.len > 0))
+					if(istype(command_list) && (length(command_list) > 0))
 						anger_text = strip_html(jointext(command_list, " "))
 
 					src.print_text("<tt>[anger_text]<br>[goon]</tt>")
@@ -590,6 +592,8 @@
 		return
 
 	initialize()
+		if (..())
+			return TRUE
 		src.print_text("Loading [src.setup_version_name]<br>Scanning for peripheral cards...")
 
 		src.peripherals = new //Figure out what cards are there now so we can address them later all easy-like
@@ -736,7 +740,7 @@
 			if(!acc_name || !acc_job)
 				return
 
-			if(!src.active_account && !src.initialize_accounts()) //Oh welp we can't write it to file
+			if(!src.initialize_accounts() && !src.active_account) //Oh welp we can't write it to file
 				src.print_text("<b>Error:</b> Unable to write account file.")
 				return -1
 
@@ -749,7 +753,7 @@
 			if(access_string && !all_access)
 				var/list/decoding = splittext(access_string, ";")
 				for(var/x in decoding)
-					src.active_account.access += text2num(x)
+					src.active_account.access += text2num_safe(x)
 
 			else if(all_access)
 				src.active_account.access = get_all_accesses()

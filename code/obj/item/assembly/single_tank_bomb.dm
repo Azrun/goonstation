@@ -11,8 +11,8 @@
 		return
 
 	if (is_dud == 1)
-		message_admins("A [type] single tank bomb would have opened at [log_loc(bomb)] but was forced to dud! Last touched by: [bomb.fingerprintslast ? "[bomb.fingerprintslast]" : "*null*"]")
-		logTheThing("bombing", null, null, "A [type] single tank bomb would have opened at [log_loc(bomb)] but was forced to dud! Last touched by: [bomb.fingerprintslast ? "[bomb.fingerprintslast]" : "*null*"]")
+		message_admins("A [type] single tank bomb would have opened at [log_loc(bomb)] but was forced to dud! Last touched by: [key_name(bomb.fingerprintslast)]")
+		logTheThing(LOG_BOMBING, null, "A [type] single tank bomb would have opened at [log_loc(bomb)] but was forced to dud! Last touched by: [bomb.fingerprintslast ? "[bomb.fingerprintslast]" : "*null*"]")
 		return
 
 	var/obj/item/tank/T = null
@@ -33,9 +33,9 @@
 	if (!T || !istype(T, /obj/item/tank))
 		return
 
-	logTheThing("bombing", user, null, "[welded_or_unwelded == 0 ? "welded" : "unwelded"] a [type] single tank bomb [log_atmos(T)] at [log_loc(user)].")
+	logTheThing(LOG_BOMBING, user, "[welded_or_unwelded == 0 ? "welded" : "unwelded"] a [type] single tank bomb [log_atmos(T)] at [log_loc(user)].")
 	if (welded_or_unwelded == 0)
-		message_admins("[key_name(user)] welded a [type] single tank bomb at [log_loc(user)]. See bombing logs or bomb monitor for complete atmos readout.")
+		message_admins("[key_name(user)] welded a [type] single tank bomb [alert_atmos(T)] at [log_loc(user)].")
 
 	return
 
@@ -48,13 +48,12 @@
 	var/obj/item/device/prox_sensor/part1 = null
 	var/obj/item/device/igniter/part2 = null
 	var/obj/item/tank/plasma/part3 = null
-	status = 0.0
-	flags = FPRINT | TABLEPASS| CONDUCT
-	event_handler_flags = USE_PROXIMITY | USE_FLUID_ENTER
+	status = 0
+	flags = TABLEPASS | CONDUCT
 
 /obj/item/assembly/proximity_bomb/dropped()
-
-	SPAWN_DBG( 0 )
+	. = ..()
+	SPAWN( 0 )
 		src.part1.sense()
 		return
 	return
@@ -73,7 +72,7 @@
 	..()
 	return
 
-/obj/item/assembly/proximity_bomb/attackby(obj/item/W as obj, mob/user as mob)
+/obj/item/assembly/proximity_bomb/attackby(obj/item/W, mob/user)
 	if (iswrenchingtool(W) && !(src.status))
 		var/obj/item/assembly/prox_ignite/R = new /obj/item/assembly/prox_ignite(  )
 		R.part1 = src.part1
@@ -94,14 +93,14 @@
 		src.part3 = null
 		qdel(src)
 		return
-	if (!(isweldingtool(W) && W:try_weld(user,0,-1,0,0)))
+	if (!(isweldingtool(W) && W:try_weld(user,0,-1,1,0)))
 		return
 	if (!( src.status ))
 		src.status = 1
-		user.show_message("<span class='notice'>A pressure hole has been bored to the plasma tank valve. The plasma tank can now be ignited.</span>", 1)
+		user.show_message(SPAN_NOTICE("A pressure hole has been bored to the plasma tank valve. The plasma tank can now be ignited."), 1)
 	else
 		src.status = 0
-		boutput(user, "<span class='notice'>The hole has been closed.</span>")
+		boutput(user, SPAN_NOTICE("The hole has been closed."))
 
 	src.bomb_logs(user, src, "proximity", src.status == 1 ? 0 : 1, 0)
 	src.part2.status = src.status
@@ -110,8 +109,8 @@
 
 /obj/item/assembly/proximity_bomb/attack_self(mob/user as mob)
 
-	playsound(src.loc, "sound/weapons/armbomb.ogg", 100, 1)
-	src.part1.attack_self(user, 1)
+	playsound(src.loc, 'sound/weapons/armbomb.ogg', 100, 1)
+	src.part1.AttackSelf(user, 1)
 	src.add_fingerprint(user)
 	return
 
@@ -122,7 +121,7 @@
 		//Foreach goto(19)
 
 	if (src.status)
-		src.part1.armed = 0
+		src.part1.armed = FALSE
 		src.c_state(0)
 		if (src.force_dud == 1)
 			src.bomb_logs(usr, src, "proximity", 0, 1)
@@ -130,7 +129,7 @@
 		src.part3.ignite()
 	else
 		if (!src.status && src.force_dud == 0)
-			src.part1.armed = 0
+			src.part1.armed = FALSE
 			src.c_state(0)
 			src.part3.release()
 
@@ -141,20 +140,13 @@
 	src.icon_state = text("prox-igniter-tank[]", n)
 	return
 
-/obj/item/assembly/proximity_bomb/HasProximity(atom/movable/AM as mob|obj)
-	if (istype(AM, /obj/projectile))
-		return
-	if (AM.move_speed < 12 && src.part1)
-		src.part1.sense()
-	return
-
-/obj/item/assembly/proximity_bomb/Bump(atom/O)
-	SPAWN_DBG(0)
+/obj/item/assembly/proximity_bomb/bump(atom/O)
+	SPAWN(0)
 		//boutput(world, "miptank bumped into [O]")
 		if(src.part1.armed)
 			//boutput(world, "sending signal")
 			receive_signal()
-		else
+		// else
 			//boutput(world, "not active")
 	..()
 
@@ -167,8 +159,12 @@
 			src.part1.sense()
 			break
 
-	SPAWN_DBG(1 SECOND)
+	SPAWN(1 SECOND)
 		prox_check()
+
+/obj/item/assembly/proximity_bomb/return_air(direct = FALSE)
+	return src.part3?.return_air()
+
 
 /////////////////////////////////////////////////// Single tank bomb (timer) ////////////////////////////////////
 
@@ -179,8 +175,8 @@
 	var/obj/item/device/timer/part1 = null
 	var/obj/item/device/igniter/part2 = null
 	var/obj/item/tank/plasma/part3 = null
-	status = 0.0
-	flags = FPRINT | TABLEPASS| CONDUCT
+	status = 0
+	flags = TABLEPASS | CONDUCT
 
 /obj/item/assembly/time_bomb/c_state(n)
 
@@ -201,7 +197,7 @@
 	..()
 	return
 
-/obj/item/assembly/time_bomb/attackby(obj/item/W as obj, mob/user as mob)
+/obj/item/assembly/time_bomb/attackby(obj/item/W, mob/user)
 	if (iswrenchingtool(W) && !(src.status))
 		var/obj/item/assembly/time_ignite/R = new /obj/item/assembly/time_ignite(  )
 		R.part1 = src.part1
@@ -222,14 +218,14 @@
 		src.part3 = null
 		qdel(src)
 		return
-	if (!(isweldingtool(W) && W:try_weld(user,0,-1,0,0)))
+	if (!(isweldingtool(W) && W:try_weld(user,0,-1,1,0)))
 		return
 	if (!( src.status ))
 		src.status = 1
-		user.show_message("<span class='notice'>A pressure hole has been bored to the plasma tank valve. The plasma tank can now be ignited.</span>", 1)
+		user.show_message(SPAN_NOTICE("A pressure hole has been bored to the plasma tank valve. The plasma tank can now be ignited."), 1)
 	else
 		src.status = 0
-		boutput(user, "<span class='notice'>The hole has been closed.</span>")
+		boutput(user, SPAN_NOTICE("The hole has been closed."))
 
 	src.part2.status = src.status
 	src.bomb_logs(user, src, "timer", src.status == 1 ? 0 : 1, 0)
@@ -239,8 +235,8 @@
 /obj/item/assembly/time_bomb/attack_self(mob/user as mob)
 
 	if (src.part1)
-		src.part1.attack_self(user, 1)
-		playsound(src.loc, "sound/weapons/armbomb.ogg", 100, 1)
+		src.part1.AttackSelf(user, 1)
+		playsound(src.loc, 'sound/weapons/armbomb.ogg', 100, 1)
 	src.add_fingerprint(user)
 	return
 
@@ -258,6 +254,9 @@
 			src.part3.release()
 	return
 
+/obj/item/assembly/time_bomb/return_air(direct = FALSE)
+	return src.part3?.return_air()
+
 /////////////////////////////////////////////////// Single tank bomb (remote signaller) ////////////////////////////////////
 
 /obj/item/assembly/radio_bomb
@@ -267,8 +266,8 @@
 	var/obj/item/device/radio/signaler/part1 = null
 	var/obj/item/device/igniter/part2 = null
 	var/obj/item/tank/plasma/part3 = null
-	status = 0.0
-	flags = FPRINT | TABLEPASS| CONDUCT
+	status = 0
+	flags = TABLEPASS | CONDUCT
 
 /obj/item/assembly/radio_bomb/examine()
 	. = ..()
@@ -276,16 +275,16 @@
 
 /obj/item/assembly/radio_bomb/disposing()
 
-	//src.part1 = null
 	qdel(src.part1)
-	//src.part2 = null
+	src.part1 = null
 	qdel(src.part2)
-	//src.part3 = null
+	src.part2 = null
 	qdel(src.part3)
+	src.part3 = null
 	..()
 	return
 
-/obj/item/assembly/radio_bomb/attackby(obj/item/W as obj, mob/user as mob)
+/obj/item/assembly/radio_bomb/attackby(obj/item/W, mob/user)
 	if (iswrenchingtool(W) && !(src.status))
 		var/obj/item/assembly/rad_ignite/R = new /obj/item/assembly/rad_ignite(  )
 		R.part1 = src.part1
@@ -306,14 +305,14 @@
 		src.part3 = null
 		qdel(src)
 		return
-	if (!(isweldingtool(W) && W:try_weld(user,0,-1,0,0)))
+	if (!(isweldingtool(W) && W:try_weld(user,0,-1,1,0)))
 		return
 	if (!( src.status ))
 		src.status = 1
-		user.show_message("<span class='notice'>A pressure hole has been bored to the plasma tank valve. The plasma tank can now be ignited.</span>", 1)
+		user.show_message(SPAN_NOTICE("A pressure hole has been bored to the plasma tank valve. The plasma tank can now be ignited."), 1)
 	else
 		src.status = 0
-		boutput(user, "<span class='notice'>The hole has been closed.</span>")
+		boutput(user, SPAN_NOTICE("The hole has been closed."))
 
 	src.bomb_logs(user, src, "radio", src.status == 1 ? 0 : 1, 0)
 	src.part2.status = src.status
@@ -324,8 +323,8 @@
 /obj/item/assembly/radio_bomb/attack_self(mob/user as mob)
 
 	if (src.part1)
-		playsound(src.loc, "sound/weapons/armbomb.ogg", 100, 1)
-		src.part1.attack_self(user, 1)
+		playsound(src.loc, 'sound/weapons/armbomb.ogg', 100, 1)
+		src.part1.AttackSelf(user, 1)
 	src.add_fingerprint(user)
 	return
 
@@ -342,3 +341,6 @@
 		if (!src.status && src.force_dud == 0)
 			src.part3.release()
 	return
+
+/obj/item/assembly/radio_bomb/return_air(direct = FALSE)
+	return src.part3?.return_air()

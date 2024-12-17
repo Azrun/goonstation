@@ -4,7 +4,7 @@
 	usesPoints = 0
 	regenRate = 0
 	tabName = "pod_pilot"
-	// notEnoughPointsMessage = "<span class='alert'>You need more blood to use this ability.</span>"
+	// notEnoughPointsMessage = SPAN_ALERT("You need more blood to use this ability.")
 	points = 0
 	pointName = "points"
 
@@ -49,7 +49,7 @@
 	onAttach(var/datum/abilityHolder/H)
 		..()
 		if (src.unlock_message && src.holder && src.holder.owner)
-			boutput(src.holder.owner, __blue("<h3>[src.unlock_message]</h3>"))
+			boutput(src.holder.owner, SPAN_NOTICE("<h3>[src.unlock_message]</h3>"))
 		return
 
 	updateObject()
@@ -79,16 +79,16 @@
 		if (!M)
 			return 0
 		if (!(iscarbon(M) || ismobcritter(M)))
-			boutput(M, __red("You cannot use any powers in your current form."))
+			boutput(M, SPAN_ALERT("You cannot use any powers in your current form."))
 			return 0
 		if (can_cast_anytime && !isdead(M))
 			return 1
 		if (!can_act(M, 0))
-			boutput(M, __red("You can't use this ability while incapacitated!"))
+			boutput(M, SPAN_ALERT("You can't use this ability while incapacitated!"))
 			return 0
 
 		if (src.not_when_handcuffed && M.restrained())
-			boutput(M, __red("You can't use this ability when restrained!"))
+			boutput(M, SPAN_ALERT("You can't use this ability when restrained!"))
 			return 0
 
 		return 1

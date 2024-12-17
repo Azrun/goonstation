@@ -10,8 +10,7 @@
 	density = 0
 	opacity = 0
 	layer = 2.6
-	anchored = 1
-	event_handler_flags = USE_HASENTERED
+	anchored = ANCHORED
 	plane = PLANE_NOSHADOW_BELOW
 
 	var/obj/machinery/mass_driver/driver = null
@@ -20,15 +19,18 @@
 	var/operating = 0
 	var/driver_operating = 0
 	var/trash = 0
+	/// Amount of time in seconds before connected blast doors should close
+	var/door_delay = 3 // Multiplied by SECONDS on New()
 
 	New()
 		..()
-		SPAWN_DBG(0.5 SECONDS)
+		SPAWN(0.5 SECONDS)
+			door_delay = door_delay SECONDS
 			var/list/drivers = new/list()
 			for(var/obj/machinery/mass_driver/D in range(1,src))
 				drivers += D
 			if(drivers.len)
-				if(drivers.len > 1)
+				if(length(drivers) > 1)
 					for(var/obj/machinery/mass_driver/D2 in drivers)
 						if(D2.id == src.id)
 							driver = D2
@@ -40,13 +42,13 @@
 				src.set_dir(get_dir(src,driver))
 
 	proc/activate()
-		if(operating || !isturf(src.loc)) return
+		if(operating || !isturf(src.loc) || driver_operating) return
 		operating = 1
 		flick("launcher_loader_1",src)
-		playsound(src, "sound/effects/pump.ogg",50, 1)
-		SPAWN_DBG(0.3 SECONDS)
+		playsound(src, 'sound/effects/pump.ogg', 50, TRUE)
+		SPAWN(0.3 SECONDS)
 			for(var/atom/movable/AM in src.loc)
-				if(AM.anchored || AM == src) continue
+				if(AM.anchored || AM == src || isobserver(AM) || isintangible(AM) || isflockmob(AM)) continue
 				if(trash && AM.delivery_destination != "Disposals")
 					AM.delivery_destination = "Disposals"
 				step(AM,src.dir)
@@ -57,19 +59,19 @@
 		if(driver && !driver_operating)
 			driver_operating = 1
 
-			SPAWN_DBG(0)
+			SPAWN(0)
 				var/obj/machinery/door/poddoor/door = null
 				for(var/obj/machinery/door/poddoor/P in by_type[/obj/machinery/door])
 					if (P.id == driver.id)
 						door = P
-						SPAWN_DBG(0)
+						SPAWN(0)
 							if (door)
 								door.open()
-						SPAWN_DBG(10 SECONDS)
+						SPAWN(door_delay)
 							if (door)
-								door.close() //this may need some adjusting still
+								door.close()
 
-				SPAWN_DBG(door ? 55 : 20) driver_operating = 0
+				SPAWN(door ? door_delay : 2 SECONDS) driver_operating = FALSE
 
 				sleep(door ? 20 : 10)
 				if (driver)
@@ -80,13 +82,14 @@
 		if(!operating && !driver_operating)
 			var/drive = 0
 			for(var/atom/movable/M in src.loc)
-				if(M == src || M.anchored) continue
+				if(M == src || M.anchored || isobserver(M) || isintangible(M) || isflockmob(M)) continue
 				drive = 1
 				break
 			if(drive) activate()
 
-	HasEntered(atom/A)
-		if (istype(A, /mob/dead) || isintangible(A) || iswraith(A)) return
+	Crossed(atom/movable/A)
+		..()
+		if (istype(A, /mob/dead) || A.anchored || isintangible(A) || iswraith(A) || isflockmob(A)) return
 		return_if_overlay_or_effect(A)
 		activate()
 
@@ -110,8 +113,8 @@
 	desc = "Scans the barcode on objects and reroutes them accordingly."
 	density = 0
 	opacity = 0
-	anchored = 1
-	event_handler_flags = USE_HASENTERED | USE_FLUID_ENTER
+	anchored = ANCHORED
+	event_handler_flags = USE_FLUID_ENTER
 	plane = PLANE_NOSHADOW_BELOW
 
 	var/default_direction = NORTH //The direction things get sent into when the router does not have a destination for the given barcode or when there is none attached.
@@ -125,7 +128,7 @@
 
 	proc/get_next_dir()
 		for(var/atom/movable/AM in src.loc)
-			if(AM.anchored || AM == src) continue
+			if(AM.anchored || AM == src || isobserver(AM) || isintangible(AM) || isflockmob(AM)) continue
 			if(AM.delivery_destination)
 				if(destinations.Find(AM.delivery_destination))
 					return destinations[AM.delivery_destination]
@@ -146,11 +149,11 @@
 		operating = 1
 
 		flick("amdl_1",src)
-		playsound(src, "sound/effects/pump.ogg",50, 1)
+		playsound(src, 'sound/effects/pump.ogg', 50, TRUE)
 
-		SPAWN_DBG(0.3 SECONDS)
+		SPAWN(0.3 SECONDS)
 			for(var/atom/movable/AM2 in src.loc)
-				if(AM2.anchored || AM2 == src) continue
+				if(AM2.anchored || AM2 == src || isobserver(AM2) || isintangible(AM2) || isflockmob(AM2)) continue
 				step(AM2,src.dir)
 
 			driver = (locate(/obj/machinery/mass_driver) in get_step(src,src.dir))
@@ -162,7 +165,7 @@
 		if(driver && !driver_operating)
 			driver_operating = 1
 
-			SPAWN_DBG(0)
+			SPAWN(0)
 				sleep(1 SECOND)
 				if (driver)
 					driver.drive()
@@ -174,13 +177,14 @@
 		if(!operating && !driver_operating)
 			var/drive = 0
 			for(var/atom/movable/M in src.loc)
-				if(M == src || M.anchored) continue
+				if(M == src || M.anchored || isobserver(M) || isintangible(M) || isflockmob(M)) continue
 				drive = 1
 				break
 			if(drive) activate()
 
-	HasEntered(atom/A)
-		if (istype(A, /mob/dead) || isintangible(A) || iswraith(A)) return
+	Crossed(atom/movable/A)
+		..()
+		if (istype(A, /mob/dead) || isintangible(A) || iswraith(A) || isflockmob(A)) return
 
 		if (!trigger_when_no_match)
 			var/atom/movable/AM = A
@@ -260,7 +264,7 @@
 /obj/machinery/cargo_router/Router10 // to outer router -> in
 	New()
 		destinations = list("Airbridge" = WEST, "Cafeteria" = WEST, "EVA" = WEST, "Disposals" = WEST, "QM" = SOUTH, "Engine" = WEST, "Catering" = WEST, "MedSci" = WEST, "Security" = WEST)
-		default_direction = SOUTH
+		default_direction = WEST
 		..()
 
 /obj/machinery/cargo_router/Router11 // outer router -> up
@@ -287,138 +291,166 @@
 		default_direction = EAST
 		..()
 
+/obj/machinery/cargo_router/Router15 // undeliverable cargo outlet
+	New()
+		destinations = list("Airbridge" = WEST, "Cafeteria" = WEST, "EVA" = WEST, "Disposals" = WEST, "QM" = WEST, "Engine" = WEST, "Catering" = WEST, "MedSci" = WEST, "Security" = WEST)
+		default_direction = SOUTH
+		..()
 
 /obj/machinery/cargo_router/oshan_north
 	trigger_when_no_match = 0
 	New()
-		destinations = list("North" = NORTH, "South" = EAST)
+		destinations = list("North Carousel" = NORTH, "South Carousel" = EAST, "East Carousel" = EAST, "West Carousel" = EAST)
 		default_direction = NORTH
 		..()
 
 /obj/machinery/cargo_router/oshan_south
 	trigger_when_no_match = 0
 	New()
-		destinations = list("South" = SOUTH, "North" = WEST)
+		destinations = list("South Carousel" = SOUTH, "North Carousel" = WEST, "East Carousel" = WEST, "West Carousel" = WEST)
 		default_direction = SOUTH
 		..()
 
+/obj/machinery/cargo_router/oshan_east
+	trigger_when_no_match = 0
+	New()
+		destinations = list("East Carousel" = EAST, "North Carousel" = SOUTH, "South Carousel" = SOUTH, "West Carousel" = SOUTH)
+		default_direction = EAST
+		..()
+
+/obj/machinery/cargo_router/oshan_west
+	trigger_when_no_match = 0
+	New()
+		destinations = list("West Carousel" = WEST, "North Carousel" = NORTH, "South Carousel" = NORTH, "East Carousel" = NORTH)
+		default_direction = WEST
+		..()
+
+
 /obj/machinery/computer/barcode
-	name = "Barcode Computer"
+	name = "barcode computer"
 	desc = "Used to print barcode stickers for the cargo routing system."
 
 	icon = 'icons/obj/delivery.dmi'
 	icon_state = "barcode_comp"
+	flags = TGUI_INTERACTIVE
 	deconstruct_flags = DECON_SCREWDRIVER | DECON_WRENCH | DECON_WIRECUTTERS | DECON_MULTITOOL
 
-	var/printing = 0
+	var/printing = FALSE
 
 	// log account information for QM sales
 	var/obj/item/card/id/scan = null
-	var/datum/data/record/account = null
+	var/datum/db_record/account = null
+	var/list/destinations = null
 
 
-	var/list/destinations = list("Airbridge", "Cafeteria", "EVA", "Engine", "Disposals", "QM", "Catering", "MedSci", "Security") //These have to match the ones on the cargo routers for the routers to work.
 
-	attack_hand(var/mob/user as mob)
-		if (..(user))
+	connection_scan()
+		if (!src.destinations)
+			src.destinations = global.map_settings.shipping_destinations
+
+	New()
+		..()
+		connection_scan()
+
+	proc/print(var/destination, var/amount)
+		if (printing)
 			return
-
-		var/dat = ""
-		dat += "<b>Available Destinations:</b><BR>"
-		for(var/I in destinations)
-			dat += "<b><A href='?src=\ref[src];print=[I]'>[I]</A></b><BR>"
-
-		dat += "<BR><b><A href='?src=\ref[src];add=1'>Add Tag</A></b>"
-
-		src.add_dialog(user)
-		user.Browse(dat, "title=Barcode Computer;window=bc_computer_[src];size=300x400")
-		onclose(user, "bc_computer_[src]")
-		return
-
-
-	attackby(var/obj/item/I as obj, user as mob)
-		if (istype(I, /obj/item/card/id) || (istype(I, /obj/item/device/pda2) && I:ID_card))
-			if (istype(I, /obj/item/device/pda2) && I:ID_card) I = I:ID_card
-			boutput(user, "<span class='notice'>You swipe the ID card.</span>")
-			account = FindBankAccountByName(I:registered)
-			if(account)
-				var/enterpin = input(user, "Please enter your PIN number.", "Order Console", 0) as null|num
-				if (enterpin == I:pin)
-					boutput(user, "<span class='notice'>Card authorized.</span>")
-					src.scan = I
-				else
-					boutput(user, "<span class='alert'>Pin number incorrect.</span>")
-					src.scan = null
-			else
-				boutput(user, "<span class='alert'>No bank account associated with this ID found.</span>")
-				src.scan = null
-		else src.attack_hand(user)
-		return
-
-
-	Topic(href, href_list)
-		if (..(href, href_list))
-			return
-
-		if (href_list["print"] && !printing)
-			printing = 1
-			playsound(src.loc, "sound/machines/printer_cargo.ogg", 75, 0)
-			sleep(1.75 SECONDS)
+		printing = TRUE
+		playsound(src.loc, 'sound/machines/printer_cargo.ogg', 75, 0)
+		sleep(1.75 SECONDS)
+		for (var/i in 1 to amount)
 			var/obj/item/sticker/barcode/B = new/obj/item/sticker/barcode(src.loc)
-			var/dest = strip_html(href_list["print"], 64)
-			B.name = "Barcode Sticker ([dest])"
-			B.destination = dest
+			B.name = "Barcode Sticker ([destination])"
+			B.destination = destination
 			B.scan = src.scan
 			B.account = src.account
-			printing = 0
-		// cogwerks - uncomment this stuff if/when custom locations are ready
-		/*else if (href_list["remove"])
-			if(destinations.Find(href_list["remove"]))
-				destinations.Remove(href_list["remove"])
+		printing = FALSE
 
-		else if (href_list["add"])
-			var/input = input(usr,"Enter new tag:","Tag","") as text
-			if(length(input) && !destinations.Find(input))
-				destinations.Add(input)*/
+	ui_interact(mob/user, datum/tgui/ui)
+		ui = tgui_process.try_update_ui(user, src, ui)
+		if(!ui)
+			ui = new(user, src, "BarcodeComputer")
+			ui.open()
 
-			usr.Browse(null, "window=bc_computer")
+	ui_static_data(mob/user)
+		var/list/destination_list = new()
+		for (var/destination in destinations)
+			destination_list += list(list("crate_tag" = destination)) //goddamn byond += overloading making me do listlist
+		. = list()
+		.["sections"] = list(list("title" = "Station", "destinations" = destination_list))
+
+
+	ui_data(mob/user)
+		. = list()
+		if (!QDELETED(scan))
+			//we have to do this mess because bicon returns the full img tag which tgui won't render
+			var/bicon_split = splittext(bicon(scan), "'")
+			var/icon_src = bicon_split[length(bicon_split) - 1]
+
+			.["card"] = list(
+				"name" = scan.registered,
+				"role" = scan.assignment,
+				"icon" = icon_src,
+				"balance" = account?.get_field("current_money"),
+			)
+		else
+			.["card"] = null
+
+	ui_act(action, list/params)
+		. = ..()
+		if (.)
+			return
+		else if (action == "print")
+			var/destination = strip_html(params["crate_tag"], 64)
+			var/amount = clamp(round(params["amount"]), 1, 5)
+			print(destination, amount)
+		else if (action == "reset_id")
+			scan = null
+			account = null
+			. = TRUE
 			src.updateUsrDialog()
-			return
 
-/obj/machinery/computer/barcode/qm //has trader tags if there is one
-	name = "QM Barcode Computer"
-	desc = "Used to print barcode stickers for the cargo routing system, and to mark crates for sale to traders."
-	icon_state = "qm_barcode_comp"
-
-	attack_hand(var/mob/user as mob)
-		if (..(user))
-			return
-
-		var/dat = ""
-		dat += "<b>Available Destinations:</b><BR>"
-		for(var/I in destinations)
-			dat += "<b><A href='?src=\ref[src];print=[I]'>[I]</A></b><BR>"
-
-		dat += "<BR><b>Available Traders:</b><BR>"
-		for(var/datum/trader/T in shippingmarket.active_traders)
-			if (!T.hidden)
-				dat += "<b><A href='?src=\ref[src];print=[T.crate_tag]'>Sell to [T.name]</A></b><BR>"
-
-		//dat += "<BR><b><A href='?src=\ref[src];add=1'>Add Tag</A></b>"
-
-		src.add_dialog(user)
-		// Attempting to diagnose an infinite window refresh I can't duplicate, reverting the display style back to plain HTML to see what results that gets me.
-		// Hooray for having a playerbase to test shit on
-		//user.Browse(dat, "title=Barcode Computer;window=bc_computer_[src];size=300x400")
-		user.Browse(dat, "title=Barcode Computer;window=bc_computer_[src];size=300x400")
-		onclose(user, "bc_computer_[src]")
+	attackby(var/obj/item/I, mob/user)
+		var/obj/item/card/id/id_card = get_id_card(I)
+		if (istype(id_card))
+			boutput(user, SPAN_NOTICE("You swipe the ID card."))
+			account = FindBankAccountByName(id_card.registered)
+			if(account)
+				var/enterpin = user.enter_pin("Barcode Computer")
+				if (enterpin == id_card.pin)
+					boutput(user, SPAN_NOTICE("Card authorized."))
+					src.scan = id_card
+					src.updateUsrDialog()
+				else
+					boutput(user, SPAN_ALERT("PIN incorrect."))
+					src.scan = null
+			else
+				boutput(user, SPAN_ALERT("No bank account associated with this ID found."))
+				src.scan = null
+		else ..()
 		return
 
-/obj/machinery/computer/barcode/oshan
-	name = "Barcode Computer"
-	desc = "Used to print barcode stickers for the cargo carousel routing system."
+/obj/machinery/computer/barcode/qm //has trader tags if there is one
+	name = "\improper QM barcode computer"
+	desc = "Used to print barcode stickers for the cargo routing system, and to mark crates for sale to traders."
+	icon_state = "qm_barcode_comp"
+	circuit_type = /obj/item/circuitboard/barcode_qm
 
-	destinations = list("North","South")
+	New()
+		..()
+	ui_static_data(mob/user)
+		. = ..()
+		var/list/traders = new()
+		for (var/datum/trader/T in shippingmarket.active_traders)
+			if (T.hidden)
+				continue
+			traders += list(list("crate_tag" = T.crate_tag, "name" = T.name))
+		.["sections"] += list(list("title" = "Traders", "destinations" = traders))
+		var/list/req_codes = new()
+		req_codes += list(list("crate_tag" = "REQ-THIRDPARTY", "name" = "Third party"))
+		for (var/datum/req_contract/RC in shippingmarket.req_contracts)
+			req_codes += list(list("crate_tag" = RC.req_code, "name" = RC.name))
+		.["sections"] += list(list("title" = "Requisition contracts", "destinations" = req_codes))
 
 /obj/machinery/computer/barcode/qm/no_belthell
 	name = "Barcode Computer"
@@ -437,26 +469,28 @@
 
 	// log account information for QM sales
 	var/obj/item/card/id/scan = null
-	var/datum/data/record/account = null
+	var/datum/db_record/account = null
 
 	attack()
 		return
 
-	afterattack(atom/target as mob|obj|turf, mob/user as mob, reach, params)
-		if(get_dist(get_turf(target), get_turf(src)) <= 1 && istype(target, /atom/movable))
+	afterattack(atom/target, mob/user, reach, params)
+		if ((target.plane == PLANE_HUD && !isitem(target)) || isgrab(target)) //just don't stick hud stuff or grabs PLEASE
+			return
+		if(BOUNDS_DIST(get_turf(target), get_turf(src)) == 0 && istype(target, /atom/movable))
 			if(target==loc && target != user) return //Backpack or something
 			target:delivery_destination = destination
-			user.visible_message("<span class='notice'>[user] sticks a [src.name] on [target].</span>")
+			user.visible_message(SPAN_NOTICE("[user] sticks a [src.name] on [target]."))
 			user.u_equip(src)
 			if(istype(target, /obj/storage/crate))
 				if (scan && account)
 					var/obj/storage/crate/C = target
 					C.scan = src.scan
 					C.account = src.account
-					boutput(user, "<span class='notice'>[target] has been marked with your account routing information.</span>")
+					boutput(user, SPAN_NOTICE("[target] has been marked with your account routing information."))
 					C.desc = "[C] belongs to [scan.registered]."
 				var/obj/storage/crate/C = target
-				C.update_icon()
+				C.UpdateIcon()
 				qdel(src)
 			else
 				var/pox = src.pixel_x
@@ -467,17 +501,29 @@
 						pox = text2num(params["icon-x"]) - 16 //round(A.bound_width/2)
 						poy = text2num(params["icon-y"]) - 16 //round(A.bound_height/2)
 						DEBUG_MESSAGE("pox [pox] poy [poy]")
-				src.stick_to(target, pox, poy)
+				src.stick_to(target, pox, poy, user)
+			if(isobj(target))
+				var/obj/O = target
+				if(O.artifact && src.scan)
+					var/datum/artifact/art = O.artifact
+					art.scan = src.scan
+					art.account = src.account
+					boutput(user, SPAN_NOTICE("[target] has been marked with your account routing information."))
+					if(art.examine_hint)
+						art.examine_hint += " [target] belongs to [scan.registered]."
+					else
+						art.examine_hint = "[target] belongs to [scan.registered]."
+
 		return
 
-	MouseDrop(atom/over_object, src_location, over_location, over_control, params)
+	mouse_drop(atom/over_object, src_location, over_location, over_control, params)
 		if(!istype(usr, /mob/living) || !isturf(src.loc) || \
-				get_dist(get_turf(over_object), get_turf(src)) > 1 || \
-				get_dist(usr, get_turf(over_object)) > 1 ||  \
-				get_dist(usr, src) > 1 || \
+				BOUNDS_DIST(get_turf(over_object), get_turf(src)) > 0 || \
+				BOUNDS_DIST(usr, get_turf(over_object)) > 0 ||  \
+				BOUNDS_DIST(usr, src) > 0 || \
 				over_object == usr || !istype(over_object, /atom/movable))
 			return ..()
 		var/atom/movable/target = over_object
-		usr.visible_message("<span class='notice'>[usr] sticks a [src.name] on [target].</span>")
+		usr.visible_message(SPAN_NOTICE("[usr] sticks a [src.name] on [target]."))
 		target.delivery_destination = destination
-		src.stick_to(target, src.pixel_x, src.pixel_y)
+		src.stick_to(target, src.pixel_x, src.pixel_y, usr)

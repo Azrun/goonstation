@@ -12,6 +12,7 @@ VUVUZELA
 	desc = "A peel from a banana."
 	icon = 'icons/obj/foodNdrink/food_produce.dmi'
 	icon_state = "banana-peel"
+	inhand_image_icon = 'icons/mob/inhand/hand_food.dmi'
 	item_state = "banana-peel"
 	w_class = W_CLASS_TINY
 	throwforce = 0
@@ -20,7 +21,7 @@ VUVUZELA
 	stamina_damage = 5
 	stamina_cost = 5
 	stamina_crit_chance = 5
-	event_handler_flags = USE_HASENTERED | USE_FLUID_ENTER
+	event_handler_flags = USE_FLUID_ENTER
 
 	var/mob/living/carbon/human/last_touched
 
@@ -28,13 +29,22 @@ VUVUZELA
 	last_touched = user
 	..()
 
-/obj/item/bananapeel/HasEntered(AM as mob|obj)
+/obj/item/bananapeel/proc/on_mob_throw_end(mob/M)
+	UnregisterSignal(M, COMSIG_MOVABLE_THROW_END)
+	LAZYLISTREMOVE(M.attached_objs, src)
+	src.glide_size = initial(src.glide_size)
+
+/obj/item/bananapeel/Crossed(atom/movable/AM as mob|obj)
+	..()
 	if(istype(src.loc, /turf/space))
 		return
 	if (iscarbon(AM))
 		var/mob/M =	AM
-		if (M.slip(ignore_actual_delay = 1))
-			boutput(M, "<span class='notice'>You slipped on the banana peel!</span>")
+		LAZYLISTADDUNIQUE(M.attached_objs, src)
+		src.glide_size = M.glide_size
+		RegisterSignal(M, COMSIG_MOVABLE_THROW_END, PROC_REF(on_mob_throw_end), override=TRUE)
+		if (M.slip(walking_matters=TRUE, ignore_actual_delay=TRUE, throw_type=THROW_PEEL_SLIP, params=list("slip_obj"=src)))
+			boutput(M, SPAN_NOTICE("You slipped on the banana peel!"))
 			if (ishuman(M))
 				var/mob/living/carbon/human/H = M
 				if (H.sims)
@@ -45,11 +55,13 @@ VUVUZELA
 				if (last_touched.sims)
 					last_touched.sims.affectMotive("fun", 10)
 			if(M.bioHolder.HasEffect("clumsy"))
-				M.changeStatus("weakened", 5 SECONDS)
+				M.changeStatus("knockdown", 5 SECONDS)
 				JOB_XP(M, "Clown", 2)
 			else
 				if (prob(20))
 					JOB_XP(last_touched, "Clown", 1)
+		else
+			src.on_mob_throw_end(M)
 
 /obj/item/canned_laughter
 	name = "Canned laughter"
@@ -65,14 +77,15 @@ VUVUZELA
 			return
 		opened = 1
 		icon_state = "crushed-5"
-		playsound(user.loc, "sound/items/can_open.ogg", 50, 0)
+		w_class = W_CLASS_TINY
+		playsound(user.loc, 'sound/items/can_open.ogg', 50, 0)
 
-		SPAWN_DBG(0.5 SECONDS)
+		SPAWN(0.5 SECONDS)
 			// Wow your joke sucks
 			if(prob(5))
-				playsound(user.loc,"sound/misc/laughter/boo.ogg",50,0)
+				playsound(user.loc, 'sound/misc/laughter/boo.ogg', 50,0)
 			else
-				playsound(user.loc,"sound/misc/laughter/laughtrack[rand(1, 5)].ogg",50,0)
+				playsound(user.loc,"sound/misc/laughter/laughtrack[rand(1, 4)].ogg",50,0)
 
 	crushed
 		name = "used up Canned laughter"

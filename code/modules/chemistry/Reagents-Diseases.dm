@@ -23,9 +23,9 @@ datum
 			*/
 
 			on_mob_life(var/mob/M, var/mult = 1)
-				..()
 				if(!M)
 					M = holder.my_atom
+				..()
 				if (!isliving(M) || !ispath(disease))
 					return
 				if (src.volume < minimum_to_infect)
@@ -71,7 +71,7 @@ datum
 			id = "werewolf_serum"
 			description = "A mutagenic substance associated with a mythical beast."
 			reagent_state = LIQUID
-			minimum_to_infect = 0
+			minimum_to_infect = 3
 			fluid_r = 173
 			fluid_g = 65
 			fluid_b = 133
@@ -90,6 +90,28 @@ datum
 			transparency = 235
 			disease = /datum/ailment/disease/cold
 
+
+		disease/lungrot
+			name = "lungrot bloom"
+			id = "lungrot_bloom"
+			description = "highly toxic fungal colonies created in the enviroment of a weakened lung."
+			reagent_state = SOLID
+			minimum_to_infect = 7.5
+			fluid_r = 43
+			fluid_b = 54
+			fluid_g = 25
+			transparency = 166
+			disease = /datum/ailment/disease/lungrot
+
+			on_mob_life(var/mob/affected_mob, var/mult = 1)
+				if(!affected_mob)
+					affected_mob = holder.my_atom
+				//let's not make the lungrot reaction effectively double the depletion rate of miasma
+				affected_mob.reagents.add_reagent("miasma", src.calculate_depletion_rate(affected_mob, mult))
+				..()
+
+
+
 		disease/stringy_gibbis // Fake GBS
 			name = "stringy gibbis"
 			id = "stringy gibbis"
@@ -104,7 +126,7 @@ datum
 		disease/green_mucus // Flu
 			name = "green Mucus"
 			id = "green mucus"
-			description = "Mucus. Thats green."
+			description = "Mucus. That's green."
 			reagent_state = LIQUID
 			minimum_to_infect = 0
 			fluid_r = 215
@@ -125,7 +147,7 @@ datum
 			transparency = 150
 			disease = /datum/ailment/disease/gbs
 
-		disease/banana_peel // Jungle Fever
+		disease/banana_peel // Monkey Madness
 			name = "banana peel"
 			id = "banana peel"
 			description = "Banana peel crushed up to a liquid."
@@ -134,7 +156,7 @@ datum
 			fluid_g = 255
 			fluid_b = 0
 			transparency = 150
-			disease = /datum/ailment/disease/jungle_fever
+			disease = /datum/ailment/disease/monkey_madness
 
 		disease/liquid_plasma // Plasmatoid
 			name = "liquid plasma"
@@ -156,6 +178,7 @@ datum
 			fluid_g = 87
 			fluid_b = 44
 			transparency = 80
+			random_chem_blacklisted = 1
 			disease = /datum/ailment/disease/hootonium
 
 		disease/nanites // Robot Transformation
@@ -284,7 +307,13 @@ datum
 			fluid_g = 220
 			fluid_b = 200
 			transparency = 170
+			random_chem_blacklisted = 1
 			disease = /datum/ailment/disease/necrotic_degeneration
+
+			infectious
+				name = "concentrated necrovirus"
+				id = "necrovirus_infectious"
+				disease = /datum/ailment/disease/necrotic_degeneration/can_infect_more
 
 		disease/viral_curative // Panacaea
 			name = "viral curative"
@@ -310,16 +339,32 @@ datum
 			penetrates_skin = 1
 			disease = /datum/ailment/disease/tissue_necrosis
 
+		disease/rat_plague // Rat Plague
+			name = "rat spit"
+			id = "rat_spit"
+			description = "The spit of a disease rat. Contains a whole bunch of known and unknown disease."
+			reagent_state = LIQUID
+			depletion_rate = 0.4
+			fluid_r = 255
+			fluid_g = 40
+			fluid_b = 40
+			transparency = 50
+			disease = /datum/ailment/disease/rat_plague
+
+			on_mob_life(mob/M, mult)
+				M.take_toxin_damage(1.5 * mult)
+				. = ..()
+
 		disease/plague // Space Plague
 			name = "rat venom"
 			id = "rat_venom"
 			description = "Unbelievably deadly. Not to be mistaken with rat poison."
-			random_chem_blacklisted = 1
 			reagent_state = LIQUID
 			fluid_r = 255
 			fluid_g = 40
 			fluid_b = 40
 			transparency = 50
+			random_chem_blacklisted = TRUE
 			disease = /datum/ailment/disease/space_plague
 
 		disease/loose_screws // Space Madness
@@ -348,6 +393,7 @@ datum
 			name = "prions"
 			id = "prions"
 			description = "A disease-causing agent that is neither bacterial nor fungal nor viral and contains no genetic material."
+			taste = "<br>　　∧,,,∧<br>　 （ ・ω・） like prion disease...<br>　　( つ旦O<br>　　と＿)_)<br>"
 			reagent_state = LIQUID
 			minimum_to_infect = 5.1
 			fluid_r = 255
@@ -472,77 +518,13 @@ datum
 			fluid_b = 120
 			transparency = 255
 
-		// Marquesas' one stop pathology shop
-		blood/pathogen
-			name = "pathogen"
-			id = "pathogen"
-			description = "A liquid sample of one (or multiple) pathogens."
+		disease/leprosybacteria
+			name = "mycobacterium leprae"
+			id = "mycobacterium leprae"
+			description = "A bacterial strain that is known to cause leprosy in humans."
 			reagent_state = LIQUID
-			fluid_r = 50
-			fluid_b = 50
-			fluid_g = 180
-			transparency = 200
-			depletion_rate = 0.8
-			smoke_spread_mod = 10
-
-			reaction_turf(var/turf/T, var/volume)
-				return
-
-			reaction_mob(var/mob/M, var/method=TOUCH, var/volume_passed)
-				. = ..()
-				// sure just fucking splash around in the stuff
-				// this is mainly so puddles from the sweating symptom can infect
-				for (var/uid in src.pathogens)
-					var/datum/pathogen/P = src.pathogens[uid]
-					logTheThing("pathology", M, null, "is splashed with [src] containing pathogen [P].")
-					if(istype(M, /mob/living/carbon/human))
-						var/mob/living/carbon/human/H = M
-						if(prob(100-H.get_disease_protection()))
-							if(H.infected(P))
-								H.show_message("<span class='alert'>Ew, some of that disgusting green stuff touched you!</span>")
-				return
-
-			on_plant_life(var/obj/machinery/plantpot/P)
-				return
-
-		antiviral
-			name = "Viral Serum"
-			id = "antiviral"
-			description = "An agent which can be used to create a specialized cure for a viral pathogen."
-			reagent_state = 2
-
-		// To make matters easier, fungi and parasites are both cured by the same biocides
-		biocide
-			name = "Biocide"
-			id = "biocide"
-			description = "An agent which can be used to create a specialized cure for a fungal or parasitic pathogen."
-			reagent_state = 2
-
-		// A mutation inhibitor that should destroy great mutatis cells.
-		// A derivative of mutadone.
-		inhibitor
-			name = "Mutation Inhibitor"
-			id = "inhibitor"
-			description = "An agent which can be used to create a specialized cure for a cellular mutative pathogen"
-			reagent_state = 2
-
-		bacterialmedium
-			name = "Bacterial Medium"
-			id = "bacterialmedium"
-			description = "A solution useful for the cultivation of bacteria."
-			reagent_state = 2
-			pathogen_nutrition = list("water", "sugar", "sodium", "iron", "nitrogen")
-
-		parasiticmedium
-			name = "Parasitic Medium"
-			id = "parasiticmedium"
-			description = "A solution useful for the cultivation of parasites."
-			reagent_state = 2
-			pathogen_nutrition = list("water", "sugar", "sodium", "iron", "nitrogen")
-
-		fungalmedium
-			name = "Fungal Medium"
-			id = "fungalmedium"
-			description = "A solution encouraging the growth of fungi."
-			reagent_state = 2
-			pathogen_nutrition = list("water", "sugar", "sodium", "iron", "nitrogen")
+			fluid_r = 255
+			fluid_g = 40
+			fluid_b = 40
+			transparency = 50
+			disease = /datum/ailment/disease/leprosy

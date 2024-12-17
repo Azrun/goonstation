@@ -1,10 +1,24 @@
-import { Fragment } from 'inferno';
+/**
+ * @file
+ * @copyright 2021
+ * @author Luxizzle (https://github.com/Luxizzle)
+ * @license MIT
+ */
+
+import { Fragment } from 'react';
+import {
+  Box,
+  Button,
+  Divider,
+  LabeledList,
+  Section,
+} from 'tgui-core/components';
+
 import { useBackend } from '../../backend';
-import { Box, Button, Divider, LabeledList, Section } from '../../components';
 import { CharacterPreferencesData } from './type';
 
 export const SavesTab = (_props, context) => {
-  const { act, data } = useBackend<CharacterPreferencesData>(context);
+  const { act, data } = useBackend<CharacterPreferencesData>();
 
   return (
     <Section title="Cloud Saves">
@@ -30,12 +44,12 @@ export const SavesTab = (_props, context) => {
 };
 
 type CloudSaveProps = {
-  name: string,
-  index: number
-}
+  name: string;
+  index: number;
+};
 
-const Cloudsave = ({ name, index }: CloudSaveProps, context: any) => {
-  const { act } = useBackend<CharacterPreferencesData>(context);
+const Cloudsave = ({ name, index }: CloudSaveProps) => {
+  const { act } = useBackend<CharacterPreferencesData>();
 
   return (
     <LabeledList>
@@ -44,11 +58,16 @@ const Cloudsave = ({ name, index }: CloudSaveProps, context: any) => {
         buttons={
           <>
             {/* Just a small gap between these so you dont accidentally hit one */}
-            <Button onClick={() => act('cloud-load', { name })}>Load</Button> -{' '}
-            <Button onClick={() => act('cloud-save', { name })}>Save</Button> -{' '}
-            <Button.Confirm onClick={() => act('cloud-delete', { name })} content="Delete" />
+            <Button onClick={() => act('cloud-load', { name })}>Load</Button>
+            {' - '}
+            <Button onClick={() => act('cloud-save', { name })}>Save</Button>
+            {' - '}
+            <Button.Confirm onClick={() => act('cloud-delete', { name })}>
+              Delete
+            </Button.Confirm>
           </>
-        }>
+        }
+      >
         {name}
       </LabeledList.Item>
     </LabeledList>

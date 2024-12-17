@@ -5,6 +5,7 @@
 //	-etc
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+ABSTRACT_TYPE(/mob/living/critter/aquatic)
 /mob/living/critter/aquatic
 	name = "aquatic mobcritter"
 	real_name = "aquatic mobcritter"
@@ -14,14 +15,16 @@
 	hand_count = 1
 	can_disarm = 1
 	can_help = 1
-	butcherable = 1
+	butcherable = BUTCHER_ALLOWED
 
 	is_npc = 1
 
-	var/health_brute = 10
-	var/health_brute_vuln = 1
-	var/health_burn = 10
-	var/health_burn_vuln = 2
+	health_brute = 10
+	health_brute_vuln = 1
+	health_burn = 10
+	health_burn_vuln = 2
+
+	faction = list(FACTION_AQUATIC)
 
 	var/out_of_water_debuff = 1 // debuff amount for being out of water
 	var/in_water_buff = 1 // buff amount for being in water
@@ -38,8 +41,11 @@
 	if(src.is_pet)
 		START_TRACKING_CAT(TR_CAT_PETS)
 	..()
-	aquabreath_process = add_lifeprocess(/datum/lifeprocess/aquatic_breathing,src.in_water_buff,src.out_of_water_debuff)
 	remove_lifeprocess(/datum/lifeprocess/blood) // caused lag, not sure why exactly
+
+/mob/living/critter/aquatic/restore_life_processes()
+	. = ..()
+	src.aquabreath_process = add_lifeprocess(/datum/lifeprocess/aquatic_breathing,src.in_water_buff,src.out_of_water_debuff)
 
 /mob/living/critter/aquatic/disposing()
 	ai?.dispose()
@@ -50,8 +56,8 @@
 	..()
 
 /mob/living/critter/aquatic/setup_healths()
-	add_hh_flesh(-(src.health_brute), src.health_brute, src.health_brute_vuln)
-	add_hh_flesh_burn(-(src.health_burn), src.health_burn, src.health_burn_vuln)
+	add_hh_flesh(src.health_brute, src.health_brute_vuln)
+	add_hh_flesh_burn(src.health_burn, src.health_burn_vuln)
 
 /mob/living/critter/aquatic/Login()
 	..()
@@ -90,6 +96,10 @@
 	if(P.mob_shooter)
 		src.harmed_by(P.mob_shooter)
 
+/mob/living/critter/aquatic/EnteredFluid(obj/fluid/F, atom/oldloc)
+	. = ..()
+	src.aquabreath_process?.update_water_status()
+
 /datum/lifeprocess/aquatic_breathing
 	var/water_need = 0 // 0, 1, or 2; 1 and 2 just differ in intensity
 	var/in_water_to_out_of_water = 0 // did they enter an area with sufficient water from an area with insufficient water?
@@ -97,15 +107,16 @@
 	var/out_of_water_to_in_water = 0 // did they enter an area with insufficient water from an area with sufficient water?
 	var/in_water_buff = 1 // buff amount for being in water
 
-	New(new_owner,arguments)
+	New(mob/new_owner,arguments)
 		..()
 		if(length(arguments) >= 2)
 			in_water_buff = arguments[1]
 			out_of_water_debuff = arguments[2]
+		new_owner.event_handler_flags |= USE_FLUID_ENTER
 
 	process()
 		src.update_water_status()
-		if (HAS_MOB_PROPERTY(src.critter_owner, PROP_BREATHLESS)) return
+		if (HAS_ATOM_PROPERTY(src.critter_owner, PROP_MOB_BREATHLESS)) return
 		if(src.critter_owner)
 			if(src.water_need)
 				if(prob(50 * src.water_need) && !critter_owner.nodamage) // question: this gets rid of like one proc call; worth it?
@@ -175,7 +186,7 @@
 	speechverb_say = "blubs"
 	speechverb_exclaim = "glubs"
 	death_text = "%src% flops belly up!"
-	meat_type = /obj/item/reagent_containers/food/snacks/ingredient/meat/fish/small
+	meat_type = /obj/item/reagent_containers/food/snacks/ingredient/meat/fish/fillet/small
 	// todo: skinresult of scales, custom_brain_type of fish egg item (caviar?)
 
 	throws_can_hit_me = 0
@@ -199,7 +210,7 @@
 	src.ai = new /datum/aiHolder/aquatic/fish(src)
 	animate_bumble(src)
 
-	/*SPAWN_DBG(0)
+	/*SPAWN(0)
 		if(src.client)
 			src.is_npc = 0
 		else // i mean, i can't imagine many scenarios where a player controlled fish also needs AI that doesn't even run
@@ -242,18 +253,18 @@
 		walk(src,0)
 		swimming_away = 0
 		if (src.ai)
-			src.ai.enabled = 0
+			src.ai.disable()
 
 /mob/living/critter/aquatic/fish/specific_emotes(var/act, var/param = null, var/voluntary = 0)
 	switch (act)
 		if ("flip")
 			if (src.emote_check(voluntary, 50) && !src.aquabreath_process.water_need)
-				SPAWN_DBG(1 SECOND)
+				SPAWN(1 SECOND)
 					animate_bumble(src)
 				return null
 		if ("dance")
 			if (src.emote_check(voluntary, 100))
-				SPAWN_DBG(0)
+				SPAWN(0)
 					for (var/i = 0, i < 4, i++)
 						src.pixel_x+= 2
 						src.set_dir(turn(src.dir, 90))
@@ -388,7 +399,7 @@
 	speechverb_say = "demands"
 	speechverb_exclaim = "bellows"
 	death_text = "%src% collapses in on itself!"
-	meat_type = /obj/item/reagent_containers/food/snacks/ingredient/meat/fish
+	meat_type = /obj/item/reagent_containers/food/snacks/ingredient/meat/fish/fillet
 	// todo: meat_type of something cool, skinresult of especially hard crustacean plates?
 
 	ai = null
@@ -423,7 +434,7 @@
 
 /mob/living/critter/aquatic/king_crab/New()
 	..()
-	SPAWN_DBG(0)
+	SPAWN(0)
 		if(src.client)
 			src.is_npc = 0
 		else
@@ -443,22 +454,22 @@
 		hit_twitch(src)
 		src.visible_message("<b>[src]</b> [pick("shudders","clinks heavily","gasps","looks dazed")].")
 
-/mob/living/critter/aquatic/king_crab/Bump(atom/movable/AM)
+/mob/living/critter/aquatic/king_crab/bump(atom/movable/AM)
 	..()
 	if(isobj(AM))
 		if(istype(AM, /obj/window))
 			var/obj/window/W = AM
 			W.health = 0
 			W.smash()
-		else if(istype(AM, /obj/grille))
-			var/obj/grille/G = AM
+		else if(istype(AM, /obj/mesh/grille))
+			var/obj/mesh/grille/G = AM
 			G.damage_blunt(30)
 		else if(istype(AM, /obj/machinery/vehicle/tank) || istype(AM, /obj/table))
 			AM.meteorhit()
 		else if(istype(AM, /obj/foamedmetal))
 			AM.dispose()
 		playsound(src.loc, 'sound/effects/exlow.ogg', 70,1)
-		src.visible_message("<span class='alert'><B>[src]</B> smashes into \the [AM]!</span>")
+		src.visible_message(SPAN_ALERT("<B>[src]</B> smashes into \the [AM]!"))
 
 /mob/living/critter/aquatic/king_crab/harmed_by(var/mob/living/M)
 	..()
@@ -472,7 +483,7 @@
 				playsound(src.loc, 'sound/voice/animal/crab_chirp.ogg', 80, 0, 7, channel=VOLUME_CHANNEL_EMOTE)
 				for (var/mob/living/M in oview(src, 7))
 					M.apply_sonic_stun(0, 5, 3, 12, 40, rand(0,3))
-				return "<span class='alert'><b>[src]</b> lets out an eerie wail.</span>"
+				return SPAN_ALERT("<b>[src]</b> lets out an eerie wail.")
 		if ("dance")
 			if (src.emote_check(voluntary, 300))
 				for (var/i = 0, i < 4, i++)
@@ -483,37 +494,155 @@
 					src.pixel_x-= 2
 					src.set_dir(turn(src.dir, 90))
 					sleep(0.2 SECONDS)
-				SPAWN_DBG(5 SECONDS)
+				SPAWN(5 SECONDS)
 				for (var/mob/living/M in oview(src, 7))
-					M.reagents.add_reagent(pick("cyanide","neurotoxin","venom","histamine","jenkem","lsd"), 5)
-				return "<span class='alert'><b>[src]</b> does a sinister dance.</span>"
+					M.reagents.add_reagent(pick("cyanide","neurotoxin","cytotoxin","histamine","lsd"), 5)
+				return SPAN_ALERT("<b>[src]</b> does a sinister dance.")
 		if ("snap")
 			if (src.emote_check(voluntary, 300))
-				src.changeStatus("paralysis", -30 SECONDS)
+				src.changeStatus("unconscious", -30 SECONDS)
 				src.changeStatus("stunned", -30 SECONDS)
-				src.changeStatus("weakened", -30 SECONDS)
-				return "<span class='alert'><b>[src]</b> clacks menacingly.</span>"
+				src.changeStatus("knockdown", -30 SECONDS)
+				return SPAN_ALERT("<b>[src]</b> clacks menacingly.")
 		if ("flex")
 			if (src.emote_check(voluntary, 300))
 				src.health_brute_vuln = 0.1
 				src.health_burn_vuln = 0.5
-				SPAWN_DBG(10 SECONDS)
+				SPAWN(10 SECONDS)
 					if (src)
 						src.health_brute_vuln = 0.5
 						src.health_burn_vuln = 3
-				return "<span class='alert'><b>[src]'s</b> chitin gleams.</span>"
+				return SPAN_ALERT("<b>[src]'s</b> chitin gleams.")
 	return null
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//jellyfish
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/mob/living/critter/aquatic/fish/jellyfish
+	name = "jellyfish"
+	real_name = "jellyfish"
+	desc = "Squishy"
+	icon = 'icons/misc/sea_critter.dmi'
+	icon_state = "jellyfish"
+	base_move_delay = 2
+	hand_count = 2
+	pet_text = "pokes"
+	speechverb_say = "quibbles"
+	speechverb_exclaim = "shudders"
+	death_text = "%src% collapses in a heap on the ground!"
+	meat_type = /obj/item/device/light/glowstick/green_on //Until I think of something else. Also it's kinda funny
+	add_abilities = list(/datum/targetable/critter/sting)
+
+/mob/living/critter/aquatic/fish/jellyfish/New()
+	..()
+	src.color = random_saturated_hex_color()
+	var/list/color_list = rgb2num(src.color || "#ffffff")
+	src.add_medium_light("jellyglow", color_list + list(100))
+	SPAWN(0)
+		if(src.client)
+			src.is_npc = 0
+		else
+			src.ai = new /datum/aiHolder/aquatic/fish(src)
+
+/mob/living/critter/aquatic/fish/jellyfish/setup_hands()
+	..()
+	var/datum/handHolder/HH = hands[1]
+	HH.limb = new /datum/limb/mouth/fish/jellyfish
+	HH.icon = 'icons/mob/critter_ui.dmi'
+	HH.icon_state = "mouth"
+	HH.name = "mouth"
+	HH.limb_name = "mouth"
+
+	HH = hands[2]
+	HH.limb = new /datum/limb/small_critter
+	HH.icon = 'icons/mob/critter_ui.dmi'
+	HH.icon_state = "handn"
+	HH.name = "tendrils"
+	HH.limb_name = "tendrils"
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Shark
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/mob/living/critter/aquatic/shark
+	name = "space shark"
+	real_name = "space shark"
+	desc = "This is the third most terrifying thing you've ever laid eyes on."
+	icon = 'icons/misc/banshark.dmi'
+	icon_state = "banshark1"
+	icon_state_dead = "banshark1-dead"
+	hand_count = 1
+	health_brute = 40
+	health_brute_vuln = 1
+	health_burn = 40
+	health_burn_vuln = 3
+	butcherable = BUTCHER_ALLOWED
+	ai_retaliates = TRUE
+	ai_retaliate_patience = 0
+	ai_retaliate_persistence = RETALIATE_UNTIL_DEAD
+	ai_type = /datum/aiHolder/aggressive/scavenger
+	is_npc = TRUE
+	no_stamina_stuns = TRUE
+
+	setup_hands()
+		..()
+		var/datum/handHolder/HH = hands[1]
+		HH.limb = new /datum/limb/mouth/shark
+		HH.icon = 'icons/mob/critter_ui.dmi'
+		HH.icon_state = "mouth"
+		HH.name = "mouth"
+		HH.limb_name = "jaws"
+		HH.can_hold_items = FALSE
+
+	setup_healths()
+		add_hh_flesh(src.health_brute, src.health_brute_vuln)
+		add_hh_flesh_burn(src.health_burn, src.health_burn_vuln)
+
+	seek_target(var/range = 9)
+		. = ..()
+
+		if (length(.) && prob(10))
+			if (!ON_COOLDOWN(src, "jaws_sound", 50 SECONDS))
+				playsound(src.loc, 'sound/misc/jaws.ogg', 50, 0, 0, 1)
+
+	critter_scavenge(var/mob/target)
+		src.visible_message(SPAN_COMBAT("<B>[src]</B> gibs [target] in one bite!"))
+		logTheThing(LOG_COMBAT, target, "was gibbed by [src] at [log_loc(src)].") // Some logging for instakill critters would be nice (Convair880).
+		playsound(src.loc, 'sound/items/eatfood.ogg', 30, 1, -2)
+		target.gib()
+		target.ghostize()
+
+	death(var/gibbed)
+		if (!gibbed)
+			src.reagents.add_reagent("shark_dna", 50, null)
+		..()
+
+/obj/item/reagent_containers/food/snacks/ingredient/egg/critter/shark
+	name = "shark egg"
+	critter_type = /mob/living/critter/aquatic/shark
+	warm_count = 50
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // aquatic mobcritter limbs
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /datum/limb/mouth/fish
-	sound_attack = "sound/impact_sounds/Glub_2.ogg"
+	sound_attack = 'sound/impact_sounds/Glub_2.ogg'
 	dam_low = 0
 	dam_high = 1
 	miss_prob = 100 // you ever meet those fish that eat the dead skin off of the backs of your feet?
 	stam_damage_mult = 0.2
+
+	jellyfish
+		dam_low = 3
+		dam_high = 8
+
+/datum/limb/mouth/shark
+	sound_attack = 'sound/impact_sounds/Flesh_Tear_1.ogg'
+	dam_low = 25
+	dam_high = 35
+	miss_prob = 100
 
 /datum/limb/king_crab // modified claw limb
 
@@ -522,26 +651,26 @@
 		return
 
 	if (!istype(user))
-		target.attack_hand(user, params, location, control)
+		target.Attackhand(user, params, location, control)
 		return
 
 	if (isobj(target))
-		switch (user.smash_through(target, list("window", "grille", "table")))
+		switch (user.smash_through(target, list("window", "grille", "table", "blob"))) //crab vs blob when
 			if (0)
 				if (isitem(target))
 					if (prob(33))
-						boutput(user, "<span class='alert'>[target] slips through your pincers!</span>")
+						boutput(user, SPAN_ALERT("[target] slips through your pincers!"))
 						return
 					return ..()
 				if (istype(target,/obj/sea_plant))
-					user.visible_message("<span class='alert'><b>[user] smashes [target] into sea foam!</b></span>", "<span class='alert'><b>You smash [target] into sea foam!</b></span>")
+					user.visible_message(SPAN_ALERT("<b>[user] smashes [target] into sea foam!</b>"), SPAN_ALERT("<b>You smash [target] into sea foam!</b>"))
 					animate_melt_pixel(target)
 					qdel(target)
 				if (istype(target,/obj/machinery/power/apc))
 					var/obj/machinery/power/apc/APC = target
 					for (var/i=1,i<=4,i++)
 						APC.cut(i)
-					user.visible_message("<span class='alert'><b>[user]'s pincers slither inside [target] and slash the wires!</b></span>", "<span class='alert'><b>Your pincers slither inside [target] and slash the wires!</b></span>")
+					user.visible_message(SPAN_ALERT("<b>[user]'s pincers slither inside [target] and slash the wires!</b>"), SPAN_ALERT("<b>Your pincers slither inside [target] and slash the wires!</b>"))
 					return
 				if (istype(target,/obj/cable))
 					var/obj/cable/C = target
@@ -557,8 +686,8 @@
 	if(check_target_immunity( target ))
 		return 0
 	if (prob(15))
-		logTheThing("combat", user, target, "accidentally slashes [constructTarget(target,"combat")] with pincers at [log_loc(user)].")
-		user.visible_message("<span class='alert'><b>[user] accidentally slashes [target] while trying to [user.a_intent] them!</b></span>", "<span class='alert'><b>You accidentally slash [target] while trying to [user.a_intent] them!</b></span>")
+		logTheThing(LOG_COMBAT, user, "accidentally slashes [constructTarget(target,"combat")] with pincers at [log_loc(user)].")
+		user.visible_message(SPAN_ALERT("<b>[user] accidentally slashes [target] while trying to [user.a_intent] them!</b>"), SPAN_ALERT("<b>You accidentally slash [target] while trying to [user.a_intent] them!</b>"))
 		harm(target, user, 1)
 		return 1
 	return 0
@@ -580,13 +709,12 @@
 
 /datum/limb/king_crab/harm(mob/target, var/mob/living/user, var/no_logs = 0)
 	if (no_logs != 1)
-		logTheThing("combat", user, target, "slashes [constructTarget(target,"combat")] with pincers at [log_loc(user)].")
-	var/obj/item/affecting = target.get_affecting(user)
-	var/datum/attackResults/msgs = user.calculate_melee_attack(target, affecting, 10, 20, 0, 2)
-	user.attack_effects(target, affecting)
+		logTheThing(LOG_COMBAT, user, "slashes [constructTarget(target,"combat")] with pincers at [log_loc(user)].")
+	var/datum/attackResults/msgs = user.calculate_melee_attack(target, 10, 20, 0, 2, can_punch = 0, can_kick = 0)
+	user.attack_effects(target, user.zone_sel?.selecting)
 	var/action = pick("slashes", "tears into", "gouges", "rips into", "lacerates", "mutilates")
-	msgs.base_attack_message = "<b><span class='alert'>[user] [action] [target] with their [src.holder]!</span></b>"
-	msgs.played_sound = "sound/impact_sounds/Glub_1.ogg"
+	msgs.base_attack_message = SPAN_ALERT("<b>[user] [action] [target] with their [src.holder]!</b>")
+	msgs.played_sound = 'sound/impact_sounds/Glub_1.ogg'
 	msgs.damage_type = DAMAGE_CUT
 	msgs.flush(SUPPRESS_LOGS)
 

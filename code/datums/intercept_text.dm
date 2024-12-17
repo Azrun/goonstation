@@ -38,27 +38,33 @@
 			src.text = ""
 			src.build_traitor(correct_mob)
 			return src.text
-		if("malf")
+		if("vampire")
 			src.text = ""
-			src.build_malf(correct_mob)
+			src.build_vampire(correct_mob)
 			return src.text
-		if("changeling")
+		if(ROLE_CHANGELING)
 			src.text = ""
 			src.build_changeling(correct_mob)
+			return src.text
+		if ("flock")
+			src.text = ""
+			src.build_flock(correct_mob)
 			return src.text
 		else
 			return null
 
 /datum/intercept_text/proc/pick_mob()
-	var/list/dudes = list()
+	. = list()
 	for(var/mob/living/carbon/human/man in mobs)
-		dudes += man
-	var/dude = pick(dudes)
-	return dude
+		. += man
+	if (length(.))
+		return pick(.)
 
 /datum/intercept_text/proc/pick_fingerprints()
 	var/mob/living/carbon/human/dude = src.pick_mob()
-	var/print = "[dude.bioHolder.uid_hash]"
+	if (!dude)
+		return "CLASSIFIED"
+	var/print = "[dude.bioHolder.fingerprints]"
 	return print
 
 /datum/intercept_text/proc/build_traitor(correct_mob)
@@ -84,23 +90,22 @@
 		src.text += "discovered the following set of fingerprints ([fingerprints]) on sensitive materials, and their owner should be closely observed."
 		src.text += "However, these could also belong to a current Cent. Com employee, so do not act on this without reason."
 
-/datum/intercept_text/proc/build_rev(correct_mob)
+/datum/intercept_text/proc/build_rev(var/datum/mind/correct_mind)
 	var/name_1 = pick(src.org_names_1)
 	var/name_2 = pick(src.org_names_2)
 	var/traitor_name
 	var/traitor_job
 	var/prob_right_dude = rand(prob_correct_person_lower, prob_correct_person_higher)
 	var/prob_right_job = rand(prob_correct_job_lower, prob_correct_job_higher)
-	if(prob(prob_right_job))
-		if (correct_mob)
-			traitor_job = correct_mob:assigned_role
+	if(prob(prob_right_job) && correct_mind?.assigned_role != "MODE")
+		traitor_job = correct_mind.assigned_role
 	else
 		var/list/job_tmp = get_all_jobs()
-		job_tmp.Remove("Captain", "Security Officer", "Security Assistant", "Vice Officer", "Detective", "Head Of Security", "Head of Personnel", "Chief Engineer", "Research Director")
+		job_tmp.Remove("Captain", "Security Officer", "Security Assistant", "Vice Officer", "Detective", "Head Of Security", "Head of Personnel", "Chief Engineer", "Research Director", "MODE")
 		traitor_job = pick(job_tmp)
 	if(prob(prob_right_dude) && (ticker?.mode && istype(ticker.mode, /datum/game_mode/revolution)))
-		if (correct_mob)
-			traitor_name = correct_mob:current
+		if (correct_mind)
+			traitor_name = correct_mind.current
 	else
 		traitor_name = src.pick_mob()
 
@@ -121,16 +126,10 @@
 	src.text += "Known attributes include: Brown sandals, a large blue hat, a voluptous white beard, and an inclination to cast spells."
 
 /datum/intercept_text/proc/build_nuke(correct_mob)
-	src.text += "<BR><BR>Cent. Com recently recieved a report of a plot to destroy one of our stations in your area. We believe an elite strike team is "
+	src.text += "<BR><BR>Cent. Com recently received a report of a plot to destroy one of our stations in your area. We believe an elite strike team is "
 	src.text += "preparing to plant and activate a nuclear device aboard one of them. The security department should take all necessary precautions "
 	src.text += "to repel an enemy boarding party if the need arises. As this may cause panic among the crew, all efforts should be made to keep this "
 	src.text += "information a secret from all but the most trusted members."
-
-/datum/intercept_text/proc/build_malf(correct_mob)
-	var/a_name = pick(src.anomalies)
-	src.text += "<BR><BR>A [a_name] was recently picked up by a nearby stations sensors in your sector. If it came into contact with your ship or "
-	src.text += "electrical equipment, it may have had hazardarous and unpredictable effects. Closely observe any non carbon based life forms "
-	src.text += "for signs of unusual behaviour, but keep this information discreet at all times due to this possibly dangerous scenario."
 
 /datum/intercept_text/proc/build_changeling(correct_mob)
 	src.text += "<BR><BR>A mutagenic organism has escaped from a research lab in your sector. "
@@ -141,3 +140,9 @@
 	src.text += "<BR><BR>We have intercepted reports that a Space Wizard Federation menagerie facility in your sector has suffered a containment breach. "
 	src.text += "It is possible that a Vampire has escaped from their cells and is likely to have taken refuge on the station. It is likely weak from its "
 	src.text += "extended containment, but it will become increasingly more powerful if allowed to consume human blood. If caught, it must be terminated."
+
+/datum/intercept_text/proc/build_flock(correct_mob)
+	src.text += {"<BR><BR>An anomalous radio entity has been detected by long range sensors in your sector. Its goal is unclear, but from previous
+				 reports, it's believed that it will attempt to collect your station's resources through the use of swarms of drones. This entity is
+				 also believed to have a remarkable influence over radio devices, so caution around trusted technology is highly advised. It's unclear
+				 how aggressive the entity actually is, but extreme reservation must be taken."}

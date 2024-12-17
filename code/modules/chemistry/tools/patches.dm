@@ -1,13 +1,3 @@
-
-
-
-/mob/living/proc/handle_skin(var/mult = 1)
-	if (src.skin_process && length(src.skin_process))
-		for(var/obj/item/reagent_containers/patch/P in skin_process)
-			//P.process_skin(src, XXX * mult)
-			continue
-
-
 /* ================================================= */
 /* -------------------- Patches -------------------- */
 /* ================================================= */
@@ -23,9 +13,8 @@
 	var/style = "patch"
 	initial_volume = 30
 	event_handler_flags = HANDLE_STICKER | USE_FLUID_ENTER
+	flags = TABLEPASS | SUPPRESSATTACK | EXTRADELAY
 	rc_flags = RC_SPECTRO		// only spectroscopic analysis
-	module_research = list("medicine" = 1, "science" = 1)
-	module_research_type = /obj/item/reagent_containers/patch
 	var/in_use = 0
 	var/good_throw = 0
 
@@ -33,6 +22,7 @@
 	var/overlay_key = 0
 	var/atom/attached = 0
 	var/sticker_icon_state = "patch"
+	var/do_sticker_thing = FALSE
 
 	New()
 		..()
@@ -41,7 +31,8 @@
 			src.reagents.temperature_min = 270	//you can remove/adjust these afterr you fix burns from reagnets being super strong
 
 	on_reagent_change()
-		src.update_icon()
+		..()
+		src.UpdateIcon()
 		if (src.reagents)
 			src.reagents.temperature_cap = 440
 			src.reagents.temperature_min = 270
@@ -53,6 +44,8 @@
 			if (src.reagents && src.reagents.total_temperature < src.reagents.temperature_min)
 				src.reagents.total_temperature = src.reagents.temperature_min
 
+	proc/can_operate_on(atom/A)
+		.= (iscarbon(A) || ismobcritter(A))
 
 	proc/clamp_reagents()
 		if (src.reagents.total_temperature > src.reagents.temperature_cap)
@@ -61,7 +54,8 @@
 			src.reagents.total_temperature = src.reagents.temperature_min
 
 
-	proc/update_icon()
+	update_icon()
+
 		src.underlays = null
 		if (src.reagents && src.reagents.total_volume)
 			icon_state = "[src.style]1"
@@ -93,40 +87,40 @@
 			if (user && E)
 				user.show_text("You press on the patch with [E]. The current from [E] closes the tamper-proof seal.", "blue")
 			src.medical = 1
-			src.update_icon()
+			src.UpdateIcon()
 			return 1
 
-	attackby(obj/item/W as obj, mob/user as mob)
+	set_loc(newloc, storage_check)
+		. = ..()
+		if (src.active && newloc != null)
+			qdel(src)
+
+	attackby(obj/item/W, mob/user)
 		return
 
 	attack_self(mob/user as mob)
-		if (src.in_use)
+		if (ON_COOLDOWN(user, "self-patch", user.combat_click_delay))
 			return
 
 		if (src.borg == 1 && !issilicon(user))
 			user.show_text("This item is not designed with organic users in mind.", "red")
 			return
 
-		if (iscarbon(user) || ismobcritter(user))
-			src.in_use = 1
-			user.visible_message("[user] applies [src] to [himself_or_herself(user)].",\
-			"<span class='notice'>You apply [src] to yourself.</span>")
-			logTheThing("combat", user, null, "applies a patch to themself [log_reagents(src)] at [log_loc(user)].")
-			apply_to(user,0,user=user)
-			attach_sticker_manual(user)
+		if (can_operate_on(user))
+			user.Attackby(src, user)
 		return
 
-	throw_impact(atom/M, datum/thrown_thing/thr)
+	throw_impact(atom/hit_thing, datum/thrown_thing/thr)
 		..()
-		if (src.medical && !borg && !src.in_use && (iscarbon(M) || ismobcritter(M)))
+		if (src.medical && !borg && !src.in_use && (can_operate_on(hit_thing)))
 			if (prob(30) || good_throw && prob(70))
 				src.in_use = 1
-				M.visible_message("<span class='alert'>[src] lands on [M] sticky side down!</span>")
-				logTheThing("combat", M, usr, "is stuck by a patch [log_reagents(src)] thrown by [constructTarget(usr,"combat")] at [log_loc(M)].")
-				apply_to(M,usr)
-				attach_sticker_manual(M)
+				hit_thing.visible_message(SPAN_ALERT("[src] lands on [hit_thing] sticky side down!"))
+				logTheThing(LOG_COMBAT, hit_thing, "is stuck by a patch [log_reagents(src)] thrown by [constructTarget(usr,"combat")] at [log_loc(hit_thing)].")
+				apply_to(hit_thing, usr)
+				attach_sticker(hit_thing)
 
-	attack(mob/M as mob, mob/user as mob)
+	attack(mob/target, mob/user, def_zone, is_special = FALSE, params = null)
 		if (src.in_use)
 			//DEBUG_MESSAGE("[src] in use")
 			return
@@ -136,57 +130,61 @@
 			return
 
 		// No src.reagents check here because empty patches can be used to counteract bleeding.
-
-		if (iscarbon(M) || ismobcritter(M))
+		if (can_operate_on(target))
 			src.in_use = 1
-			if (M == user)
-				//M.show_text("You put [src] on your arm.", "blue")
-				M.visible_message("[user] applies [src] to [himself_or_herself(user)].",\
-				"<span class='notice'>You apply [src] to yourself.</span>")
+			if (target == user)
+				//target.show_text("You put [src] on your arm.", "blue")
+				target.visible_message("[user] applies [src] to [himself_or_herself(user)].",\
+				SPAN_NOTICE("You apply [src] to yourself."))
 			else
 				if (medical == 0)
-					user.visible_message("<span class='alert'><b>[user]</b> is trying to stick [src] to [M]'s arm!</span>",\
-					"<span class='alert'>You try to stick [src] to [M]'s arm!</span>")
-					logTheThing("combat", user, M, "tries to apply a patch [log_reagents(src)] to [constructTarget(M,"combat")] at [log_loc(user)].")
+					user.visible_message(SPAN_ALERT("<b>[user]</b> is trying to stick [src] to [target]'s arm!"),\
+					SPAN_ALERT("You try to stick [src] to [target]'s arm!"))
+					logTheThing(LOG_COMBAT, user, "tries to apply a patch [log_reagents(src)] to [constructTarget(target,"combat")] at [log_loc(user)].")
 
-					if (!do_mob(user, M))
+					if (!do_mob(user, target))
 						if (user && ismob(user))
 							user.show_text("You were interrupted!", "red")
 						src.in_use = 0
 						return
 					// No src.reagents check here because empty patches can be used to counteract bleeding.
 
-					user.visible_message("<span class='alert'><b>[user]</b> sticks [src] to [M]'s arm.</span>",\
-					"<span class='alert'>You stick [src] to [M]'s arm.</span>")
-					attach_sticker_manual(M)
+					user.visible_message(SPAN_ALERT("<b>[user]</b> sticks [src] to [target]'s arm."),\
+					SPAN_ALERT("You stick [src] to [target]'s arm."))
 
 				else if (borg == 1)
-					user.visible_message("<span class='notice'><b>[user]</b> stamps [src] on [M].</span>",\
-					"<span class='notice'>You stamp [src] on [M].</span>")
-					if (user.mind && user.mind.objectives && M.health < 90) //might as well let people complete this even if they're borged
+					user.visible_message(SPAN_NOTICE("<b>[user]</b> stamps [src] on [target]."),\
+					SPAN_NOTICE("You stamp [src] on [target]."))
+					if (user.mind && user.mind.objectives && target.health < 90) //might as well let people complete this even if they're borged
 						for (var/datum/objective/crew/medicaldoctor/heal/H in user.mind.objectives)
 							H.patchesused ++
 						JOB_XP(user, "Medical Doctor", 1)
 				else
-					user.visible_message("<span class='notice'><b>[user]</b> applies [src] to [M].</span>",\
-					"<span class='notice'>You apply [src] to [M].</span>")
-					if (user.mind && user.mind.objectives && M.health < 90)
+					user.visible_message(SPAN_NOTICE("<b>[user]</b> applies [src] to [target]."),\
+					SPAN_NOTICE("You apply [src] to [target]."))
+					if (user.mind && user.mind.objectives && target.health < 90)
 						for (var/datum/objective/crew/medicaldoctor/heal/H in user.mind.objectives)
 							H.patchesused ++
 						JOB_XP(user, "Medical Doctor", 1)
 
-			logTheThing("combat", user, M, "applies a patch to [constructTarget(M,"combat")] [log_reagents(src)] at [log_loc(user)].")
+			logTheThing(user == target ? LOG_CHEMISTRY : LOG_COMBAT, user, "applies a patch to [constructTarget(target,"combat")] [log_reagents(src)] at [log_loc(user)].")
 
 			src.clamp_reagents()
 
-			apply_to(M,user=user)
+			apply_to(target,user=user)
+			attach_sticker(target, user, params)
 			return 1
 
 		return 0
 
 	proc/apply_to(mob/M as mob, mob/user as mob)
-		repair_bleeding_damage(M, 25, 1)
-		active = 1
+		if(isliving(M))
+			var/mob/living/L = M
+			if (L.bleeding <= 3)
+				repair_bleeding_damage(M, 25, 1)
+
+		else
+			repair_bleeding_damage(M, 25, 1)
 
 		if (reagents?.total_volume)
 			if (!borg)
@@ -196,16 +194,18 @@
 				src.set_loc(M)
 				if (isliving(M))
 					var/mob/living/L = M
-					L.skin_process += src
+					L.applied_patches += src
+					L.setStatus("patches_applied", INFINITE_STATUS)
+					src.do_sticker_thing = TRUE
 			else
-				reagents.reaction(M, TOUCH, paramslist = list("nopenetrate"))
+				reagents.reaction(M, TOUCH, paramslist = list("nopenetrate","ignore_chemprot"))
 
 				var/datum/reagents/R = new
 				reagents.copy_to(R)
 				R.trans_to(M, reagents.total_volume/2)
 				src.in_use = 0
 
-			playsound(src, 'sound/items/sticker.ogg', 50, 1)
+			playsound(src, 'sound/items/sticker.ogg', 50, TRUE)
 
 		else
 			if (!borg)
@@ -213,51 +213,30 @@
 				qdel(src)
 			else
 				src.in_use = 0
+		active = 1
 
-	afterattack(var/atom/A as mob|obj|turf, var/mob/user as mob, reach, params)
-		.= 0
-		if (!attached && ismob(A) && medical)
-			//do image stuff
-			var/pox = src.pixel_x
-			var/poy = src.pixel_y
-			if (params)
-				if (islist(params) && params["icon-y"] && params["icon-x"])
-					pox = text2num(params["icon-x"]) - 16
-					poy = text2num(params["icon-y"]) - 16
+	proc/attach_sticker(atom/A, mob/user=null, list/params=null)
+		if (attached)
+			return FALSE
 
-			var/image/sticker = image('icons/misc/stickers.dmi', sticker_icon_state)
+		var/pox = rand(-2,2)
+		var/poy = rand(-2,2)
+		if (islist(params) && params["icon-y"] && params["icon-x"])
+			pox = text2num(params["icon-x"]) - 16
+			poy = text2num(params["icon-y"]) - 16
 
-			sticker.layer = A.layer + 1
-			sticker.icon_state = sticker_icon_state
-			sticker.appearance_flags = RESET_COLOR
+		var/image/sticker = image('icons/misc/stickers.dmi', sticker_icon_state)
 
-			sticker.pixel_x = pox
-			sticker.pixel_y = poy
-			overlay_key = "patch[world.timeofday]"
-			attached = A
-			A.UpdateOverlays(sticker, overlay_key)
+		sticker.layer = A.layer + 1
+		sticker.icon_state = sticker_icon_state
+		sticker.appearance_flags = RESET_COLOR | PIXEL_SCALE
 
-			.= 1
-
-	proc/attach_sticker_manual(var/atom/A as mob|obj|turf)
-		.= 0
-		if (!attached)
-			//do image stuff
-			var/pox = rand(-2,2)
-			var/poy = rand(-2,2)
-
-			var/image/sticker = image('icons/misc/stickers.dmi', sticker_icon_state)
-
-			sticker.layer = A.layer + 1
-			sticker.icon_state = sticker_icon_state
-			sticker.appearance_flags = RESET_COLOR
-
-			sticker.pixel_x = pox
-			sticker.pixel_y = poy
-			overlay_key = "patch[world.timeofday]"
-			attached = A
-			A.UpdateOverlays(sticker, overlay_key)
-			.= 1
+		sticker.pixel_x = pox
+		sticker.pixel_y = poy
+		overlay_key = "patch[world.timeofday]"
+		attached = A
+		A.UpdateOverlays(sticker, overlay_key)
+		return TRUE
 
 
 	disposing()
@@ -266,7 +245,9 @@
 
 			if (isliving(attached))
 				var/mob/living/L = attached
-				L.skin_process -= src
+				L.applied_patches -= src
+				if (!length(L.applied_patches))
+					L.delStatus("patches_applied")
 		..()
 
 /* =================================================== */
@@ -313,7 +294,6 @@
 	desc = "What is this?"
 	icon_state = "patch_LSD"
 	initial_reagents = list("LSD"=20)
-	module_research = list("vice" = 10)
 
 	cyborg
 		borg = 1
@@ -323,13 +303,13 @@
 	desc = "A highly potent hallucinogenic substance. It smells like honey."
 	icon_state = "patch_LSBee"
 	initial_reagents = list("lsd_bee"=20)
-	module_research = list("vice" = 10)
 
 /obj/item/reagent_containers/patch/vr
 	icon = 'icons/effects/VR.dmi'
 	icon_state = "patch_med"
 
 	update_icon()
+
 		return
 
 /obj/item/reagent_containers/patch/vr/bruise
@@ -379,12 +359,21 @@
 	medical = 1
 	initial_reagents = "synthflesh"
 
+/obj/item/reagent_containers/patch/synthetic
+	name = "synthetic anticyst"
+	desc = "It reeks like an abandoned TV dinner. Hopefully it's healthier than one."
+	icon_state = "synthpatch"
+	style = "synthpatch"
+	sticker_icon_state = "synthpatch"
+	initial_volume = 10
+	initial_reagents = "synthflesh"
+
 /obj/item/patch_stack
 	name = "Patch Stack"
 	desc = "A stack, holding patches. The top patch can be used."
 	icon = 'icons/obj/chemical.dmi'
 	icon_state = "patch_stack"
-	flags = FPRINT | TABLEPASS | SUPPRESSATTACK
+	flags = TABLEPASS | SUPPRESSATTACK
 	var/list/patches = list()
 
 	proc/update_overlay()
@@ -410,7 +399,7 @@
 	attackby(var/obj/item/W, var/mob/user)
 		if (patches.len)
 			var/obj/item/reagent_containers/patch/P = patches[patches.len]
-			P.attackby(W, user)
+			P.Attackby(W, user)
 
 	attack_self(var/mob/user)
 		if (patches.len)
@@ -418,9 +407,9 @@
 			P.set_loc(user.loc)
 			patches -= P
 			update_overlay()
-			boutput(user, "<span class='notice'>You remove [P] from the stack.</span>")
+			boutput(user, SPAN_NOTICE("You remove [P] from the stack."))
 		else
-			boutput(user, "<span class='alert'>There are no patches on the stack.</span>")
+			boutput(user, SPAN_ALERT("There are no patches on the stack."))
 
 	attack() //Or you're gonna literally attack someone with it. *thwonk* style
 		return
@@ -431,15 +420,13 @@
 				if (ismob(target.loc))
 					var/mob/U = target.loc
 					U.u_equip(target)
-				else if (istype(target.loc, /obj/item/storage))
-					var/obj/item/storage/U = target.loc
-					U.contents -= target
-					if (U.hud)
-						U.hud.update()
+				else if (istype(target, /obj/item))
+					var/obj/item/I = target
+					I.stored?.transfer_stored_item(I, src, user = user)
 				target.set_loc(src)
 				patches += target
 				update_overlay()
-				boutput(user, "<span class='notice'>You add [target] to the stack.</span>")
+				boutput(user, SPAN_NOTICE("You add [target] to the stack."))
 		else if (isliving(target))
 			if (patches.len)
 				var/obj/item/reagent_containers/patch/P = patches[patches.len]
@@ -448,11 +435,15 @@
 				P.attack(H, user, user.zone_sel && user.zone_sel.selecting ? user.zone_sel.selecting : null)
 
 				update_overlay()
-				SPAWN_DBG(6 SECONDS)
+				SPAWN(6 SECONDS)
 					update_overlay()
 
 
 //mender
+TYPEINFO(/obj/item/reagent_containers/mender)
+	mats = list("metal_dense" = 5,
+				"crystal" = 4,
+				"gold" = 5)
 /obj/item/reagent_containers/mender
 	name = "auto-mender"
 	desc = "A small electronic device designed to topically apply healing chemicals."
@@ -462,11 +453,10 @@
 	var/tampered = 0
 	var/borg = 0
 	initial_volume = 200
-	flags = FPRINT | TABLEPASS | OPENCONTAINER | ONBELT | NOSPLASH | ATTACK_SELF_DELAY
+	flags = TABLEPASS | OPENCONTAINER | NOSPLASH | ATTACK_SELF_DELAY | ACCEPTS_MOUSEDROP_REAGENTS
+	c_flags = ONBELT
 	click_delay = 0.7 SECONDS
 	rc_flags = RC_SCALE | RC_VISIBLE | RC_SPECTRO
-	module_research = list("medicine" = 4, "science" = 4)
-	module_research_type = /obj/item/reagent_containers/patch
 
 	var/list/whitelist = list()
 	var/use_volume = 8
@@ -481,12 +471,20 @@
 		if (src.reagents)
 			src.reagents.temperature_cap = 330
 			src.reagents.temperature_min = 270
+			src.reagents.temperature_reagents(change_min = 0, change_cap = 0)
+		if(borg)
+			src.flags &= ~ACCEPTS_MOUSEDROP_REAGENTS
 
-	on_reagent_change()
-		src.update_icon()
-		if (src.reagents)
+	on_reagent_change(add)
+		..()
+		if (src.reagents && (src.reagents.total_temperature > 330 || src.reagents.total_temperature < 270))
 			src.reagents.temperature_cap = 330
 			src.reagents.temperature_min = 270
+			src.reagents.temperature_reagents(change_min = 0, change_cap = 0)
+		if (!tampered && add)
+			check_whitelist(src, src.whitelist)
+		src.UpdateIcon()
+
 
 	is_open_container()
 		if (borg)
@@ -497,7 +495,7 @@
 	proc/can_operate_on(atom/A)
 		.= (iscarbon(A) || ismobcritter(A))
 
-	proc/update_icon()
+	update_icon()
 		if (reagents.total_volume)
 			if (!src.fluid_image)
 				src.fluid_image = image('icons/obj/chemical.dmi', "mender-fluid", -1)
@@ -512,39 +510,56 @@
 		if (user && E)
 			user.show_text("You press on [src] with [E]. The anti-tamper lock is broken.", "blue")
 		src.tampered = 1
-		src.update_icon()
+		src.UpdateIcon()
 		return 1
 
-	on_reagent_change(add)
-		if (!tampered && add)
-			check_whitelist(src, src.whitelist)
-		src.update_icon()
+	emp_act()
+		. = ..()
+		src.visible_message(SPAN_ALERT("[src] malfunctions and identifies all substaces as harmful, removing them!"))
+		playsound(src, "sparks", 75, 1, -1)
+		src.reagents?.clear_reagents()
 
 	attack_self(mob/user as mob)
 		if (can_operate_on(user))
 			src.attack(user,user) //do self operation
 		return
 
-	attack(mob/M as mob, mob/user as mob)
+	attackby(obj/item/W, mob/user)
+		if (istype(W, /obj/item/reagent_containers/mender_refill_cartridge))
+			var/obj/item/reagent_containers/mender_refill_cartridge/refill = W
+			refill.do_refill(src, user)
+			return
+		..()
+
+	attack(mob/target, mob/user, def_zone, is_special = FALSE, params = null)
 		if (src.borg == 1 && !issilicon(user))
 			user.show_text("This item is not designed with organic users in mind.", "red")
 			return
 
-		if (can_operate_on(M) && !actions.hasAction(user,"automender_apply"))
-			if (M == user)
-				M.visible_message("[user] begins mending [himself_or_herself(user)] with [src].",\
-					"<span class='notice'>You begin mending yourself with [src].</span>")
+		if (can_operate_on(target) && !actions.hasAction(user, /datum/action/bar/icon/automender_apply))
+			if (target == user)
+				target.visible_message("[user] begins mending [himself_or_herself(user)] with [src].",\
+					SPAN_NOTICE("You begin mending yourself with [src]."))
 			else
-				user.visible_message("<span class='alert'><b>[user]</b> begins mending [M] with [src].</span>",\
-					"<span class='alert'>You begin mending [M] with [src].</span>")
-				if (M.health < 90)
+				user.visible_message(SPAN_ALERT("<b>[user]</b> begins mending [target] with [src]."),\
+					SPAN_ALERT("You begin mending [target] with [src]."))
+				if (target.health < 90)
 					JOB_XP(user, "Medical Doctor", 2)
 
-			logTheThing("combat", user, M, "begins automending [constructTarget(M,"combat")] [log_reagents(src)] at [log_loc(user)].")
-			begin_application(M,user=user)
+			logTheThing(user == target ? LOG_CHEMISTRY : LOG_COMBAT, user, "begins automending [constructTarget(target,"combat")] [log_reagents(src)] at [log_loc(user)].")
+			begin_application(target,user=user)
 			return 1
 
 		return 0
+
+	afterattack(obj/target, mob/user, flag)
+		if(is_reagent_dispenser(target) && target.reagents)
+			if (!target.reagents.total_volume)
+				boutput(user, SPAN_ALERT("[target] is already empty."))
+				return
+			playsound(src.loc, 'sound/items/mender_refill_juice.ogg', 50, 1)
+			target.reagents.trans_to(src, src.reagents.maximum_volume)
+			return
 
 	proc/begin_application(mob/M as mob, mob/user as mob)
 		actions.start(new/datum/action/bar/icon/automender_apply(user,src,M), user)
@@ -555,7 +570,7 @@
 		var/use_volume_adjusted = use_volume * mult
 
 		if (reagents?.total_volume)
-			var/list/params = list("nopenetrate")
+			var/list/params = list("nopenetrate","ignore_chemprot")
 			if (silent)
 				params.Add("silent")
 
@@ -567,10 +582,8 @@
 				var/datum/reagents/R = new
 				reagents.copy_to(R)
 				R.trans_to(M, use_volume_adjusted/2)
-			logTheThing("combat", user, M, " automends [constructTarget(M,"combat")] [log_reagents(src)] at [log_loc(user)].")
 
 			playsound(src, pick(sfx), 50, 1)
-
 
 
 /obj/item/reagent_containers/mender/brute
@@ -596,10 +609,13 @@
 /obj/item/reagent_containers/mender/both
 	initial_reagents = "synthflesh"
 
+/obj/item/reagent_containers/mender/both/mini
+	initial_volume = 50
+	initial_reagents = "synthflesh"
+
 /datum/action/bar/icon/automender_apply
 	duration = 10
 	interrupt_flags = INTERRUPT_MOVE | INTERRUPT_STUNNED | INTERRUPT_ATTACKED
-	id = "automender_apply"
 	icon = 'icons/obj/chemical.dmi'
 	icon_state = "mender-active"
 	var/mob/living/user
@@ -618,14 +634,14 @@
 
 	onUpdate()
 		..()
-		if(get_dist(user, target) > 1 || user == null || target == null)
+		if(BOUNDS_DIST(user, target) > 0 || user == null || target == null)
 			interrupt(INTERRUPT_ALWAYS)
 			return
 
 
 	onStart()
 		..()
-		if(get_dist(user, target) > 1 || user == null || target == null)
+		if(BOUNDS_DIST(user, target) > 0 || user == null || target == null)
 			interrupt(INTERRUPT_ALWAYS)
 			return
 		src.loopStart()
@@ -648,7 +664,7 @@
 		M.apply_to(target,user, multiply, silent = (looped >= 1))
 
 	onEnd()
-		if(get_dist(user, target) > 1 || user == null || target == null || !user.find_in_hand(M))
+		if(BOUNDS_DIST(user, target) > 0 || user == null || target == null || !user.find_in_hand(M))
 			..()
 			interrupt(INTERRUPT_ALWAYS)
 			return
@@ -663,3 +679,69 @@
 
 		looped++
 		src.onRestart()
+
+	onInterrupt(flag)
+		. = ..()
+		logTheThing(user == target ? "chemistry" : "combat", user, " finishes automending [constructTarget(M,"combat")] [log_reagents(M)] after [looped] applications at [log_loc(user)].")
+
+//basically the same as ecig_refill_cartridge, but there's no point subtyping it...
+ABSTRACT_TYPE(/obj/item/reagent_containers/mender_refill_cartridge)
+/obj/item/reagent_containers/mender_refill_cartridge
+	name = "auto-mender refill cartridge"
+	desc = "A container designed to be able to quickly refill medical auto-menders."
+	icon = 'icons/obj/chemical.dmi'
+	initial_volume = 200
+	initial_reagents = "nicotine"
+	// item_state = "ecigrefill"
+	icon_state = "mender-refill"
+	flags = TABLEPASS
+	var/image/fluid_image
+
+	New()
+		..()
+		UpdateIcon()
+
+	update_icon()
+		if (reagents.total_volume)
+			var/fluid_state = round(clamp((src.reagents.total_volume / src.reagents.maximum_volume * 4), 1, 4))
+			if (!src.fluid_image)
+				src.fluid_image = image('icons/obj/chemical.dmi', "mender-refill-fluid-4", -1)
+			var/datum/color/average = reagents.get_average_color()
+			src.fluid_image.color = average.to_rgba()
+			src.fluid_image.icon_state = "mender-refill-fluid-[fluid_state]"
+			src.UpdateOverlays(src.fluid_image, "fluid")
+
+		else
+			src.ClearSpecificOverlays("fluid")
+
+		signal_event("icon_updated")
+
+	proc/do_refill(var/obj/item/reagent_containers/mender, var/mob/user)
+		if (src?.reagents.total_volume > 0)
+			src.reagents.trans_to(mender, src.reagents.total_volume)
+			src.UpdateIcon()
+			playsound(src, 'sound/items/mender_refill_juice.ogg', 50, TRUE)
+			if (src.reagents.total_volume == 0)
+				boutput(user, SPAN_NOTICE("You refill [mender] to [mender.reagents.total_volume]u and empty [src]!"))
+			else
+				boutput(user, SPAN_NOTICE("You refill [mender] to [mender.reagents.total_volume]u!"))
+		else
+			boutput(user, SPAN_ALERT("You attempt to refill [mender], but [src] is empty!"))
+
+/obj/item/reagent_containers/mender_refill_cartridge/brute
+	name = "brute auto-mender refill cartridge"
+	initial_reagents = "styptic_powder"
+	high_capacity
+		initial_volume = 500
+
+/obj/item/reagent_containers/mender_refill_cartridge/burn
+	name = "burn auto-mender refill cartridge"
+	initial_reagents = "silver_sulfadiazine"
+	high_capacity
+		initial_volume = 500
+
+/obj/item/reagent_containers/mender_refill_cartridge/both
+	name = "synthflesh auto-mender refill cartridge"
+	initial_reagents = "synthflesh"
+	high_capacity
+		initial_volume = 500

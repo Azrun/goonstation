@@ -14,7 +14,7 @@
 	icon = 'icons/misc/retribution/SWORD_loot.dmi'
 	icon_state = "engine_mangled"
 	density = 1
-	anchored = 0
+	anchored = UNANCHORED
 	requires_power = FALSE
 	var/output = 30000
 	var/lastout = 0
@@ -28,7 +28,7 @@
 	var/lastexcess = 0
 	var/online = 0
 	var/integrity_state = 0		//0 - covered in mangled metal. 1 - normal, panel closed. 2 - normal, panel open.
-	var/core_inserted = true
+	var/core_inserted = TRUE
 	var/obj/machinery/power/terminal/terminal = null
 	var/image/glow
 	var/image/core
@@ -37,83 +37,83 @@
 		. = {"It's [online ? "on" : "off"]line. [charging ? "It's charging, and it" : "It"] looks about [round(charge / capacity * 100, 20)]% full. [integrity_state ? "This engine, even with the metal debris removed, seems nigh unfixable" : "It looks quite broken"]. [core_inserted ? "It would be wise to repurpose it's core for something else, as it's still intact" : "The core is missing.."]."}
 
 
-/obj/machinery/power/sword_engine/attackby(obj/item/W as obj, mob/user as mob)
+/obj/machinery/power/sword_engine/attackby(obj/item/W, mob/user)
 	if (integrity_state == 0 && isweldingtool(W) && W:try_weld(user,1))
-		boutput(user, "<span class='notice'>You removed the mangled metal from the SWORD Engine!</span>")
+		boutput(user, SPAN_NOTICE("You removed the mangled metal from the SWORD Engine!"))
 		desc = "The remains of the SWORD's Engine, salvaged to work as a better SMES unit. The core is installed."
 		var/obj/item/material_piece/iridiumalloy/A = new /obj/item/material_piece/iridiumalloy(get_turf(src))
 		A.amount = 1
 		integrity_state = 1
 		online = 0
 		charging = 0
-		updateicon()
+		UpdateIcon()
 
 	else if (isscrewingtool(W))
 		if(integrity_state == 0)
-			boutput(user, "<span class='notice'>Pieces of mangled metal make screwing off the panel impossible!</span>")
+			boutput(user, SPAN_NOTICE("Pieces of mangled metal make screwing off the panel impossible!"))
 			return
-		playsound(src.loc, "sound/items/Screwdriver.ogg", 100, 1)
+		playsound(src.loc, 'sound/items/Screwdriver.ogg', 100, 1)
 		var/action_buffer = 0
 		if(integrity_state == 1)
-			boutput(user, "<span class='notice'>You unscrew the panel!</span>")
+			boutput(user, SPAN_NOTICE("You unscrew the panel!"))
 			integrity_state = 2
 			action_buffer++
 		if(integrity_state == 2 && action_buffer == 0)
-			boutput(user, "<span class='notice'>You screw the panel back!</span>")
+			boutput(user, SPAN_NOTICE("You screw the panel back!"))
 			integrity_state = 1
-		updateicon()
+		UpdateIcon()
 
 	else if (iswrenchingtool(W))
 		if(integrity_state == 0)
-			boutput(user, "<span class='notice'>Pieces of mangled metal make anchoring impossible!</span>")
+			boutput(user, SPAN_NOTICE("Pieces of mangled metal make anchoring impossible!"))
 			return
 		if (!istype(src.loc, /turf/simulated/floor/))
-			boutput(user, "<span class='alert'>Not sure what this floor is made of but you can't seem to wrench a hole for a bolt in it.</span>")
+			boutput(user, SPAN_ALERT("Not sure what this floor is made of but you can't seem to wrench a hole for a bolt in it."))
 			return
-		playsound(src.loc, "sound/items/Ratchet.ogg", 100, 1)
+		playsound(src.loc, 'sound/items/Ratchet.ogg', 100, 1)
 		var/turf/T = get_turf(user)
 		if(src.anchored == 0)
-			boutput(user, "<span class='notice'>Now securing the SWORD Engine.</span>")
+			boutput(user, SPAN_NOTICE("Now securing the SWORD Engine."))
 		else
-			boutput(user, "<span class='notice'>Now unsecuring the SWORD Engine.</span>")
+			boutput(user, SPAN_NOTICE("Now unsecuring the SWORD Engine."))
 		sleep(4 SECONDS)
 		if (!istype(src.loc, /turf/simulated/floor/))
-			boutput(user, "<span class='alert'>You feel like your body is being ripped apart from the inside. Maybe you shouldn't try that again. For your own safety, I mean.</span>")
+			boutput(user, SPAN_ALERT("You feel like your body is being ripped apart from the inside. Maybe you shouldn't try that again. For your own safety, I mean."))
 			return
 		if(get_turf(user) == T)
 			if(src.anchored == 0)
-				boutput(user, "<span class='notice'>You secured the SWORD Engine!</span>")
-				src.anchored = 1
+				boutput(user, SPAN_NOTICE("You secured the SWORD Engine!"))
+				src.anchored = ANCHORED
 				//terminal_setup()
 			else
-				boutput(user, "<span class='notice'>You unsecured the SWORD Engine!</span>")
-				src.anchored = 0
+				boutput(user, SPAN_NOTICE("You unsecured the SWORD Engine!"))
+				src.anchored = UNANCHORED
 				//for(var/obj/machinery/power/terminal/temp_term in get_turf(src))
 				//	if(temp_term.master == src)
 				//		qdel(temp_term)
 				//		terminal = null
-		updateicon()
-	
+		UpdateIcon()
+
 	else if (integrity_state == 2 && ispryingtool(W) && core_inserted)
-		if (user.hasStatus(list("weakened", "paralysis", "stunned")) || !isalive(user))
+		if (user.hasStatus(list("knockdown", "unconscious", "stunned")) || !isalive(user))
 			user.show_text("Not when you're incapacitated.", "red")
 		user.shock(src, rand(5000, 30000))
 		elecflash(src)
 		if (src.online)
 			src.online = 0
-		core_inserted = false
+		core_inserted = FALSE
 		user.put_in_hand_or_drop(new /obj/item/sword_core)
-		user.show_message("<span class='notice'>You remove the SWORD core from the SWORD Engine!</span>", 1)
+		user.show_message(SPAN_NOTICE("You remove the SWORD core from the SWORD Engine!"), 1)
 		desc = "The remains of the SWORD's Engine, salvaged to work as a better SMES unit. The core is missing."
-		updateicon()
+		UpdateIcon()
 	else if (integrity_state == 2 && (istype(W,/obj/item/sword_core) && !core_inserted))
-		core_inserted = true
+		core_inserted = TRUE
 		qdel(W)
-		user.show_message("<span class='notice'>You insert the SWORD core into the SWORD Engine!</span>", 1)
+		user.show_message(SPAN_NOTICE("You insert the SWORD core into the SWORD Engine!"), 1)
 		desc = "The remains of the SWORD's Engine, salvaged to work as a better SMES unit. The core is installed."
 		online = 0
 		charging = 0
-		updateicon()
+		UpdateIcon()
 
 
 /obj/machinery/power/sword_engine/emp_act()
@@ -124,7 +124,7 @@
 	src.charge -= 5e5
 	if (src.charge < 0)
 		src.charge = 0
-	SPAWN_DBG(10 SECONDS)
+	SPAWN(10 SECONDS)
 		src.output = initial(src.output)
 		src.charging = initial(src.charging)
 		src.online = 1
@@ -141,7 +141,7 @@
 
 
 /obj/machinery/power/sword_engine/proc/terminal_setup()
-	SPAWN_DBG(1)
+	SPAWN(1)
 		terminal = new /obj/machinery/power/terminal
 		terminal.set_loc(get_turf(src))
 		terminal.dir = src.dir
@@ -150,10 +150,10 @@
 			return
 		else
 			terminal.master = src
-		updateicon()
+		UpdateIcon()
 
 
-/obj/machinery/power/sword_engine/proc/updateicon()
+/obj/machinery/power/sword_engine/update_icon()
 	if (integrity_state == 0)
 		icon_state = "engine_mangled"
 		UpdateOverlays(null, "glow")
@@ -205,8 +205,9 @@
 		if (charging)
 			if (excess >= 0)									//If there's power available, attempts to charge.
 				load = min(capacity-charge, chargelevel)		//Charges at set rate, limited to the spare capacity.
-				charge += load									//Increases the charge.
-				add_load(load)									//Adds the load to the terminal side network.
+				if(terminal.add_load(load))									//Attempt to add load to network...
+					charge += load								//and increase the charge if successful.
+
 			else												//If there is not enough capacity...
 				charging = 0									//...it stops charging.
 				chargecount  = 0
@@ -224,7 +225,7 @@
 
 	if (online)
 		if (prob(5))
-			SPAWN_DBG(1 DECI SECOND)
+			SPAWN(1 DECI SECOND)
 				playsound(src.loc, pick(ambience_power), 60, 1)
 
 		lastout = min(charge, output)	//Limits the output to what is stored.
@@ -237,7 +238,7 @@
 			online = 0
 
 	if (last_disp != chargedisplay() || last_chrg != charging || last_onln != online)
-		updateicon()
+		UpdateIcon()
 
 	src.updateDialog()
 
@@ -263,18 +264,12 @@
 	loaddemand = lastout - excess
 
 	if (clev != chargedisplay())
-		updateicon()
+		UpdateIcon()
 
 
 /obj/machinery/power/sword_engine/add_avail(var/amount)
 	if (terminal && terminal.powernet)
 		terminal.powernet.newavail += amount
-
-
-/obj/machinery/power/sword_engine/add_load(var/amount)
-	if (terminal && terminal.powernet)
-		terminal.powernet.newload += amount
-
 
 /obj/machinery/power/sword_engine/ui_state(mob/user)
 	return tgui_default_state
@@ -335,8 +330,8 @@
 			else if(adjust)
 				src.chargelevel = clamp((src.chargelevel + adjust), 0 , SEMAXCHARGELEVEL)
 				. = TRUE
-			else if(text2num(target) != null)
-				src.chargelevel = clamp(text2num(target), 0 , SEMAXCHARGELEVEL)
+			else if(text2num_safe(target) != null)
+				src.chargelevel = clamp(text2num_safe(target), 0 , SEMAXCHARGELEVEL)
 				. = TRUE
 		if("set-output")
 			var/target = params["target"]
@@ -350,10 +345,10 @@
 			else if(adjust)
 				src.output = clamp((src.output + adjust), 0 , SEMAXOUTPUT)
 				. = TRUE
-			else if(text2num(target) != null)
-				src.output = clamp(text2num(target), 0 , SEMAXOUTPUT)
+			else if(text2num_safe(target) != null)
+				src.output = clamp(text2num_safe(target), 0 , SEMAXOUTPUT)
 				. = TRUE
-	src.updateicon()
+	src.UpdateIcon()
 
 #undef SEMAXCHARGELEVEL
 #undef SEMAXOUTPUT

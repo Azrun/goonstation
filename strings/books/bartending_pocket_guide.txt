@@ -13,7 +13,7 @@
 			<br>To salt the rim of a glass, just pour salt into a beaker or make some of your own at a Chemical Dispenser, then hit the glass with it. You'll want to do this when you've already poured your drink of choice into the glass, so you don't accidentally end up adding salt into the drinking glass!
 	    <br><hr>
 	    <b>Part Three, Defending the bar and beyond the drink dispenser</b>
-	    <br>Look at that, now you know the basics. While normally the Bar is a fairly peaceful place, sometimes people have a bad day or made poor decisions and choose to take it out on your patrons. Luckily for you, an armory-grade riot shotgun has been issued to you in order to silence these rough-housers. Be warned though, you don't formally have a gun licence on the station and the robots might not take kindly to you luggin' it around.
+	    <br>Look at that, now you know the basics. While normally the Bar is a fairly peaceful place, sometimes people have a bad day or made poor decisions and choose to take it out on your patrons. Luckily for you, a sawn-off double barreled shotgun has been issued to you in order to silence these rough-housers. Be warned though, you don't formally have a gun licence on the station and the robots might not take kindly to you luggin' it around.
 	    <br>
 	    <br>And now, if you are still feeling lost, here is a small list of the most commonly ordered drinks by crew.
 	    <br>
@@ -21,13 +21,13 @@
 	    <br>Old Fashioned: Bourbon + Bitters + Sugar + Water
 	    <br>Screwdriver: Vodka + Orange Juice
 	    <br>Martini: Gin + Vermouth
-	    <br>Sex on the Beach: Screwdriver + Cranberry Juice
+	    <br>Bliss on the Beach: Screwdriver + Cranberry Juice
 	    <br>Whiskey Sour: Bourbon + Lemonade
 	    <br>
 	    <br>Now, if you still feel like you can do better, maybe it might be in your best interest to do some real Mixology and try your hand at discovering some of the drinks Nanotrasen doesn't want you to know about.
 	    <br>
 	    <br>Dragon's Breath: Spicy, alcoholic liquid firewater, fairly safe after new mixing regulations came into play but still has a very slight chance to instantly turn you to dust when drinking it.
-	    <br>Freeze: Liquid hypothermia, somehow extremely cold even if you heat it to 1000 Kelvin; like Dragon's Breath it has a very slight chance toruin your shift by turning you into an ice statue.
+	    <br>Freeze: Liquid hypothermia, somehow extremely cold even if you heat it to 1000 Kelvin; like Dragon's Breath it has a very slight chance to ruin your shift by turning you into an ice statue.
 	    <br>Grog: A pirate's disgusting dream, somehow perfectly safe to drink even with a PH level of 1 and a piratry level of over 9000.
 	    <br>Mutini: An odd drink of clashing chemicals. Gives you both horrific mutations and brain damage while curing it at the same time. A very good party starter.
 	    <br><hr>

@@ -59,8 +59,8 @@
 						P.metadata = list()
 
 					var/is_folder = istype(P, /datum/computer/folder)
-					message += "\[[add_zero("[is_folder ? "--" : P.size]", 2)]] [add_zero( (P.metadata && ("group" in P.metadata) && isnum(text2num(P.metadata["group"])) ? "[P.metadata["group"]]" : "ANY"), 3)][print_file_permissions(P)] [is_folder ? "DIR" : "[copytext(P:extension,1,4)]"]"
-					message += " [add_lspace((!P.metadata || isnull(P.metadata["owner"]) ? "Nobody" : P.metadata["owner"]), 16)] [P.name]|n"
+					message += "\[[add_zero("[is_folder ? "--" : P.size]", 2)]] [add_zero( (P.metadata && ("group" in P.metadata) && isnum(text2num_safe(P.metadata["group"])) ? "[P.metadata["group"]]" : "ANY"), 3)][print_file_permissions(P)] [is_folder ? "DIR" : "[copytext(P:extension,1,4)]"]"
+					message += " [pad_leading((!P.metadata || isnull(P.metadata["owner"]) ? "Nobody" : P.metadata["owner"]), 16)] [P.name]|n"
 				else
 					if (dd_hasprefix(P.name, "_"))
 						continue
@@ -75,9 +75,9 @@
 			if (descriptive && istype(listfolder, /datum/computer/file))
 				var/datum/computer/file/P = listfolder
 				var/message = "\[[add_zero("[P.size]", 2)]] "
-				message += add_zero((P.metadata && P.metadata.Find("group") && isnum(text2num(P.metadata["group"])) ? "[P.metadata["group"]]" : "ANY"), 3)
+				message += add_zero((P.metadata && P.metadata.Find("group") && isnum(text2num_safe(P.metadata["group"])) ? "[P.metadata["group"]]" : "ANY"), 3)
 				message += "[print_file_permissions(P)] [copytext(P.extension,1,4)]"
-				message += " [add_lspace(( (!P.metadata || !P.metadata.Find("owner") || isnull(P.metadata["owner"])) ? "Nobody" : P.metadata["owner"]), 16)] [P.name]|n"
+				message += " [pad_leading(( (!P.metadata || !P.metadata.Find("owner") || isnull(P.metadata["owner"])) ? "Nobody" : P.metadata["owner"]), 16)] [P.name]|n"
 				message_user(message, "multiline")
 			else
 				message_user("Error: Invalid resource or directory.")
@@ -270,7 +270,7 @@
 			return
 
 		var/list/initlist = splittext(initparams, " ")
-		if (!initparams || initlist.len < 2)
+		if (!initparams || length(initlist) < 2)
 			message_user("Error: Filepaths of target and destination must be specified.")
 			mainframe_prog_exit
 			return
@@ -337,7 +337,7 @@
 			return
 
 		var/list/initlist = splittext(initparams, " ")
-		if (!initparams || initlist.len < 2)
+		if (!initparams || length(initlist) < 2)
 			message_user("Error: Filepaths of target and new location must be specified.")
 			mainframe_prog_exit
 			return
@@ -465,7 +465,7 @@
 			return
 
 		var/list/initlist = splittext(initparams, " ")
-		if (!initparams || initlist.len < 2)
+		if (!initparams || length(initlist) < 2)
 			message_user("Error: Must specify target and link paths.")
 			mainframe_prog_exit
 			return
@@ -585,12 +585,12 @@
 			return
 
 		var/list/initlist = splittext(initparams, " ")
-		if (!initparams || initlist.len < 2)
+		if (!initparams || length(initlist) < 2)
 			message_user("Error: Must specify permission value and target path.")
 			mainframe_prog_exit
 			return
 
-		var/newpermissions = text2num(initlist[1])
+		var/newpermissions = text2num_safe(initlist[1])
 		if (!isnum(newpermissions))
 			message_user("Error: Invalid permission value.")
 			mainframe_prog_exit
@@ -668,7 +668,7 @@
 			return
 
 		var/list/initlist = splittext(initparams, " ")
-		if (!initparams || initlist.len < 2)
+		if (!initparams || length(initlist) < 2)
 			message_user("Error: Must specify owner/group value(s) and target path.")
 			mainframe_prog_exit
 			return
@@ -677,13 +677,13 @@
 		var/newgroup = null
 
 		var/list/newlist = splittext(initlist[1], ":") //New owner/group values should given in form owner:group
-		if (!newlist.len || newlist.len > 2)
+		if (!newlist.len || length(newlist) > 2)
 			message_user("Error: Input values should be of form \[owner]:\[group]")
 			mainframe_prog_exit
 			return
 
-		if (newlist.len == 2)
-			newgroup = text2num(newlist[2])
+		if (length(newlist) == 2)
+			newgroup = text2num_safe(newlist[2])
 			if (isnull(newgroup))
 				message_user("Error: Invalid group ID.")
 				mainframe_prog_exit
@@ -734,6 +734,7 @@
 		if ("[access_dwaine_superuser]" in accessList)
 			if(signal_program(1, list("command"=DWAINE_COMMAND_UGROUP, "group"=0)) == ESIG_SUCCESS)
 				message_user("You are now authorized.")
+				usr.unlock_medal("I'm in", 1)
 			else
 				message_user("Error: Unable to authorize.")
 		else
@@ -763,7 +764,7 @@
 			return
 
 		var/list/initlist = splittext(initparams, " ")
-		if (!initparams || initlist.len < 2)
+		if (!initparams || length(initlist) < 2)
 			message_user("Error: Must specify device file and mount point names.")
 			mainframe_prog_exit
 			return
@@ -797,7 +798,7 @@
 			return
 
 		var/list/initlist = splittext(initparams, " ")
-		if (initlist.len > 1)
+		if (length(initlist) > 1)
 			var/case_sensitive = 1
 			var/print_only_match = 0
 			var/recursive = 0
@@ -819,7 +820,7 @@
 				if (findtext(options, "h"))
 					plain = 1
 				initlist.Cut(1,2)
-				if (initlist.len < 2)
+				if (length(initlist) < 2)
 					. += "No pattern or target file. Try 'help grep'"
 					mainframe_prog_exit
 					return
@@ -835,8 +836,9 @@
 				return
 
 			var/current = read_user_field("curpath")
-			for (var/i = 2, i <= initlist.len, i++)
 
+			var/list/grep_results = list()
+			for (var/i = 2, i <= initlist.len, i++)
 				if (!dd_hasprefix(initlist[i], "/"))
 					initlist[i] = "[current]" + (current == "/" ? null : "/") + initlist[i]
 
@@ -853,8 +855,6 @@
 					if (istype(listfolder))
 						for(var/datum/computer/P in listfolder.contents)
 							initlist.Add(initlist[i]+"/"+P.name)
-					. += ""
-
 				else if (istype(to_check, /datum/computer/file/record))
 					var/j = 0
 					for (var/textLine in to_check:fields)
@@ -864,17 +864,19 @@
 
 						if (R.Find(case_sensitive ? "[textLine][to_check:fields[textLine]]" : lowertext("[textLine][to_check:fields[textLine]]")))
 							if (print_only_match)
-								. += "[R.match]|n"
+								grep_results += "[R.match]"
 							else if (plain)
-								. += "[textLine][to_check:fields[textLine]]|n"
+								grep_results += "[textLine][to_check:fields[textLine]]"
 							else
-								. += "[to_check.name]:[j]:" + "[textLine][to_check:fields[textLine]]|n"
+								grep_results += "[to_check.name]:[j]:" + "[textLine][to_check:fields[textLine]]"
 						R = null
 				else
 					if(no_messages)
-						. += "[to_check] could not be read.|n"
+						grep_results += "[to_check] could not be read."
 
-			if (.)
+			if (length(grep_results))
+				message_user("[jointext(grep_results, "|n")]", "multiline")
+			else if (.)
 				message_user(., "multiline")
 
 		mainframe_prog_exit
@@ -1414,4 +1416,4 @@
 	initialize(var/initparams)
 		message_user(read_user_field("curpath"))
 		mainframe_prog_exit
-	
+

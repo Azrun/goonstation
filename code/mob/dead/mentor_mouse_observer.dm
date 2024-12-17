@@ -1,6 +1,8 @@
 /mob/dead/target_observer/mentor_mouse_observer
 	name = "mentor mouse"
 	real_name = "mentor mouse"
+	is_respawnable = FALSE
+	locked = TRUE
 	var/image/ping
 	var/ping_id
 	var/mob/the_guy
@@ -23,12 +25,13 @@
 		src.ping.blend_mode = BLEND_ADD
 		src.ping.layer = HUD_LAYER_3
 		src.ping.plane = PLANE_HUD
+		src.ping.appearance_flags = PIXEL_SCALE | RESET_COLOR | RESET_TRANSFORM | RESET_ALPHA
 
 	process_move(keys)
 		if(keys && src.move_dir && !src.leave_popup_open)
 			src.leave_popup_open = TRUE
-			if(alert(src, "Are you sure you want to leave?", "Hop out of the pocket", "Yes", "No") == "Yes")
-				src.stop_observing()
+			if(tgui_alert(src, "Are you sure you want to leave?", "Hop out of the pocket", list("Yes", "No")) == "Yes")
+				qdel(src)
 			src.leave_popup_open = FALSE
 
 	click(atom/target, params) // TODO spam delay
@@ -49,16 +52,16 @@
 		src.ping.loc = target
 
 		src.ping.alpha = 0
-		var/matrix/M = unpool(/matrix)
+		var/matrix/M = new /matrix
 		M.Reset()
 		M.Scale(3/2, 3/2)
 		src.ping.transform = M
 		M.Scale(1/10, 1/10)
 		animate(src.ping, alpha = 255, time = 1 SECOND, easing = SINE_EASING)
 		animate(src.ping, transform = M, time = 1 SECOND, easing = BACK_EASING, flags = ANIMATION_PARALLEL)
-		pool(M)
+		qdel(M)
 
-		SPAWN_DBG(1 SECONDS)
+		SPAWN(1 SECONDS)
 			if(my_id == src.ping_id) // spam clicking and stuff
 				animate(src.ping, alpha = 0, time = 0.3 SECOND, easing = SINE_EASING)
 				animate(src.ping, transform = null, time = 0.3 SECOND, easing = SINE_EASING, flags = ANIMATION_PARALLEL)
@@ -69,13 +72,13 @@
 	examine_verb(atom/A)
 		. = ..()
 		if(istype(A, /obj/machinery/computer3))
-			A.attack_hand(src)
+			A.Attackhand(src)
 
 	say_understands(var/other)
 		return 1
 
 	say(var/message)
-		message = trim(copytext(sanitize(message), 1, MAX_MESSAGE_LEN))
+		message = trimtext(copytext(sanitize(message), 1, MAX_MESSAGE_LEN))
 
 		if (!message)
 			return
@@ -84,14 +87,14 @@
 			return
 
 		if(src.is_admin)
-			logTheThing("diary", src, null, "(ADMINMOUSE): [message]", "say")
+			logTheThing(LOG_DIARY, src, "(ADMINMOUSE): [message]", "say")
 		else
-			logTheThing("diary", src, null, "(MENTORMOUSE): [message]", "say")
+			logTheThing(LOG_DIARY, src, "(MENTORMOUSE): [message]", "say")
 
 		if (src.client && src.client.ismuted())
 			boutput(src, "You are currently muted and may not speak.")
 			return
-
+		SEND_SIGNAL(src, COMSIG_MOB_SAY, message)
 #ifdef DATALOGGER
 		game_stats.ScanText(message)
 #endif
@@ -99,8 +102,8 @@
 		var/more_class = " mhelp"
 		if(src.is_admin)
 			more_class = " adminooc"
-		var/rendered = "<span class='game say[more_class]'><span class='name' data-ctx='\ref[src.mind]'>[src.name]</span> whispers, <span class='message'>\"[message]\"</span></span>"
-		var/rendered_admin = "<span class='game say[more_class]'><span class='name' data-ctx='\ref[src.mind]'>[src.name] ([src.ckey])</span> whispers, <span class='message'>\"[message]\"</span></span>"
+		var/rendered = "<span class='game say[more_class]'><span class='name' data-ctx='\ref[src.mind]'>[src.name]</span> whispers, [SPAN_MESSAGE("\"[message]\"")]</span>"
+		var/rendered_admin = "<span class='game say[more_class]'><span class='name' data-ctx='\ref[src.mind]'>[src.name] ([src.ckey])</span> whispers, [SPAN_MESSAGE("\"[message]\"")]</span>"
 
 		//show message to admins
 		for (var/client/C)
@@ -116,14 +119,13 @@
 
 		boutput(src, rendered)
 		boutput(src.the_guy, rendered)
+		src.the_guy.playsound_local_not_inworld('sound/misc/mentorhelp.ogg', 60, flags = SOUND_IGNORE_SPACE | SOUND_SKIP_OBSERVERS | SOUND_IGNORE_DEAF, channel = VOLUME_CHANNEL_MENTORPM)
 
 	emote(act, voluntary=0)
+		..()
 		src.my_mouse.emote(act, voluntary)
 
 	stop_observing()
-		boot()
-
-	ghostize()
 		boot()
 
 	disposing()

@@ -1,11 +1,15 @@
+TYPEINFO(/obj/submachine/claw_machine)
+	mats = list("metal" = 5,
+				"conductive" = 5,
+				"crystal" = 5,
+				"fabric" = 5)
 /obj/submachine/claw_machine
 	name = "claw machine"
 	desc = "Sure we got our health insurance benefits cut, and yeah we don't get any overtime on holidays, but hey - free to play claw machines!"
 	icon = 'icons/obj/plushies.dmi'
 	icon_state = "claw"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
-	mats = list("MET-1"=5, "CON-1"=5, "CRY-1"=5, "FAB-1"=5)
 	deconstruct_flags = DECON_MULTITOOL | DECON_WRENCH | DECON_CROWBAR
 	var/busy = 0
 	var/list/prizes = list(/obj/item/toy/plush/small/bee,\
@@ -13,7 +17,7 @@
 	/obj/item/toy/plush/small/kitten,\
 	/obj/item/toy/plush/small/monkey,\
 	/obj/item/toy/plush/small/possum,\
-	/obj/item/toy/plush/small/wendigo,\
+	/obj/item/toy/plush/small/brullbar,\
 	/obj/item/toy/plush/small/bunny,\
 	/obj/item/toy/plush/small/penguin)
 	var/list/prizes_rare = list(/obj/item/toy/plush/small/bee/cute,\
@@ -28,44 +32,109 @@
 	/obj/item/toy/plush/small/fancyflippers,\
 	/obj/item/toy/plush/small/billy,\
 	/obj/item/toy/plush/small/arthur,\
-	/obj/item/toy/plush/small/deneb)
+	/obj/item/toy/plush/small/deneb,\
+	/obj/item/toy/plush/small/singuloose)
+	var/has_plushies = TRUE
 
-/obj/submachine/claw_machine/attack_hand(var/mob/user as mob)
+/obj/submachine/claw_machine/attack_hand(var/mob/user)
 	src.add_dialog(user)
 	if(src.busy)
-		boutput(user, "<span class='alert'>Someone else is currently playing [src]. Be patient!</span>")
+		boutput(user, SPAN_ALERT("Someone else is currently playing [src]. Be patient!"))
 	else
+		if(!has_plushies && !length(src.contents))
+			boutput(user, SPAN_ALERT("[src] seems to be out of prizes, oh no! You could try adding a prize."))
+			return
 		actions.start(new/datum/action/bar/icon/claw_machine(user,src), user)
 		return
+
+/obj/submachine/claw_machine/attack_ai(mob/user)
+	if (isAIeye(user))
+		return
+	src.Attackhand(user)
+
+/obj/submachine/claw_machine/get_desc(dist)
+	. = ..()
+	if(length(src.contents))
+		var/list/prizes = list()
+		for(var/obj/item/I in src)
+			prizes += "\a [I]"
+		if(has_plushies)
+			prizes += "a lot of plushies"
+		if(length(prizes) == 1)
+			if(has_plushies)
+				. += "There are [prizes[1]] inside!"
+			else
+				. += "There is [prizes[1]] inside!"
+		else
+			. += "There are "
+			. += jointext(prizes.Copy(1, length(prizes)), ", ")
+			. += " and [prizes[length(prizes)]] inside!"
+	else
+		if(src.has_plushies)
+			. += "There are a lot of plushies inside!"
+		else
+			. += "It is currently empty."
+
+/obj/submachine/claw_machine/attackby(obj/item/I, mob/user)
+	if(I.cant_drop || I.tool_flags || isgrab(I))
+		return ..()
+	user.drop_item()
+	I.set_loc(src)
+	boutput(user, SPAN_NOTICE("You insert \the [I] into \the [src] as a prize."))
+
+/obj/submachine/claw_machine/custom_suicide = TRUE
+/obj/submachine/claw_machine/suicide(mob/user)
+	if (!src.user_can_suicide(user))
+		return FALSE
+	src.visible_message(SPAN_ALERT("<b>[user] crams [his_or_her(user)] whole body up through the prize chute! That looked painful!</b>"))
+	user.set_loc(src) // contents is used as prize list, no special handling
+	user.unequip_all()
+	bleed(user, 50, 50)
+	random_brute_damage(user, 200, FALSE)
+	playsound(src, 'sound/impact_sounds/Flesh_Break_1.ogg', 80)
+	SPAWN(45 SECONDS)
+		if (!isdead(user))
+			user.suiciding = FALSE
+	return TRUE
+
 
 /datum/action/bar/icon/claw_machine
 	duration = 100
 	interrupt_flags = INTERRUPT_MOVE | INTERRUPT_STUNNED | INTERRUPT_ACT | INTERRUPT_ACTION
-	id = "claw_machine"
 	icon = 'icons/obj/plushies.dmi'
 	icon_state = "claw_action"
+	resumable = FALSE
 	var/mob/M
 	var/obj/submachine/claw_machine/CM
 
 /datum/action/bar/icon/claw_machine/New(mob, machine)
 	M = mob
 	CM = machine
+	if(is_cheaty_ling(mob))
+		icon = 'icons/obj/items/human_parts.dmi'
+		icon_state = "arm_left_abomination" // this is not the claw arm sprite, I know, but it: 1) looks cooler, 2) is animated
 	..()
+
+/datum/action/bar/icon/claw_machine/proc/is_cheaty_ling(mob/M)
+	if(!ishuman(M))
+		return FALSE
+	var/mob/living/carbon/human/H = M
+	// changelings just grab the prize with their claw instead of using the machine claw
+	. = istype(H.limbs.r_arm, /obj/item/parts/human_parts/arm/right/claw) \
+		|| istype(H.limbs.r_arm, /obj/item/parts/human_parts/arm/right/abomination) \
+		|| istype(H.limbs.l_arm, /obj/item/parts/human_parts/arm/left/claw) \
+		|| istype(H.limbs.l_arm, /obj/item/parts/human_parts/arm/left/abomination)
 
 /datum/action/bar/icon/claw_machine/onUpdate()
 	..()
-	if(get_dist(M, CM) > 1 || M == null || CM == null)
+	if(BOUNDS_DIST(M, CM) > 0 || M == null || CM == null)
 		interrupt(INTERRUPT_ALWAYS)
 		return
-	if(prob(10) && !M.traitHolder?.hasTrait("claw"))
-		playsound(CM, 'sound/machines/claw_machine_fail.ogg', 80, 1)
-		M.visible_message("<span class='alert'>[M] flubs up and the claw drops [his_or_her(M)] prize!</spawn>")
+	if(prob(10) && !M.traitHolder?.hasTrait("claw") && !is_cheaty_ling(M))
+		playsound(CM, 'sound/machines/claw_machine_fail.ogg', 80, TRUE)
+		M.visible_message(SPAN_ALERT("[M] flubs up and the claw drops [his_or_her(M)] prize!"))
 		interrupt(INTERRUPT_ALWAYS)
 		return
-
-/datum/action/bar/icon/claw_machine/onResume()
-	..()
-	state = ACTIONSTATE_DELETE
 
 /datum/action/bar/icon/claw_machine/onInterrupt()
 	..()
@@ -74,25 +143,37 @@
 
 /datum/action/bar/icon/claw_machine/onStart()
 	..()
-	if(get_dist(M, CM) > 1 || M == null || CM == null)
+	if(BOUNDS_DIST(M, CM) > 0 || M == null || CM == null)
 		interrupt(INTERRUPT_ALWAYS)
 		return
-	playsound(CM, 'sound/machines/capsulebuy.ogg', 80, 1)
+	playsound(CM, 'sound/machines/capsulebuy.ogg', 80, TRUE)
 	CM.busy = 1
 	CM.icon_state = "claw_playing"
 
 /datum/action/bar/icon/claw_machine/onEnd()
 	..()
-	if(get_dist(M, CM) > 1 || M == null || CM == null)
+	if(BOUNDS_DIST(M, CM) > 0 || M == null || CM == null)
 		interrupt(INTERRUPT_ALWAYS)
 		return
 	CM.busy = 0
 	CM.icon_state = "claw"
-	playsound(CM, 'sound/machines/claw_machine_success.ogg', 80, 1)
-	M.visible_message("<span class='notice'>[M] successfully secures their precious goodie, and it drops into the prize chute with a satisfying <i>plop</i>.</span>")
-	var/obj/item/P = pick(prob(20) ? (prob(33) ? CM.prizes_ultra_rare : CM.prizes_rare) : CM.prizes)
-	P = new P(get_turf(src.M))
-	P.desc = "Your new best friend, rescued from a cold and lonely claw machine."
+	if(!CM.has_plushies && !length(CM.contents))
+		playsound(CM, 'sound/machines/claw_machine_fail.ogg', 80, TRUE)
+		M.visible_message(SPAN_ALERT("[CM] seems to be out of prizes, oh no!"))
+		return
+	playsound(CM, 'sound/machines/claw_machine_success.ogg', 80, TRUE)
+	M.visible_message(SPAN_NOTICE("[M] successfully secures their precious goodie, and it drops into the prize chute with a satisfying <i>plop</i>."))
+	var/list/prize_pool = null
+	if(CM.has_plushies)
+		prize_pool = prob(20) ? (prob(33) ? CM.prizes_ultra_rare : CM.prizes_rare) : CM.prizes
+	if(length(CM.contents) && (prob(50) || isnull(prize_pool)))
+		prize_pool = CM.contents
+	var/obj/item/P = pick(prize_pool)
+	if(ispath(P))
+		P = new P(get_turf(src.M))
+		P.desc = "Your new best friend, rescued from a cold and lonely claw machine."
+	else
+		P.set_loc(get_turf(src.M))
 	P.throw_at(M, 16, 3)
 
 /obj/item/toy/plush
@@ -106,23 +187,30 @@
 	throw_range = 3
 	rand_pos = 1
 
-/obj/item/toy/plush/proc/say_something(mob/user as mob)
-	var/message = input("What should [src] say?")
-	message = trim(copytext(sanitize(html_encode(message)), 1, MAX_MESSAGE_LEN))
-	if (!message || get_dist(src, user) > 1)
+/obj/item/toy/plush/proc/say_something(mob/user)
+	if(!user.client || isghostcritter(user)) // stupid monkeys...
 		return
-	logTheThing("say", user, null, "makes [src] say, \"[message]\"")
-	user.audible_message("<span class='emote'>[src] says, \"[message]\"</span>")
-	var/mob/living/carbon/human/H = user
-	if (H.sims)
-		H.sims.affectMotive("fun", 1)
+	if (user.hasStatus("muted") || user.bioHolder?.HasEffect("mute"))
+		boutput(user, SPAN_ALERT("You are unable to speak!"))
+		return
+	var/message = input("What should [src] say?")
+	message = trimtext(copytext(sanitize(html_encode(message)), 1, MAX_MESSAGE_LEN))
+	if (!message || BOUNDS_DIST(src, user) > 0)
+		return
+	phrase_log.log_phrase("plushie", message)
+	logTheThing(LOG_SAY, user, "makes [src] say, \"[message]\"")
+	user.audible_message(SPAN_EMOTE("[src] says, \"[message]\""))
+	if (ishuman(user))
+		var/mob/living/carbon/human/H = user
+		if (H.sims)
+			H.sims.affectMotive("fun", 1)
 
 /obj/item/toy/plush/attack_self(mob/user as mob)
 	src.say_something(user)
 
-/obj/item/toy/plush/attack(mob/M as mob, mob/user as mob)
+/obj/item/toy/plush/attack(mob/target, mob/user, def_zone, is_special = FALSE, params = null)
 	if (user.a_intent == INTENT_HELP)
-		M.visible_message("<span class='emote'>[src] gives [M] a hug!</span>", "<span class='emote'>[src] gives you a hug!</span>")
+		target.visible_message(SPAN_EMOTE("[src] gives [target] a hug!"), SPAN_EMOTE("[src] gives you a hug!"))
 	else
 		. = ..()
 
@@ -173,9 +261,9 @@
 	name = "possum plush toy"
 	icon_state = "possum"
 
-/obj/item/toy/plush/small/wendigo
-	name = "wendigo plush toy"
-	icon_state = "wendigo"
+/obj/item/toy/plush/small/brullbar
+	name = "brullbar plush toy"
+	icon_state = "brullbar"
 
 /obj/item/toy/plush/small/bunny
 	name = "bunny plush toy"
@@ -218,10 +306,12 @@
 	icon_state = "arthur"
 
 /obj/item/toy/plush/small/arthur/attack_self(mob/user as mob)
-	var/menuchoice = alert("What would you like to do with [src]?",,"Awoo","Say")
+	var/menuchoice = tgui_alert(user, "What would you like to do with [src]?", "Use [src]", list("Awoo", "Say"))
+	if (!menuchoice)
+		return
 	if (menuchoice == "Awoo" && !ON_COOLDOWN(src, "playsound", 2 SECONDS))
-		playsound(user, "sound/voice/babynoise.ogg", 50, 1)
-		src.audible_message("<span class='emote'>[src] awoos!</span>")
+		playsound(user, 'sound/voice/babynoise.ogg', 50, TRUE)
+		src.audible_message(SPAN_EMOTE("[src] awoos!"))
 	else if (menuchoice == "Say")
 		src.say_something(user)
 
@@ -232,10 +322,13 @@
 	throw_range = 10
 
 /obj/item/toy/plush/small/stress_ball/attack_self(mob/user as mob)
-	var/menuchoice = alert("What would you like to do with [src]?",,"Fidget","Say")
+	var/menuchoice = tgui_alert(user, "What would you like to do with [src]?", "Use [src]", list("Fidget", "Say"))
+	if (!menuchoice)
+		return
 	if (menuchoice == "Fidget")
-		user.visible_message("<span class='emote'>[user] fidgets with [src].</span>")
-		boutput(user, "<span class='notice'>You feel [pick("a bit", "slightly", "a teeny bit", "somewhat", "surprisingly", "")] [pick("better", "more calm", "more composed", "less stressed")].</span>")
+		animate_door_squeeze(src) //squish
+		user.visible_message(SPAN_EMOTE("[user] fidgets with [src]."))
+		boutput(user, SPAN_NOTICE("You feel [pick("a bit", "slightly", "a teeny bit", "somewhat", "surprisingly", "")] [pick("better", "more calm", "more composed", "less stressed")]."))
 	else if (menuchoice == "Say")
 		src.say_something(user)
 
@@ -244,9 +337,15 @@
 	icon_state = "deneb"
 
 /obj/item/toy/plush/small/deneb/attack_self(mob/user as mob)
-	var/menuchoice = alert("What would you like to do with [src]?",,"Honk","Say")
+	var/menuchoice = tgui_alert(user, "What would you like to do with [src]?", "Use [src]", list("Honk", "Say"))
+	if (!menuchoice)
+		return
 	if (menuchoice == "Honk" && !ON_COOLDOWN(src, "playsound", 2 SECONDS))
-		playsound(user, "sound/items/rubberduck.ogg", 50, 1)
-		src.audible_message("<span class='emote'>[src] honks!</span>")
+		playsound(user, 'sound/items/rubberduck.ogg', 50, TRUE)
+		src.audible_message(SPAN_EMOTE("[src] honks!"))
 	else if (menuchoice == "Say")
 		src.say_something(user)
+
+/obj/item/toy/plush/small/singuloose
+	name = "Singuloose the Singulo"
+	icon_state = "singuloose"

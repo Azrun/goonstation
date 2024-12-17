@@ -2,15 +2,16 @@
 	name = "wet concrete"
 	icon = 'icons/effects/effects.dmi'
 	icon_state = "concrete_wet"
-	anchored = 1
+	anchored = ANCHORED
 	density = 0
 	layer = OBJ_LAYER + 0.9
-	event_handler_flags = USE_CANPASS
+
 	var/const/initial_health = 10
 	_health = initial_health
 	_max_health = initial_health
 	var/c_quality = 0
 	var/created_time = 0
+	gas_impermeable = TRUE
 
 	New()
 		..()
@@ -26,12 +27,12 @@
 	disposing()
 		processing_items -= src
 		..()
-		
-	CanPass(atom/movable/mover, turf/target, height=1.5, air_group = 0)
+
+	Crossed(atom/movable/mover)
 		if(istype(mover, /mob))
 			var/mob/M = mover
 			M.setStatus(statusId = "slowed", duration = 0.5 SECONDS, optional = 4)
-			boutput(M, "<span class='alert'>Running through \the [src] is slowing you down...</span>")
+			boutput(M, SPAN_ALERT("Running through \the [src] is slowing you down..."))
 		return ..()
 
 	attackby(var/obj/item/I, var/mob/user)
@@ -39,7 +40,7 @@
 		..()
 
 	onDestroy()
-		src.visible_message("<span class='alert'>\The [src] breaks apart!</span>")
+		src.visible_message(SPAN_ALERT("\The [src] breaks apart!"))
 		..()
 
 /obj/concrete_wall
@@ -48,10 +49,9 @@
 	icon_state = "concrete"
 	density = 1
 	opacity = 0 	// changed in New()
-	anchored = 1
-	name = "concrete wall"
+	anchored = ANCHORED
 	desc = "A heavy duty wall made of concrete! This thing is gonna take some manual labour to get through..."
-	flags = FPRINT | CONDUCT | USEDELAY
+	flags = CONDUCT | USEDELAY
 	var/const/baseHealth = 30
 	_max_health = baseHealth //Health related nums can be changed thru update_strength()
 	_health = baseHealth
@@ -66,11 +66,11 @@
 			loc:ReplaceWithConcreteFloor()
 
 		update_nearby_tiles(1)
-		SPAWN_DBG(0.1 SECONDS)
-			RL_SetOpacity(1)
+		SPAWN(0.1 SECONDS)
+			set_opacity(1)
 
 	disposing()
-		RL_SetOpacity(0)
+		set_opacity(0)
 		density = 0
 		update_nearby_tiles(1)
 		..()
@@ -95,10 +95,10 @@
 		src.add_fingerprint(user)
 		user.lastattacked = src
 		if (user.bioHolder.HasEffect("hulk") && (prob(100 - strength*20))) //hulk smash
-			user.visible_message("<span class='alert'>[user] smashes through \the [src]! OH YEAH!!!</span>")
+			user.visible_message(SPAN_ALERT("[user] smashes through \the [src]! OH YEAH!!!"))
 			onDestroy()
 		else
-			boutput(user, "<span class='alert'>You hit \the [src] and really hurt your hand!</span>")
+			boutput(user, SPAN_ALERT("You hit \the [src] and really hurt your hand!"))
 			playsound(src.loc, pick(sounds_punch), 50, 1)
 			random_brute_damage(user, 5)
 		return
@@ -110,12 +110,12 @@
 		..()
 
 	onDestroy()
-		src.visible_message( "<span class='alert'>\The [src] crumbles to dust!</span>")
-		playsound(src.loc, "sound/impact_sounds/Stone_Scrape_1.ogg", 50, 1)
+		src.visible_message( SPAN_ALERT("\The [src] crumbles to dust!"))
+		playsound(src.loc, 'sound/impact_sounds/Stone_Scrape_1.ogg', 50, 1)
 		..()
 
 	proc/update_nearby_tiles(need_rebuild)
-		var/turf/simulated/source = loc
+		var/turf/source = src.loc
 		if (istype(source))
 			return source.update_nearby_tiles(need_rebuild)
 

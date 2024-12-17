@@ -1,8 +1,8 @@
 /obj/pod_base_critical_system
-	name = "Critical System"
+	name = "critical system"
 	icon = 'icons/obj/large/64x64.dmi'
 	icon_state = "critical_system"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 	bound_width = 64
 	bound_height = 64
@@ -99,10 +99,10 @@
 			if(!W:try_weld(user, 1))
 				return
 			take_damage(-30)
-			src.visible_message("<span class='alert'>[user] has fixed some of the damage on [src]!</span>")
+			src.visible_message(SPAN_ALERT("[user] has fixed some of the damage on [src]!"))
 			if(health >= health_max)
 				health = health_max
-				src.visible_message("<span class='alert'>[src] is fully repaired!</span>")
+				src.visible_message(SPAN_ALERT("[src] is fully repaired!"))
 			return
 
 		//normal damage stuff
@@ -112,7 +112,7 @@
 		..()
 
 	get_desc()
-		. = "<br><span class='notice'>It looks like it has [health] HP left out of [health_max] HP. You can just tell. What is \"HP\" though? </span>"
+		. = "<br>[SPAN_NOTICE("It looks like it has [health] HP left out of [health_max] HP. You can just tell. What is \"HP\" though? ")]"
 
 	proc/take_damage(var/damage, var/mob/user)
 		// if (damage > 0)
@@ -132,7 +132,7 @@
 
 			mode.announce_critical_system_damage(team_num, src)
 			suppress_damage_message = 1
-			SPAWN_DBG(2 MINUTES)
+			SPAWN(2 MINUTES)
 				suppress_damage_message = 0
 
 
@@ -144,8 +144,8 @@
 
 		//Friendly fire check
 		if (get_pod_wars_team_num(user) == team_num)
-			message_admins("[user] just committed friendly fire against their team's [src]!")
-			logTheThing("combat", user, "\[POD WARS\][user] attacks their own team's critical system [src].")
+			message_admins("[user] just committed friendly fire against [his_or_her(user)] team's [src]!")
+			logTheThing(LOG_COMBAT, user, "\[POD WARS\][user] attacks [his_or_her(user)] own team's critical system [src].")
 
 			if (istype(ticker.mode, /datum/game_mode/pod_wars))
 				var/datum/game_mode/pod_wars/mode = ticker.mode
@@ -154,7 +154,7 @@
 //////////////special clone pod///////////////
 
 /obj/machinery/clonepod/pod_wars
-	name = "Cloning Pod Deluxe"
+	name = "cloning pod deluxe"
 	meat_level = 1.#INF
 	var/last_check = 0
 	var/check_delay = 10 SECONDS
@@ -175,7 +175,7 @@
 					else if (team_num == TEAM_SYNDICATE)
 						team = mode.team_SY
 				last_check = world.time
-				INVOKE_ASYNC(src, /obj/machinery/clonepod/pod_wars.proc/growclone_a_ghost)
+				INVOKE_ASYNC(src, TYPE_PROC_REF(/obj/machinery/clonepod/pod_wars, growclone_a_ghost))
 		return..()
 
 	New()
@@ -186,6 +186,9 @@
 
 	ex_act(severity)
 		return
+
+	powered()
+		return TRUE
 
 	disposing()
 		..()
@@ -203,23 +206,24 @@
 			return
 
 		for(var/datum/mind/mind in to_search)
-			if((istype(mind.current, /mob/dead/observer) || isdead(mind.current)) && mind.current.client && !mind.dnr)
+			if((istype(mind.current, /mob/dead/observer) || isdead(mind.current)) && mind.current.client && !mind.get_player()?.dnr)
 				//prune puritan trait
 				mind.current?.traitHolder.removeTrait("puritan")
-				var/success = growclone(mind.current, mind.current.real_name, mind, mind.current?.bioHolder, traits=mind.current?.traitHolder.traits.Copy())
+				var/success = growclone(mind.current, mind.current.real_name, mind, mind.current?.bioHolder, traits=mind.current?.traitHolder.copy())
 				if (success && team)
-					SPAWN_DBG(1)
+					SPAWN(1)
 						team.equip_player(src.occupant, FALSE)
 				break
 
 ////////////////////////////////////////////////
 
 /obj/forcefield/energyshield/perma/pod_wars
-	name = "Permanent Military-Grade Forcefield"
+	name = "permanent military-grade forcefield"
 	desc = "A permanent force field that prevents non-authorized entities from passing through it."
 	var/team_num = 0		//1 = NT, 2 = SY
+	gas_impermeable = TRUE
 
-	CanPass(atom/A, turf/T)
+	Cross(atom/A)
 		if (ismob(A))
 			var/mob/M = A
 			if (team_num == get_pod_wars_team_num(M))
@@ -233,31 +237,24 @@
 	team_num = 2
 	color = "#FF6666"
 
+ABSTRACT_TYPE(/obj/item/turret_deployer/pod_wars)
 /obj/item/turret_deployer/pod_wars
-	name = "Turret Deployer"
+	name = "turret deployer"
 	desc = "A turret deployment thingy. Use it in your hand to deploy."
 	icon_state = "st_deployer"
-	w_class = 4
+	w_class = W_CLASS_BULKY
 	health = 125
 	quick_deploy_fuel = 2
-	var/turret_path = /obj/deployable_turret/pod_wars
-
-	//this is a band aid cause this is broke, delete this override when merged properly and fixed.
-	// attackby(obj/item/W, mob/user)
-	// 	user.lastattacked = src
-	// 	..()
+	associated_turret = /obj/deployable_turret/pod_wars
 
 	spawn_turret(var/direct)
-		var/obj/deployable_turret/pod_wars/turret = new turret_path(src.loc,direction=direct)
-		turret.health = src.health
+		var/obj/deployable_turret/pod_wars/turret = ..()
 		turret.reconstruction_time = 0		//can't reconstruct itself
-		//turret.emagged = src.emagged
-		turret.damage_words = src.damage_words
-		turret.quick_deploy_fuel = src.quick_deploy_fuel
 		return turret
 
+ABSTRACT_TYPE(/obj/deployable_turret/pod_wars)
 /obj/deployable_turret/pod_wars
-	name = "Ship Defense Turret"
+	name = "ship defense turret"
 	desc = "A ship defense turret."
 	health = 100
 	max_health = 100
@@ -267,26 +264,23 @@
 	fire_rate = 3 // rate of fire in shots per second
 	angle_arc_size = 180
 	quick_deploy_fuel = 2
-	var/deployer_path = /obj/deployable_turret/pod_wars
+	associated_deployer = /obj/item/turret_deployer/pod_wars
+	can_toggle_activation = FALSE
 	var/destroyed = 0
 	var/reconstruction_time = 5 MINUTES
 
 	//Might be nice to allow players to "repair"  Dead turrets to speed up their timer, but not now. too lazy - kyle
-
-	New(var/direction)
-		..(direction=direction)
-
 	//just "deactivates"
 	die()
-		playsound(get_turf(src), "sound/impact_sounds/Machinery_Break_1.ogg", 50, 1)
 		if (!destroyed)
+			playsound(get_turf(src), 'sound/impact_sounds/Machinery_Break_1.ogg', 50, 1)
 			destroyed = 1
 			new /obj/decal/cleanable/robot_debris(src.loc)
 			src.alpha = 30
-			src.opacity = 0
+			src.set_opacity(0)
 			if (reconstruction_time)
 				sleep(reconstruction_time)
-				src.opacity = 1
+				src.set_opacity(1)
 				src.alpha = 255
 				health = initial(health)
 				destroyed = 0
@@ -294,51 +288,9 @@
 			else
 				..()
 
-	spawn_deployer()
-		var/obj/item/turret_deployer/deployer = new deployer_path(src.loc)
-		deployer.health = src.health
-		//deployer.emagged = src.emagged
-		deployer.damage_words = src.damage_words
-		deployer.quick_deploy_fuel = src.quick_deploy_fuel
-		return deployer
-
-	seek_target()
-		src.target_list = list()
-		for (var/mob/living/C in mobs)
-			if(!src)
-				break
-
-			if (!isnull(C) && src.target_valid(C))
-				src.target_list += C
-				var/distance = get_dist(C.loc,src.loc)
-				src.target_list[C] = distance
-
-			else
-				continue
-
-		//VERY POSSIBLY UNNEEDED, -KYLE
-		// for (var/obj/machinery/vehicle/V in by_cat[TR_CAT_PODS_AND_CRUISERS])
-		// 	if (pod_target_valid(V))
-		// 		var/distance = get_dist(V.loc,src.loc)
-		// 		target_list[V] = distance
-
-		if (src.target_list.len>0)
-			var/min_dist = 99999
-
-			for (var/atom/T in src.target_list)
-				if (src.target_list[T] < min_dist)
-					src.target = T
-					min_dist = src.target_list[T]
-
-			src.icon_state = "[src.icon_tag]_active"
-
-			playsound(src.loc, "sound/vox/woofsound.ogg", 40, 1)
-
-		return src.target
-
 	//VERY POSSIBLY UNNEEDED, -KYLE
 	// proc/pod_target_valid(var/obj/machinery/vehicle/V )
-	// 	var/distance = get_dist(V.loc,src.loc)
+	// 	var/distance = GET_DIST(V.loc,src.loc)
 	// 	if(distance > src.range)
 	// 		return 0
 
@@ -349,18 +301,17 @@
 
 /obj/item/turret_deployer/pod_wars/nt
 	icon_tag = "nt"
-	turret_path = /obj/deployable_turret/pod_wars/nt
+	associated_turret = /obj/deployable_turret/pod_wars/nt
 
 /obj/deployable_turret/pod_wars/nt
-	deployer_path = /obj/deployable_turret/pod_wars/nt
+	associated_deployer = /obj/item/turret_deployer/pod_wars/nt
 	projectile_type = /datum/projectile/laser/blaster/pod_pilot/blue_NT/turret
-	current_projectile = new/datum/projectile/laser/blaster/pod_pilot/blue_NT/turret
 	icon_tag = "nt"
 
 	is_friend(var/mob/living/C)
 		if (!C.ckey || !C.mind)
 			return 1
-		if (C.mind?.special_role == "NanoTrasen")
+		if (C.mind?.special_role != "Syndicate")
 			return 1
 		else
 			return 0
@@ -368,6 +319,8 @@
 /obj/deployable_turret/pod_wars/nt/activated
 	anchored=1
 	active=1
+	deconstructable = FALSE
+
 	north
 		dir=NORTH
 	south
@@ -380,18 +333,17 @@
 
 /obj/item/turret_deployer/pod_wars/sy
 	icon_tag = "st"
-	turret_path = /obj/deployable_turret/pod_wars/sy
+	associated_turret = /obj/deployable_turret/pod_wars/sy
 
 /obj/deployable_turret/pod_wars/sy
-	deployer_path = /obj/deployable_turret/pod_wars/sy
+	associated_deployer = /obj/item/turret_deployer/pod_wars/sy
 	projectile_type = /datum/projectile/laser/blaster/pod_pilot/red_SY/turret
-	current_projectile = new/datum/projectile/laser/blaster/pod_pilot/red_SY/turret
 	icon_tag = "st"
 
 	is_friend(var/mob/living/C)
 		if (!C.ckey || !C.mind)
 			return 1
-		if (C.mind.special_role == "Syndicate")
+		if (C.mind.special_role != "NanoTrasen")
 			return 1
 		else
 			return 0
@@ -399,6 +351,7 @@
 /obj/deployable_turret/pod_wars/sy/activated
 	anchored=1
 	active=1
+	deconstructable = FALSE
 	north
 		dir=NORTH
 	south
@@ -409,7 +362,7 @@
 		dir=WEST
 
 /obj/item/shipcomponent/secondary_system/lock/pw_id
-	name = "ID Card Hatch Locking Unit"
+	name = "\improper ID card hatch locking unit"
 	desc = "A basic hatch locking mechanism with a ID card scanner."
 	system = "Lock"
 	f_active = 1
@@ -430,8 +383,8 @@
 
 			if (isnull(assigned_id))
 				if (istype(I))
-					boutput(usr, "<span class='notice'>[ship]'s locking mechinism recognizes [I] as its key!</span>")
-					playsound(src.loc, "sound/machines/ping.ogg", 50, 0)
+					boutput(user, SPAN_NOTICE("[ship]'s locking mechinism recognizes [I] as its key!"))
+					playsound(src.loc, 'sound/machines/ping.ogg', 50, 0)
 					assigned_id = I
 					team_num = get_team(I)
 					ship.locked = 0
@@ -440,7 +393,7 @@
 			if (istype(I))
 				if (I == assigned_id || get_team(I) == team_num)
 					ship.locked = !ship.locked
-					boutput(usr, "<span class='alert'>[ship] is now [ship.locked ? "locked" : "unlocked"]!</span>")
+					boutput(user, SPAN_ALERT("[ship] is now [ship.locked ? "locked" : "unlocked"]!"))
 
 
 
@@ -471,7 +424,7 @@
 		else
 			var/flavor = pick("doesn't like you", "can tell you don't deserve it", "saw into your very soul and found you wanting", "hates you", "thinks you stink", "thinks you two should start seeing other people", "doesn't trust you", "finds your lack of faith disturbing", "is just not that into you", "gently weeps")
 			//stolen from Captain's Explosive Spare ID down below...
-			boutput(user, "<span class='alert'>The ID card [flavor] and <b>explodes!</b></span>")
+			boutput(user, SPAN_ALERT("The ID card [flavor] and <b>explodes!</b>"))
 			make_fake_explosion(src)
 			user.u_equip(src)
 			src.dropped(user)
@@ -485,11 +438,25 @@
 
 	syndicate
 		icon_state = "pda-syn"
+		desc = "A cheap knockoff looking portable microcomputer claiming to be made by ElecTek LTD. It has a slot for an ID card, and a hole to put a pen into."
+		locked_bg_color = TRUE
+		bg_color = "#A33131"
+		r_tone = /datum/ringtone/basic/ring10
+		screen_x = 2
+		window_title = "Personnel Data Actuator"
 		setup_default_module = /obj/item/device/pda_module/flashlight/sy_red
 		team_num = TEAM_SYNDICATE
 
+		New()
+			..()
+			var/datum/computer/file/text/pda2manual/old_manual = locate() in src.hd.root.contents
+			src.hd.root.remove_file(old_manual)
+			var/datum/computer/file/pda_program/emergency_alert/crisis = locate() in src.hd.root.contents
+			src.hd.root.remove_file(crisis)
+			src.hd.root.add_file(new /datum/computer/file/text/pda2manual/knockoff)
+
 /obj/item/device/pda_module/flashlight/nt_blue
-	name = "NanoTrasen Blue Flashlight Module"
+	name = "\improper NanoTrasen blue flashlight module"
 	desc = "Love (or work for) NanoTrasen? This'll be your favorite flashlight!"
 	lumlevel = 0.8
 	light_r = 61
@@ -498,7 +465,7 @@
 
 
 /obj/item/device/pda_module/flashlight/sy_red
-	name = "Syndicate Red Flashlight Module"
+	name = "\improper Syndicate red flashlight module"
 	desc = "Hate (or used to work for) NanoTrasen? This'll be your favorite flashlight!"
 	lumlevel = 0.8
 	//#ff4043
@@ -507,7 +474,7 @@
 	light_b = 67
 
 /obj/item/disk/data/cartridge/pod_pilot
-	name = "\improper Standard Utility cartridge"
+	name = "standard utility cartridge"
 	desc = "A must for any one who braves the vast emptiness of space."
 	icon_state = "cart-network"
 
@@ -549,52 +516,63 @@
 
 	//You can only pick this up if you're on the correct team, otherwise it explodes.
 	//exactly the same as /obj/item/card/id/pod_wars. Copy paste bad, but these two things I don't want people stealing, would be real lame... Might get rid of in the future if this structure isn't required.
+#if defined(MAP_OVERRIDE_POD_WARS)
 	attack_hand(mob/user)
 		if (get_pod_wars_team_num(user) == team)
 			..()
 		else
-			boutput(user, "<span class='alert'>The headset <b>explodes</b> as you reach out to grab it!</span>")
+			boutput(user, SPAN_ALERT("The headset <b>explodes</b> as you reach out to grab it!"))
 			make_fake_explosion(src)
 			user.u_equip(src)
 			src.dropped(user)
 			qdel(src)
+#endif
 
 /obj/item/device/radio/headset/pod_wars/nanotrasen
-	name = "Radio Headset"
-	desc = "A radio headset that is also capable of communicating over... wait, isn't that frequency illegal?"
+	name = "radio headset"
+	desc = "A radio headset that is also capable of communicating over, this one is tuned into a NanoTrasen frequency"
 	icon_state = "headset"
 	secure_frequencies = list("g" = R_FREQ_SYNDICATE)
 	secure_classes = list(RADIOCL_COMMAND)
 	secure_colors = list("#0099cc")
 	icon_override = "nt"
+	icon_tooltip = "NanoTrasen"
 	team = TEAM_NANOTRASEN
 
 	commander
-		icon_override = "cap"	//get better thingy
+		icon_override = "ntboss"	//get better thingy // better thingy gotten
+		icon_tooltip = "NanoTrasen Commander"
 
 /obj/item/device/radio/headset/pod_wars/syndicate
-	name = "Radio Headset"
-	desc = "A radio headset that is also capable of communicating over... wait, isn't that frequency illegal?"
+	name = "radio headset"
+	desc = "A radio headset that is also capable of communicating over, this one is tuned into a Syndicate frequency"
 	icon_state = "headset"
 	secure_frequencies = list("g" = R_FREQ_SYNDICATE)
 	secure_classes = list(RADIOCL_SYNDICATE)
 	secure_colors = list("#ff69b4")
 	protected_radio = 1
 	icon_override = "syndie"
+	icon_tooltip = "Syndicate"
 	team = TEAM_SYNDICATE
 
 	commander
 		icon_override = "syndieboss"
+		icon_tooltip = "Syndicate Commander"
 
 
 /////////shit//////////////
 
 /obj/control_point_computer
 	name = "computer"	//name it based on area.
-	icon = 'icons/obj/computer.dmi'
-	icon_state = "computer_generic"
+	icon = 'icons/obj/control_point_computer.dmi'
+	icon_state = "control_point_computer"
 	density = 1
-	anchored = 1.0
+	anchored = ANCHORED
+
+	var/image/screen
+	var/image/screen_light
+	var/image/name_overlay
+
 	var/datum/light/light
 	var/light_r =1
 	var/light_g = 1
@@ -612,7 +590,29 @@
 		light.set_color(light_r, light_g, light_b)
 		light.attach(src)
 
-		//name it based on area.
+		src.update_screen("screen")
+
+		if (src.dir == NORTH || src.dir == SOUTH)
+			src.bound_width = 64
+			src.bound_height = 32
+		else if (src.dir == EAST || src.dir == WEST)
+			src.bound_width = 32
+			src.bound_height = 64
+
+	proc/update_screen(var/icon_state)
+		src.screen = image('icons/obj/control_point_computer.dmi', icon_state)
+		src.UpdateOverlays(src.screen, "screen")
+
+		src.screen_light = image('icons/obj/control_point_computer.dmi', icon_state)
+		src.screen_light.plane = PLANE_LIGHTING
+		src.screen_light.blend_mode = BLEND_ADD
+		src.screen_light.layer = LIGHTING_LAYER_BASE
+		src.screen_light.color = list(0.33,0.33,0.33, 0.33,0.33,0.33, 0.33,0.33,0.33)
+		src.UpdateOverlays(src.screen_light, "screen_light")
+
+	proc/update_name_overlay(var/icon_state)
+		src.name_overlay = image('icons/obj/control_point_computer.dmi', icon_state)
+		src.UpdateOverlays(src.name_overlay, "name_overlay")
 
 	ex_act()
 		return
@@ -620,7 +620,7 @@
 	meteorhit(var/obj/O as obj)
 		return
 
-	//called from the action bar completion in src.attack_hand()
+	//called from the action bar completion in src.Attackhand()
 	proc/capture(var/mob/user)
 		var/team_num = get_pod_wars_team_num(user)
 		owner_team = team_num
@@ -628,7 +628,7 @@
 
 		ctrl_pt.capture(user, team_num)
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if (!can_be_captured)
 			var/cur_time
 			var/datum/game_mode/pod_wars/mode = ticker.mode
@@ -638,17 +638,17 @@
 				cur_time = round( 15 MINUTES / 1 MINUTES, 1)
 
 
-			boutput(user, "<span class='notice'>This computer seems to be frozen on a space-weather tracking screen. It looks like a large ion storm will be passing this system in about <b class='alert'>[(cur_time)] minutes mission time</b>.<br>You can't input any commands to run the control protocols for this satelite...</span>")
-			playsound(src, "sound/machines/buzz-sigh.ogg", 30, 1, flags = SOUND_IGNORE_SPACE)
+			boutput(user, SPAN_NOTICE("This computer seems to be frozen on a space-weather tracking screen. It looks like a large ion storm will be passing this system in about <b class='alert'>[(cur_time)] minutes mission time</b>.<br>You can't input any commands to run the control protocols for this satelite..."))
+			playsound(src, 'sound/machines/buzz-sigh.ogg', 30, TRUE, flags = SOUND_IGNORE_SPACE)
 			return 0
 		if (owner_team != get_pod_wars_team_num(user))
 			var/duration = is_commander(user) ? 10 SECONDS : 20 SECONDS
-			playsound(get_turf(src), "sound/machines/warning-buzzer.ogg", 150, 1, flags = SOUND_IGNORE_SPACE)	//loud
+			playsound(get_turf(src), 'sound/machines/warning-buzzer.ogg', 150, 1, flags = SOUND_IGNORE_SPACE)	//loud
 
 			SETUP_GENERIC_ACTIONBAR(user, src, duration, /obj/control_point_computer/proc/capture, list(user),\
 			 null, null, "[user] successfully enters [his_or_her(user)] command code into \the [src]!", null)
 		else
-			boutput(user, "You can't think of anything else to do on this console...")
+			boutput(user, SPAN_ALERT("You can't think of anything else to do on this console..."))
 
 	proc/is_commander(var/mob/user)
 		if (istype(ticker.mode, /datum/game_mode/pod_wars))
@@ -682,17 +682,17 @@
 			light_r = 0
 			light_g = 0
 			light_b = 1
-			icon_state = "computer_blue"
+			src.update_screen("nanotrasen")
 		else if (owner_team == TEAM_SYNDICATE)
 			light_r = 1
 			light_g = 0
 			light_b = 0
-			icon_state = "computer_red"
+			src.update_screen("syndicate")
 		else
 			light_r = 1
 			light_g = 1
 			light_b = 1
-			icon_state = "computer_generic"
+			src.update_screen("screen")
 
 		light.set_color(light_r, light_g, light_b)
 
@@ -704,14 +704,14 @@
 		return
 	meteorhit(var/obj/O as obj)
 		return
-	attackby(obj/item/W as obj, mob/user as mob)
+	attackby(obj/item/W, mob/user)
 		return
 
 	//These are basically the same as "normal" pod_wars beacons, but they won't have a capture point so they should never get an owner team
 	//so nobody will be able to warp to them, they can only navigate towards them with pod sensors.
 	spacejunk
 		name = "spacejunk warp_beacon"
-		invisibility = 101
+		invisibility = INVIS_ALWAYS
 		alpha = 100			//just to be clear
 
 
@@ -723,31 +723,32 @@
 	icon = 'icons/obj/objects.dmi'
 	icon_state = "barricade"
 	density = 1
-	anchored = 1.0
+	anchored = ANCHORED
 	flags = NOSPLASH
-	event_handler_flags = USE_FLUID_ENTER | USE_CANPASS
+	event_handler_flags = USE_FLUID_ENTER
 	layer = OBJ_LAYER-0.1
 	stops_space_move = TRUE
+	var/icon_damaged = "barricade-damaged"
 
 	var/health = 100
 	var/health_max = 100
 
 	get_desc()
 		var/string = "pristine"
-		if (health >= (health_max/2))
+		if (health == health_max)
+			string = "pristine"
+		else if (health >= (health_max/2))
 			string = "a bit scuffed"
 		else
 			string = "almost destroyed"
 
-		. = "<br><span class='notice'>It looks [string].</span>"
+		. = "<br>[SPAN_NOTICE("It looks [string].")]"
 
 	ex_act(severity)
 
 		return
 
-	CanPass(atom/movable/mover, turf/target, height=0, air_group=0)
-		if(air_group || (height==0)) return 1
-
+	Cross(atom/movable/mover)
 		if (!src.density || (mover.flags & TABLEPASS || istype(mover, /obj/newmeteor)) )
 			return 1
 		else
@@ -757,32 +758,32 @@
 			var/obj/machinery/vehicle/V = AM
 			V.health -= round(src.health/4)
 			V.checkhealth()
-			playsound(get_turf(src), "sound/impact_sounds/Generic_Hit_Heavy_1.ogg", 50, 1)
+			playsound(get_turf(src), 'sound/impact_sounds/Generic_Hit_Heavy_1.ogg', 50, 1)
 			qdel(src)
 		..()
 
 	attackby(var/obj/item/W, var/mob/user)
 		attack_particle(user,src)
 		take_damage(W.force)
-		playsound(get_turf(src), "sound/impact_sounds/Generic_Hit_Heavy_1.ogg", 20, 1)
+		playsound(get_turf(src), 'sound/impact_sounds/Generic_Hit_Heavy_1.ogg', 20, 1)
 		user.lastattacked = src
 		..()
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		switch (user.a_intent)
 			if (INTENT_HELP)
-				visible_message(src, "<span class='notice'>[user] pats [src] [pick("earnestly", "merrily", "happily","enthusiastically")] on top.</span>")
+				visible_message(SPAN_NOTICE("[user] pats [src] [pick("earnestly", "merrily", "happily","enthusiastically")] on top."))
 			if (INTENT_DISARM)
-				visible_message(src, "<span class='alert'>[user] tries to shove [src], but it was ineffective!</span>")
+				visible_message(SPAN_ALERT("[user] tries to shove [src], but it was ineffective!"))
 			if (INTENT_GRAB)
-				visible_message(src, "<span class='alert'>[user]] tries to wrassle with [src], but it gives no ground!</span>")
+				visible_message(SPAN_ALERT("[user] tries to wrassle with [src], but it gives no ground!"))
 			if (INTENT_HARM)
 				if (ishuman(user))
 					if (user.is_hulk())
 						take_damage(20)
 					else
 						take_damage(5)
-					playsound(get_turf(src), "sound/impact_sounds/Generic_Hit_Heavy_1.ogg", 25, 1)
+					playsound(get_turf(src), 'sound/impact_sounds/Generic_Hit_Heavy_1.ogg', 25, 1)
 					attack_particle(user,src)
 
 
@@ -794,10 +795,79 @@
 
 		//This works correctly because at the time of writing, these barricades cannot be repaired.
 		if (health < health_max/2)
-			icon_state = "barricade-damaged"
+			if (icon_damaged)
+				icon_state = icon_damaged
 
 		if (health <= 0)
 			qdel(src)
+
+/obj/barricade/barbed
+	name = "barbed barricade"
+	desc = "A barbed barricade. It looks like you can shoot over it but making contact with it might be tricky."
+	var/cooldown_time = 3 SECOND
+	var/overlay_state = "barricade_sharp"
+
+	New()
+		. = ..()
+		if(overlay_state)
+			var/overlay = image(src.icon, overlay_state)
+			UpdateOverlays(overlay, "barb")
+
+	proc/pokey(mob/target, poke_chance=33)
+		if(prob(poke_chance))
+			if(ON_COOLDOWN(target, "BARB_\ref[src]", src.cooldown_time)) return
+			target.visible_message("[target] gets caught up in [src]", "You get caught up in [src] and notice it has drawn blood.")
+			take_bleeding_damage(target, null, rand(3,7), DAMAGE_STAB)
+			return TRUE
+
+	Bumped(atom/AM)
+		. = ..()
+		if(ismob(AM))
+			var/mob/M = AM
+			if(M.m_intent != "walk")
+				pokey(M, 98)
+			else
+				pokey(M, 30)
+
+	attackby(var/obj/item/W, var/mob/user)
+		..()
+		pokey(user, 15)
+
+	attack_hand(mob/user)
+		..()
+		if (user.a_intent != INTENT_HELP)
+			pokey(user, 88)
+		else
+			pokey(user, 33)
+
+/obj/barricade/barbed/wire
+	name = "barbed wire"
+	desc = "A coiled length of barbed wire has been setup as a barricade."
+	icon_state = "bwire"
+	health = 50
+	health_max = 50
+	overlay_state = null
+	density = 0
+	icon_damaged = null
+
+	pokey(mob/target, poke_chance=33)
+		. = ..()
+		target.changeStatus("slowed", 1 SECONDS)
+		if(.)
+			target.changeStatus("slowed", 4 SECONDS)
+			target.TakeDamageAccountArmor("All", rand(1,2), 0, 0, DAMAGE_CUT)
+
+	Crossed(atom/movable/mover)
+		. = ..()
+		// This change prevents ghosts from being affected by barbed wire
+		if (HAS_ATOM_PROPERTY(mover, PROP_ATOM_FLOATING))
+			return
+		if(ismob(mover))
+			var/mob/M = mover
+			if(M.m_intent != "walk")
+				pokey(M, 98)
+			else
+				pokey(M, 30)
 
 //barricade deployer
 
@@ -814,7 +884,7 @@
 		BLOCK_SETUP(BLOCK_LARGE)
 
 	attack_self(mob/user as mob)
-		SETUP_GENERIC_ACTIONBAR(user, src, build_duration, /obj/item/deployer/barricade/proc/deploy, list(user, get_turf(user)),\
+		SETUP_GENERIC_ACTIONBAR(user, src, build_duration, PROC_REF(deploy), list(user, get_turf(user)),\
 		 src.icon, src.icon_state, "[user] deploys \the [src]", null)
 
 	//mostly stolen from furniture_parts/proc/construct
@@ -825,15 +895,15 @@
 			if (!T) // buh??
 				return
 		if (istype(T, /turf/space))
-			boutput(user, "<span class='alert'>Can't build a barricade in space!</span>")
+			boutput(user, SPAN_ALERT("Can't build a barricade in space!"))
 			return
 		if (ispath(src.object_type))
 			if (locate(src.object_type) in T.contents)
-				boutput(user, "<span class='alert'>There is already a barricade here! You can't think of a way that another one could possibly fit!</span>")
+				boutput(user, SPAN_ALERT("There is already a barricade here! You can't think of a way that another one could possibly fit!"))
 				return
 			newThing = new src.object_type(T)
 		else
-			logTheThing("diary", user, null, "tries to deploy an object of type ([src.type]) from [src] but its object_type is null and it is being deleted.", "station")
+			logTheThing(LOG_DIARY, user, "tries to deploy an object of type ([src.type]) from [src] but its object_type is null and it is being deleted.", "station")
 			user.u_equip(src)
 			qdel(src)
 			return
@@ -842,9 +912,8 @@
 				newThing.setMaterial(src.material)
 			if (user)
 				newThing.add_fingerprint(user)
-				logTheThing("station", user, null, "builds \a [newThing] (<b>Material:</b> [newThing.material && newThing.material.mat_id ? "[newThing.material.mat_id]" : "*UNKNOWN*"]) at [log_loc(T)].")
-				user.u_equip(src)
-		qdel(src)
+				logTheThing(LOG_STATION, user, "builds \a [newThing] (<b>Material:</b> [newThing.material && newThing.material.getID() ? "[newThing.material.getID()]" : "*UNKNOWN*"]) at [log_loc(T)].")
+		change_stack_amount(-1)
 		return newThing
 
 /obj/item_dispenser/barricade
@@ -889,7 +958,7 @@
 		src.tier = tier
 
 		showswirl(src, 0)
-		playsound(loc, "sound/effects/mag_warp.ogg", 100, 1, flags = SOUND_IGNORE_SPACE)
+		playsound(loc, 'sound/effects/mag_warp.ogg', 100, TRUE, flags = SOUND_IGNORE_SPACE)
 		//handle name, color, and access for types...
 		var/team_name_str
 		switch(team_num)
@@ -926,7 +995,7 @@
 
 
 		name = "[team_name_str] secure crate tier [tier_flavor]"
-		SPAWN_DBG(1 SECONDS)
+		SPAWN(1 SECONDS)
 			spawn_items()
 
 	//Selects the items that this crate spawns with based on its possible contents.
@@ -962,8 +1031,7 @@
 //Kinda cheesey here with the map defs, but I'm too lazy to care. makes a temp var for the mode, if it's not the right type (which idk why it wouldn't be)
 //then it is null so that the ?. will fail. So it still works regardless of mode, not that it would have the populated rewards lists if the mdoe was wrong...
 		var/datum/game_mode/pod_wars/mode = ticker.mode
-		if (!istype(mode))
-			mode = null
+		ENSURE_TYPE(mode)
 		var/failsafe_counter = 0		//I'm paranoid okay... what if some admin accidentally fucks with the list, could hang the server.
 		var/points = 0
 		while (points < max_points)
@@ -1009,17 +1077,17 @@
 ////////////// special pod wars cargo pads + mineral accumulators ///////////////
 
 /obj/submachine/cargopad/pod_wars/syndicate
-	name = "Lodbrok Mining Pad"
+	name = "\improper Lodbrok mining pad"
 	group = "syndicate"
 
 /obj/submachine/cargopad/pod_wars/nanotrasen
-	name = "NSV Pytheas Mining Pad"
+	name = "\improper NSV Pytheas mining pad"
 	group = "nanotrasen"
 
 /obj/machinery/oreaccumulator/pod_wars/syndicate
-	name = "Syndicate mineral accumulator"
+	name = "\improper Syndicate mineral accumulator"
 	group = "syndicate"
 
 /obj/machinery/oreaccumulator/pod_wars/nanotrasen
-	name = "NanoTrasen mineral accumulator"
+	name = "\improper NanoTrasen mineral accumulator"
 	group = "nanotrasen"

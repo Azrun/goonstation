@@ -6,6 +6,7 @@
 			return ..()
 		var/environment_heat_capacity = HEAT_CAPACITY(environment)
 		var/loc_temp = T0C
+		var/mult = get_multiplier()
 		if (istype(owner.loc, /turf/space))
 			var/turf/space/S = owner.loc
 			environment_heat_capacity = S.heat_capacity
@@ -27,14 +28,21 @@
 		else if (istype(owner.loc, /obj/machinery/atmospherics/unary/cryo_cell))
 			var/obj/machinery/atmospherics/unary/cryo_cell/C = owner.loc
 			loc_temp = C.air_contents.temperature
-		else if (istype(owner.loc, /obj/machinery/colosseum_putt))
-			loc_temp = T20C
+		else if (istype(owner.loc,/obj/icecube))
+			var/obj/icecube/ice = owner.loc
+			if (!ice.does_cooling)
+				return
+			loc_temp = ice.cooltemp// ice go brrrrrrrrr
+			if (owner.bodytemperature > ice.melttemp)
+				ice.takeDamage(1 * mult)
+			else if (environment.temperature > ice.melttemp)
+				ice.takeDamage(0.5 * mult)
 		else
 			loc_temp = environment.temperature
 
 		var/thermal_protection
-		if (owner.stat < 2)
-			owner.bodytemperature = owner.adjustBodyTemp(owner.bodytemperature,owner.base_body_temp,1,owner.thermoregulation_mult)
+		if (!isdead(owner))
+			owner.bodytemperature = owner.adjustBodyTemp(owner.bodytemperature, owner.base_body_temp, 1 ,owner.thermoregulation_mult)
 		if (loc_temp < owner.base_body_temp) // a cold place -> add in cold protection
 			if (owner.is_cold_resistant())
 				return ..()
@@ -44,7 +52,7 @@
 				return ..()
 			thermal_protection = owner.get_heat_protection()
 		var/thermal_divisor = (100 - thermal_protection) * 0.01
-		owner.bodytemperature = owner.adjustBodyTemp(owner.bodytemperature,loc_temp,thermal_divisor,owner.innate_temp_resistance)
+		owner.bodytemperature = owner.adjustBodyTemp(owner.bodytemperature,loc_temp, thermal_divisor, owner.innate_temp_resistance)
 
 		if (istype(owner.loc, /obj/machinery/atmospherics/unary/cryo_cell))
 			return ..()
@@ -55,7 +63,7 @@
 			var/scaling_factor = max((owner.base_body_temp - T0C)*6,1)
 			var/chance = round((diff/scaling_factor)*100)
 			chance = clamp(chance,0,100)
-			if(prob(percentmult(chance, get_multiplier())))
+			if(probmult(chance))
 				owner.changeStatus("shivering", lerp(chance/100, 1, 0.25) * 6 SECONDS)
 		else
 			owner.delStatus("shivering")
@@ -65,14 +73,16 @@
 		if ((owner.bodytemperature > owner.base_body_temp + (owner.temp_tolerance * 1.7) && environment.temperature > owner.base_body_temp + (owner.temp_tolerance * 1.7)) || (owner.bodytemperature < owner.base_body_temp - (owner.temp_tolerance * 1.7) && environment.temperature < owner.base_body_temp - (owner.temp_tolerance * 1.7)))
 
 			//Yep this means that the damage is no longer per limb. Restore this to per limb eventually. See above.
-			owner.handle_temperature_damage(LEGS, environment.temperature, environment_heat_capacity*thermal_divisor)
-			owner.handle_temperature_damage(TORSO,environment.temperature, environment_heat_capacity*thermal_divisor)
-			owner.handle_temperature_damage(HEAD, environment.temperature, environment_heat_capacity*thermal_divisor)
-			owner.handle_temperature_damage(ARMS, environment.temperature, environment_heat_capacity*thermal_divisor)
+			owner.handle_temperature_damage(LEGS, environment.temperature, environment_heat_capacity*thermal_divisor, mult)
+			owner.handle_temperature_damage(TORSO,environment.temperature, environment_heat_capacity*thermal_divisor, mult)
+			owner.handle_temperature_damage(HEAD, environment.temperature, environment_heat_capacity*thermal_divisor, mult)
+			owner.handle_temperature_damage(ARMS, environment.temperature, environment_heat_capacity*thermal_divisor, mult)
 
 			for (var/atom/A in owner.contents)
-				if (A.material)
-					A.material.triggerTemp(A, environment.temperature)
+				A.material_trigger_on_temp(environment.temperature)
+
+			for (var/atom/equipped_stuff in owner.equipped())
+				equipped_stuff.material_trigger_on_temp(environment.temperature)
 
 		// decoupled this from environmental temp - this should be more for hypothermia/heatstroke stuff
 		//if (src.bodytemperature > src.base_body_temp || src.bodytemperature < src.base_body_temp)
@@ -82,21 +92,24 @@
 		..()
 
 
-/mob/living/proc/handle_temperature_damage(body_part, exposed_temperature, exposed_intensity)
+/mob/living/proc/handle_temperature_damage(body_part, exposed_temperature, exposed_intensity, mult)
 	if (exposed_temperature > src.base_body_temp && src.is_heat_resistant())
 		return
 	if (exposed_temperature < src.base_body_temp && src.is_cold_resistant())
 		return
 	var/discomfort = min(abs(exposed_temperature - bodytemperature)*(exposed_intensity)/2000000, 1)
 
+	if (discomfort * mult < 0.1) //stop corpses eternally twitching
+		return
+
 	switch(body_part)
 		if (HEAD)
-			TakeDamage("head", 0, 2.5*discomfort, 0, DAMAGE_BURN)
+			TakeDamage("head", 0, 2.5*discomfort*mult, 0, DAMAGE_BURN)
 		if (TORSO)
-			TakeDamage("chest", 0, 2.5*discomfort, 0, DAMAGE_BURN)
+			TakeDamage("chest", 0, 2.5*discomfort*mult, 0, DAMAGE_BURN)
 		if (LEGS)
-			TakeDamage("l_leg", 0, 0.6*discomfort, 0, DAMAGE_BURN)
-			TakeDamage("r_leg", 0, 0.6*discomfort, 0, DAMAGE_BURN)
+			TakeDamage("l_leg", 0, 0.6*discomfort*mult, 0, DAMAGE_BURN)
+			TakeDamage("r_leg", 0, 0.6*discomfort*mult, 0, DAMAGE_BURN)
 		if (ARMS)
-			TakeDamage("l_arm", 0, 0.4*discomfort, 0, DAMAGE_BURN)
-			TakeDamage("r_arm", 0, 0.4*discomfort, 0, DAMAGE_BURN)
+			TakeDamage("l_arm", 0, 0.4*discomfort*mult, 0, DAMAGE_BURN)
+			TakeDamage("r_arm", 0, 0.4*discomfort*mult, 0, DAMAGE_BURN)

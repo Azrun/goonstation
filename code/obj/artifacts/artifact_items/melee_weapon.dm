@@ -2,23 +2,23 @@
 	name = "artifact melee weapon"
 	artifact = 1
 	associated_datum = /datum/artifact/melee
-	module_research_no_diminish = 1
 	click_delay = COMBAT_CLICK_DELAY
 
-	attack(mob/M as mob, mob/user as mob)
+	attack(mob/target, mob/user, def_zone, is_special = FALSE, params = null)
 		if (!src.ArtifactSanityCheck())
 			return
 		var/datum/artifact/A = src.artifact
 		if (A.activated)
-			A.effect_melee_attack(src,user,M)
+			A.effect_melee_attack(src,user,target)
 			src.ArtifactFaultUsed(user)
-			src.ArtifactFaultUsed(M)
+			src.ArtifactFaultUsed(target)
 		else
 			..()
 
 /datum/artifact/melee
 	associated_object = /obj/item/artifact/melee_weapon
 	type_name = "Melee Weapon"
+	type_size = ARTIFACT_SIZE_MEDIUM
 	rarity_weight = 350
 	validtypes = list("ancient","martian","wizard","eldritch","precursor")
 	react_xray = list(14,95,95,7,"DENSE")
@@ -27,8 +27,6 @@
 	var/stamina_dmg = 0
 	var/sound/hitsound = null
 	examine_hint = "It seems to have a handle you're supposed to hold it by."
-	module_research = list("weapons" = 8, "miniaturization" = 8)
-	module_research_insight = 1
 
 	New()
 		..()
@@ -46,9 +44,9 @@
 			return
 		if (!isliving(user) || !isliving(target))
 			return
-		user.visible_message("<span class='alert'><b>[user.name]</b> attacks [target.name] with [O]!</span>")
+		user.visible_message(SPAN_ALERT("<b>[user.name]</b> attacks [target.name] with [O]!"))
 		var/turf/T = get_turf(user)
-		playsound(T, hitsound, 50, 1, -1)
+		playsound(T, hitsound, 50, TRUE, -1)
 		switch(damtype)
 			if ("brute")
 				random_brute_damage(target, dmg_amount,1)
@@ -57,4 +55,4 @@
 			if ("toxin")
 				target.take_toxin_damage(rand(1, dmg_amount))
 		if (src.stamina_dmg)
-			target.do_disorient(stamina_damage = src.stamina_dmg, weakened = src.stamina_dmg - 20, disorient = src.stamina_dmg - 40)
+			target.do_disorient(stamina_damage = src.stamina_dmg, knockdown = src.stamina_dmg - 20, disorient = src.stamina_dmg - 40)

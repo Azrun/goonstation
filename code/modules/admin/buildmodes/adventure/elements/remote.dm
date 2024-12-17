@@ -6,11 +6,11 @@
 	var/selection
 
 	initialize()
-		selection = unpool(/obj/adventurepuzzle/marker)
+		selection = new /obj/adventurepuzzle/marker
 		color_rgb = input("Color", "Color", "#ffffff") as color
 		key_name = input("Remote name", "Remote name", "remote control") as text
-		boutput(usr, "<span class='notice'>Left click to place remotes, right click triggerables to (de)select them for automatic assignment to the keys. Ctrl+click anywhere to finish.</span>")
-		boutput(usr, "<span class='notice'>NOTE: Select stuff first, then make keys for extra comfort!</span>")
+		boutput(usr, SPAN_NOTICE("Left click to place remotes, right click triggerables to (de)select them for automatic assignment to the keys. Ctrl+click anywhere to finish."))
+		boutput(usr, SPAN_NOTICE("NOTE: Select stuff first, then make keys for extra comfort!"))
 
 	proc/clear_selections()
 		for (var/obj/O in selected_triggerable)
@@ -19,7 +19,7 @@
 
 	disposing()
 		clear_selections()
-		pool(selection)
+		qdel(selection)
 		..()
 
 	build_click(var/mob/user, var/datum/buildmode_holder/holder, var/list/pa, var/atom/object)
@@ -33,7 +33,7 @@
 				var/obj/item/adventurepuzzle/triggerer/remotecontrol/key = new /obj/item/adventurepuzzle/triggerer/remotecontrol(T)
 				key.name = key_name
 				key.triggered = selected_triggerable.Copy()
-				SPAWN_DBG(1 SECOND)
+				SPAWN(1 SECOND)
 					key.color = color_rgb
 		else if ("right" in pa)
 			if (istype(object, /obj/adventurepuzzle/triggerable))
@@ -49,7 +49,7 @@
 						selected_triggerable += object
 						selected_triggerable[object] = act
 					else
-						boutput(user, "<span class='alert'>ERROR: Missing actions definition for triggerable [object].</span>")
+						boutput(user, SPAN_ALERT("ERROR: Missing actions definition for triggerable [object]."))
 
 /obj/item/adventurepuzzle/triggerer/remotecontrol
 	name = "remote control"

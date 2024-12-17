@@ -10,6 +10,7 @@ var/list/asteroid_blocked_turfs = list()
 	var/list/ore_types_uncommon = list()
 	var/list/ore_types_rare = list()
 	var/list/events = list()
+	var/list/weighted_events = list()
 	// magnet vars
 	var/turf/magnetic_center = null
 	var/area/mining/magnet/magnet_area = null
@@ -23,7 +24,7 @@ var/list/asteroid_blocked_turfs = list()
 	var/list/small_encounters = list()
 	var/list/mining_encounters_selectable = list()
 
-	var/list/magnet_do_not_erase = list(/obj/securearea,/obj/forcefield/mining,/obj/grille/catwalk,/obj/grille/catwalk/cross, /obj/overlay)
+	var/list/magnet_do_not_erase = list(/obj/securearea,/obj/forcefield/mining,/obj/mesh/catwalk, /obj/overlay)
 
 	New()
 		..()
@@ -43,7 +44,9 @@ var/list/asteroid_blocked_turfs = list()
 				continue
 
 			if (istype(O, /datum/ore/event/))
-				events += O
+				var/datum/ore/event/E = O
+				events += E
+				weighted_events[E] = initial(E.weight)
 				ore_types_common -= O
 			if (O.rarity_tier == 2)
 				ore_types_uncommon += O
@@ -77,12 +80,8 @@ var/list/asteroid_blocked_turfs = list()
 			magnet_area = get_area(T)
 			break
 
-		for(var/turf/T in landmarks[LANDMARK_MAGNET_SHIELD])
-			var/obj/forcefield/mining/S = new /obj/forcefield/mining(T)
-			magnet_shields += S
-
 	proc/spawn_mining_z_asteroids(var/amt, var/zlev)
-		SPAWN_DBG(0)
+		SPAWN(0)
 			var/the_mining_z = zlev ? zlev : src.mining_z
 			var/turf/T
 			var/spawn_amount = amt ? amt : src.mining_z_asteroids_max
@@ -152,7 +151,7 @@ var/list/asteroid_blocked_turfs = list()
 			if (3)
 				category = mining_controls.mining_encounters_rare
 
-		if (category.len < 1)
+		if (length(category) < 1)
 			category = mining_controls.mining_encounters_common
 
 		return pick(category)
@@ -166,13 +165,8 @@ var/list/asteroid_blocked_turfs = list()
 	force_fullbright = 1
 	requires_power = 0
 	luminosity = 1
-
-	proc/check_for_unacceptable_content()
-		for (var/mob/living/L in src.contents)
-			return 1
-		for (var/obj/machinery/vehicle in src.contents)
-			return 1
-		return 0
+	expandable = 0
+	do_not_irradiate = FALSE
 
 /obj/forcefield/mining
 	name = "magnetic forcefield"
@@ -183,93 +177,14 @@ var/list/asteroid_blocked_turfs = list()
 	alpha = 175
 	opacity = 0
 	density = 0
-	invisibility = 101
-	anchored = 1
+	invisibility = INVIS_ALWAYS
+	anchored = ANCHORED
 
-/// *** MISC *** ///
+	ex_act()
+		return
 
-/proc/getOreQualityName(var/quality)
-	switch(quality)
-		if(-INFINITY to -101)
-			return "worthless"
-		if(-100 to -51)
-			return "terrible"
-		if(-50 to -41)
-			return "awful"
-		if(-40 to -31)
-			return "bad"
-		if(-30 to -21)
-			return "low-grade"
-		if(-20 to -11)
-			return "poor"
-		if(-10 to -1)
-			return "impure"
-		if(0)
-			return ""
-		if(1 to 10)
-			return "decent"
-		if(11 to 20)
-			return "fine"
-		if(21 to 30)
-			return "good"
-		if(31 to 40)
-			return "high-quality"
-		if(41 to 50)
-			return "excellent"
-		if(51 to 60)
-			return "fantastic"
-		if(61 to 70)
-			return "amazing"
-		if(71 to 80)
-			return "incredible"
-		if(81 to 90)
-			return "supreme"
-		if(91 to 100)
-			return "pure"
-		if(101 to INFINITY)
-			return "perfect"
-		else
-			return "strange"
+	blob_act()
+		return
 
-/proc/getGemQualityName(var/quality)
-	switch(quality)
-		if(-INFINITY to -101)
-			return "worthless"
-		if(-100 to -51)
-			return "awful"
-		if(-50 to -41)
-			return "shattered"
-		if(-40 to -31)
-			return "broken"
-		if(-30 to -21)
-			return "cracked"
-		if(-20 to -11)
-			return "flawed"
-		if(-10 to -1)
-			return "dull"
-		if(0)
-			return ""
-		if(1 to 10)
-			return "pretty"
-		if(11 to 20)
-			return "shiny"
-		if(21 to 30)
-			return "gleaming"
-		if(31 to 40)
-			return "sparkling"
-		if(41 to 50)
-			return "glittering"
-		if(51 to 60)
-			return "beautiful"
-		if(61 to 70)
-			return "lustrous"
-		if(71 to 80)
-			return "iridescent"
-		if(81 to 90)
-			return "radiant"
-		if(91 to 100)
-			return "pristine"
-		if(101 to INFINITY)
-			return "perfect"
-		else
-			return "strange"
+	meteorhit()
+		return

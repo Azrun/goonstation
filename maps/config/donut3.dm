@@ -1,10 +1,8 @@
-#ifdef XMAS
-#include "..\donut3_xmas.dmm"
-#else
-#include "..\donut3.dmm"
-#endif
-#include "..\z2.dmm"
-#include "..\z3.dmm"
+INCLUDE_MAP("../donut3.dmm")
+#ifndef GOTTA_GO_FAST_BUT_ZLEVELS_TOO_SLOW
+INCLUDE_MAP("../z2.dmm")
+INCLUDE_MAP("../z3.dmm")
 #include "z4.dm"
-#include "..\z5.dmm"
+INCLUDE_MAP("../z5.dmm")
+#endif
 #define MAP_MODE "standard"

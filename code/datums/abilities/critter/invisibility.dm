@@ -3,7 +3,6 @@
 // ----------------------
 /datum/action/invisibility
 	interrupt_flags = INTERRUPT_MOVE | INTERRUPT_ACT | INTERRUPT_STUNNED | INTERRUPT_ACTION
-	id = "invisibility"
 	var/icon = 'icons/mob/critter_ui.dmi'
 	var/icon_state = "invisible_over"
 	var/obj/overlay/iicon = null
@@ -14,7 +13,7 @@
 		..()
 		if (ability && owner && state == ACTIONSTATE_RUNNING)
 			var/mob/M = owner
-			APPLY_MOB_PROPERTY(M, PROP_INVISIBILITY, ability, ability.inv_level)
+			APPLY_ATOM_PROPERTY(M, PROP_MOB_INVISIBILITY, ability, ability.inv_level)
 
 	onInterrupt(var/flag = 0)
 		..()
@@ -28,7 +27,7 @@
 			ability.fade_in()
 		else if (owner)
 			var/mob/M = owner
-			REMOVE_MOB_PROPERTY(M, PROP_INVISIBILITY, ability)
+			REMOVE_ATOM_PROPERTY(M, PROP_MOB_INVISIBILITY, ability)
 		if (iicon)
 			del iicon
 		qdel(src)
@@ -58,7 +57,7 @@
 /datum/targetable/critter/fadeout
 	name = "Fade Out"
 	desc = "Become invisible until you move. Invisibility lingers for a few seconds after moving or acting."
-	var/inv_level = 16
+	var/inv_level = INVIS_SPOOKY
 	var/fade_out_icon_state = null
 	var/fade_in_icon_state = null
 	var/fade_anim_length = 3
@@ -73,7 +72,7 @@
 		if (..())
 			return 1
 		disabled = 1
-		boutput(holder.owner, __blue("You fade out of sight."))
+		boutput(holder.owner, SPAN_NOTICE("You fade out of sight."))
 		var/datum/action/invisibility/I = new
 		I.owner = holder.owner
 		I.ability = src
@@ -83,19 +82,20 @@
 			wait = fade_anim_length
 		else
 			animate(holder.owner, alpha=64, time=5)
-		SPAWN_DBG (wait)
-			APPLY_MOB_PROPERTY(holder.owner, PROP_INVISIBILITY, src, inv_level)
-			holder.owner.alpha = 64
-			actions.start(I, holder.owner)
+		SPAWN(wait)
+			if(holder?.owner)
+				APPLY_ATOM_PROPERTY(holder.owner, PROP_MOB_INVISIBILITY, src, inv_level)
+				holder.owner.alpha = 64
+				actions.start(I, holder.owner)
 		return 0
 
 	proc/fade_in()
-		if (holder.owner)
-			boutput(holder.owner, __red("You fade back into sight!"))
+		if (holder?.owner)
+			boutput(holder.owner, SPAN_ALERT("You fade back into sight!"))
 			disabled = 0
 			doCooldown()
-			SPAWN_DBG(linger_time)
-				REMOVE_MOB_PROPERTY(holder.owner, PROP_INVISIBILITY, src)
+			SPAWN(linger_time)
+				REMOVE_ATOM_PROPERTY(holder.owner, PROP_MOB_INVISIBILITY, src)
 				if (fade_in_icon_state)
 					flick(fade_in_icon_state, holder.owner)
 					holder.owner.alpha = 255
@@ -103,7 +103,8 @@
 					holder.owner.alpha = 64
 					animate(holder.owner, alpha=255, time=5)
 
-	wendigo
-		fade_in_icon_state = "wendigo_appear"
-		fade_out_icon_state = "wendigo_melt"
+	brullbar
+		fade_in_icon_state = "brullbar_appear"
+		fade_out_icon_state = "brullbar_melt"
 		fade_anim_length = 12
+		linger_time = 5

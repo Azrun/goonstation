@@ -2,9 +2,21 @@
 	name = "artifact gravity well generator"
 	associated_datum = /datum/artifact/gravity_well_generator
 
+/obj/effect/grav_pulse
+	icon='icons/effects/overlays/lensing.dmi'
+	icon_state="blank" //haha such hackery
+	pixel_x = -224
+	pixel_y = -224
+	plane = PLANE_DISTORTION
+	appearance_flags = PIXEL_SCALE | RESET_COLOR | RESET_ALPHA
+
+	proc/pulse()
+		flick("pulse",src)
+
 /datum/artifact/gravity_well_generator
 	associated_object = /obj/machinery/artifact/gravity_well_generator
 	type_name = "Gravity Well"
+	type_size = ARTIFACT_SIZE_LARGE
 	rarity_weight = 450
 	validtypes = list("wizard","precursor")
 	validtriggers = list(/datum/artifact_trigger/force,/datum/artifact_trigger/electric,/datum/artifact_trigger/heat,
@@ -20,16 +32,34 @@
 	var/field_radius = 7
 	var/gravity_type = 0 // push or pull?
 	examine_hint = "It is covered in very conspicuous markings."
+	var/obj/effect/grav_pulse/lense
 
 	New()
 		..()
 		src.field_radius = rand(4,9) // well radius
 		src.gravity_type = rand(0,1) // 0 for pull, 1 for push
+		lense = new()
+
+	disposing()
+		qdel(lense)
+		lense = null
+		..()
+
+	effect_activate(obj/O)
+		. = ..()
+		O.vis_contents += lense
+
+	effect_deactivate(obj/O)
+		. = ..()
+		O.vis_contents -= lense
 
 	effect_process(var/obj/O)
 		if (..())
 			return
-		for (var/obj/V in orange(src.field_radius,O))
+
+		lense.pulse()
+
+		for (var/obj/V in orange(src.field_radius,get_turf(O)))
 			if (V.anchored)
 				continue
 
@@ -37,7 +67,9 @@
 				step_away(V,O)
 			else
 				step_towards(V,O)
-		for (var/mob/living/M in orange(src.field_radius,O))
+		for (var/mob/living/M in orange(src.field_radius,get_turf(O)))
+			if(isintangible(M))
+				continue
 			if (src.gravity_type)
 				step_away(M,O)
 			else

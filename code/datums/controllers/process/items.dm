@@ -19,15 +19,19 @@
 		for(var/obj/object in world)
 			totalcount++
 
+		logTheThing(LOG_DEBUG, src, "Starting main /obj initialize loop")
+
 		for(var/obj/object in world)
-			object.initialize()
+			object.initialize(FALSE)
 			itemcount++
 			if (game_start_countdown)
 				if (lasttime != world.timeofday)
 					lasttime = world.timeofday
 					game_start_countdown.update_status("Initializing items\n([itemcount], [round(itemcount / totalcount * 100)]%)")
 
-			LAGCHECK(LAG_HIGH)
+			LAGCHECK_IF_LIVE(LAG_INIT)
+
+		logTheThing(LOG_DEBUG, src, "Main /obj initialize loop completed")
 
 		detailed_count = new
 
@@ -40,10 +44,11 @@
 
 	doWork()
 		var/c
-		for(var/i in global.processing_items)
-			if (!i || i:pooled || i:qdeled) //if the object was pooled or qdeled we have to remove it from this list... otherwise the lagchecks cause this loop to hold refs and block GC!!!
+		for(var/datum/i in global.processing_items)
+			if (!i || i:disposed || i:qdeled) //if the object was pooled or qdeled we have to remove it from this list... otherwise the lagchecks cause this loop to hold refs and block GC!!!
 				global.processing_items -= i
 				continue
+			SEND_SIGNAL(i, COMSIG_ITEM_PROCESS)
 			i:process()
 			if (!(c++ % 20))
 				scheck()

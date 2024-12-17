@@ -28,6 +28,9 @@
 	name = "ViewPoint"
 	size = 4
 
+	// No special permissions required, but authentication is required to send email as *someone* and obviously
+	// to recieve email
+	req_access = list(access_fuck_all)
 	var/tmp/obj/item/peripheral/network/netCard = null
 	var/tmp/server_netid = null
 	var/tmp/potential_server_netid = null
@@ -49,10 +52,11 @@
 	var/max_lines = 16
 	var/signature = null
 
-	var/setup_acc_filepath = "/logs/sysusr"//Where do we look for login data?
 	var/defaultDomain = "NT13"
 
 	initialize()
+		if (..())
+			return TRUE
 		src.netCard = null
 		src.menu = 0
 		var/introdat = "ViewPoint Email Client V1.5<br>Copyright 2051 Thinktronic Systems, LTD.<br>"
@@ -64,15 +68,13 @@
 
 			src.server_netid = null
 			src.master.unload_program(src)
-			return
+			return TRUE
 
 		else
 			introdat += mainmenu_text()
 
 		src.master.temp = null
 		src.print_text(introdat)
-
-		return
 
 	input_text(text)
 		if(..())
@@ -200,7 +202,7 @@
 							src.print_text("New mailserver address set.")
 
 					if (2)
-						var/new_max_lines = round(text2num(command))
+						var/new_max_lines = round(text2num_safe(command))
 						if (new_max_lines < 1 || new_max_lines > 64)
 							src.print_text("Invalid value.")
 						else
@@ -238,7 +240,7 @@
 						src.print_text("Mode set to: Reply to Mail Entry.")
 
 					else
-						var/index_number = round( max( text2num(command), 0) )
+						var/index_number = round( max( text2num_safe(command), 0) )
 						if (index_number == 0)
 							src.menu = MENU_MAIN
 							src.master.temp = null
@@ -263,7 +265,7 @@
 								sleep(0.8 SECONDS)
 								if (istype(mail_temp))
 									var/dat = ""
-									var/end_max = max( min(mail_temp.len, max_lines) - 8, 0)
+									var/end_max = clamp(length(mail_temp), 8, max_lines) - 8
 									for (var/i = 1, i <= end_max, i++)
 										dat += "<br>[mail_temp[i]]"
 
@@ -491,7 +493,7 @@
 							src.mail_temp = list()
 
 						var/toAdd = copytext( strip_html(text), 1, MAX_MESSAGE_LEN)
-						if (!ckeyEx(toAdd) || src.mail_temp.len >= 99)
+						if (!ckeyEx(toAdd) || length(src.mail_temp) >= 99)
 							return
 
 						src.mail_temp += toAdd
@@ -671,17 +673,16 @@ SUBJECT: [ckeyEx(headerList["subj"]) ? copytext(uppertext(headerList["subj"]), 1
 			signal.data["address_1"] = attempted_netid
 			signal.data["command"] = "term_connect"
 			signal.data["device"] = "SRV_TERMINAL"
-			var/datum/computer/file/user_data/user_data = get_user_data()
 			var/datum/computer/file/record/udat = null
-			if (istype(user_data))
+			if (istype(src.account))
 				udat = new
 
-				var/userid = format_username(user_data.registered)
+				var/userid = format_username(src.account.registered)
 
 				udat.fields["userid"] = userid
 				src.user_address = "[userid]@[defaultDomain]"
-				//udat.fields["assignment"] = user_data.assignment
-				udat.fields["access"] = list2params(user_data.access)
+				//udat.fields["assignment"] = src.account.assignment
+				udat.fields["access"] = list2params(src.account.access)
 				if (!udat.fields["access"] || !udat.fields["userid"])
 					//qdel(udat)
 					udat.dispose()
@@ -739,17 +740,6 @@ SUBJECT: [ckeyEx(headerList["subj"]) ? copytext(uppertext(headerList["subj"]), 1
 				return (potential_server_netid == null)
 
 			return 0
-
-		get_user_data()
-			var/datum/computer/folder/accdir = src.holder.root
-			if(src.master.host_program) //Check where the OS is, preferably.
-				accdir = src.master.host_program.holder.root
-
-			var/datum/computer/file/user_data/target = parse_file_directory(setup_acc_filepath, accdir)
-			if(target && istype(target))
-				return target
-
-			return null
 
 		mainmenu_text(display_server=1)
 			. = null

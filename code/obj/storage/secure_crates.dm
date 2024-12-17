@@ -13,6 +13,17 @@
 	always_display_locks = 1
 	throwforce = 50
 	can_flip_bust = 1
+	is_short = TRUE
+
+	Cross(atom/movable/mover) //copy pasted from actual crates because this pathing is AGONY
+		if(istype(mover, /obj/projectile))
+			return 1
+		if(src.is_short && src.open && isliving(mover)) // let people climb onto the crate if the crate is open and against a wall basically
+			var/move_dir = get_dir(mover, src)
+			var/turf/next_turf = get_step(src, move_dir)
+			if(next_turf && !total_cross(next_turf, src))
+				return TRUE
+		return ..()
 
 /obj/storage/secure/crate/weapon
 	desc = "A secure weapons crate."
@@ -29,7 +40,7 @@
 
 	armory
 		name = "secure weapons crate"
-		req_access = list(access_maxsec)
+		req_access = list(access_armory)
 
 		tranquilizer
 			name = "tranquilizer crate"
@@ -43,14 +54,14 @@
 
 		shotgun
 			name = "shotgun crate"
-			spawn_contents = list(/obj/item/gun/kinetic/riotgun = 4,\
+			spawn_contents = list(/obj/item/gun/kinetic/pumpweapon/riotgun = 4,\
 			/obj/item/ammo/bullets/abg = 4)
 
 		pod_weapons
 			name = "pod weapons crate"
 			spawn_contents = list(/obj/item/shipcomponent/mainweapon/disruptor_light = 2,\
 			/obj/item/shipcomponent/mainweapon/laser = 2,\
-			/obj/item/ammo/bullets/autocannon/seeker = 2)
+			/obj/item/storage/box/missile_launcher)
 
 /obj/storage/secure/crate/plasma
 	desc = "A secure plasma crate."
@@ -62,7 +73,7 @@
 
 	armory
 		name = "secure weapons crate"
-		req_access = list(access_maxsec)
+		req_access = list(access_armory)
 
 		anti_biological
 			name = "anti-biological crate"
@@ -77,20 +88,47 @@
 	icon_opened = "secgearcrateopen"
 	icon_closed = "secgearcrate"
 
-	armory
-		name = "secure weapons crate"
-		req_access = list(access_maxsec)
+/obj/storage/secure/crate/gear/saxitoxin_grenades
+	name = "nerve agent crate (DANGER)"
+	req_access_txt = "52"
+	spawn_contents = list(/obj/item/reagent_containers/syringe/atropine = 3,\
+	/obj/item/chem_grenade/saxitoxin = 3)
 
-		grenades
-			name = "special grenades crate"
-			spawn_contents = list(/obj/item/storage/box/QM_grenadekit_security = 2,\
-			/obj/item/storage/box/QM_grenadekit_experimentalweapons)
+/obj/storage/secure/crate/gear/armory
+	name = "secure weapons crate"
+	req_access = list(access_armory)
 
-	sarin_grenades
-		name = "nerve agent crate (DANGER)"
-		req_access_txt = "52"
-		spawn_contents = list(/obj/item/reagent_containers/syringe/atropine = 3,\
-		/obj/item/chem_grenade/sarin = 3)
+/obj/storage/secure/crate/gear/armory/grenades
+	name = "special grenades crate"
+	spawn_contents = list(/obj/item/storage/box/QM_grenadekit_security = 2,\
+	/obj/item/storage/box/QM_grenadekit_experimentalweapons,\
+	/obj/item/storage/box/stinger_kit,\
+	/obj/item/storage/box/stun_landmines)
+
+/obj/storage/secure/crate/gear/armory/alcohol
+	name = "secure alcohol crate"
+	desc = "For the most dire of situations."
+	spawn_contents = list(/obj/item/storage/box/cocktail_umbrellas,\
+	/obj/item/storage/box/cocktail_doodads,\
+	/obj/item/storage/box/straws,\
+	/obj/item/storage/box/fruit_wedges,\
+	/obj/item/storage/box/beer,\
+	/obj/item/storage/box/glassbox,\
+	/obj/item/reagent_containers/food/drinks/drinkingglass/random_style = 4,\
+	/obj/item/reagent_containers/food/drinks/bottle/vodka = 3,\
+	/obj/item/reagent_containers/food/drinks/curacao)
+
+/obj/storage/secure/crate/gear/armory/equipment
+	name = "\improper Special Equipment crate"
+	spawn_contents = list(/obj/item/requisition_token/security = 2,
+	/obj/item/requisition_token/security/assistant = 2,
+	/obj/item/turret_deployer/riot = 2)
+
+/obj/storage/secure/crate/gear/armory/equipment/looted
+	spawn_contents = list()
+	locked = 0
+	open = 1
+	emagged = 1
 
 /obj/storage/secure/crate/bee
 	name = "Secure Bee crate"
@@ -128,38 +166,35 @@
 		spawn_contents = list(/obj/item/pipebomb/bomb/engineering = 6)
 
 	interdictor
-		name = "interdictor assembly kit"
-		desc = "Contains mainboards, blueprints and a usage guide for spatial interdictors."
+		name = "interdictor fabrication crate"
+		desc = "Contains a drive with spatial interdictor manufacture data, power cells, and a usage guide for spatial interdictors."
 		req_access = list(access_engineering)
 
 		make_my_stuff()
 			if (..()) // make_my_stuff is called multiple times due to lazy init, so the parent returns 1 if it actually fired and 0 if it already has
-				var/obj/item/interdictor_board/B1 = new(src)
-				B1.pixel_x = -6
-				B1.pixel_y = -3
+				var/obj/item/disk/data/floppy/manudrive/interdictor_parts/B1 = new(src)
+				B1.pixel_x = 8
+				B1.pixel_y = 3
 
-				var/obj/item/interdictor_board/B2 = new(src)
+				var/obj/item/cell/supercell/B2 = new(src)
 				B2.pixel_x = -6
+				B2.pixel_y = -3
 
-				var/obj/item/interdictor_board/B3 = new(src)
+				var/obj/item/cell/supercell/B3 = new(src)
 				B3.pixel_x = -6
-				B3.pixel_y = 3
 
-				var/obj/item/paper/manufacturer_blueprint/interdictor_rod_lambda/B4 = new(src)
-				B4.pixel_x = 8
-				B4.pixel_y = -5
+				var/obj/item/cell/supercell/B4 = new(src)
+				B4.pixel_x = -6
+				B4.pixel_y = 3
 
-				var/obj/item/paper/manufacturer_blueprint/interdictor_rod_sigma/B5 = new(src)
-				B5.pixel_x = 8
-				B5.pixel_y = -1
-
-				var/obj/item/paper/manufacturer_blueprint/interdictor_frame/B6 = new(src)
-				B6.pixel_x = 8
-				B6.pixel_y = 3
-
-				var/obj/item/paper/book/from_file/interdictor_guide/B7 = new(src)
-				B7.pixel_y = 1
+				var/obj/item/paper/book/from_file/interdictor_guide/B5 = new(src)
+				B5.pixel_y = 1
 				return 1
+
+	nuclearfuel
+		name = "Fissile Materials Crate"
+		desc = "Contains the resources required to construct nuclear fuel rods."
+		spawn_contents = list(/obj/item/raw_material/cerenkite = 6)
 
 /obj/storage/secure/crate/medical
 	desc = "A secure medical crate."

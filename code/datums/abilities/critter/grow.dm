@@ -27,7 +27,7 @@
 			nw.mind.ckey = cli.ckey
 			nw.mind.key = cli.key
 			nw.mind.current = nw
-		boutput(nw, __blue("You grow into <b>[nw]</b>!"))
+		boutput(nw, SPAN_NOTICE("You grow into <b>[nw]</b>!"))
 		qdel(ow)
 
 //	spiderbaby

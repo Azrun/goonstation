@@ -35,7 +35,7 @@ ABSTRACT_TYPE(/datum/stock/event)
 	New(datum/stock/ticker/S)
 		..()
 		company = S
-		var/mins = rand(5,20)
+		var/mins = rand(2,5)
 		next_phase = mins * 600 + (ticker?.round_elapsed_ticks ? ticker.round_elapsed_ticks : 0)
 		current_title = "Product demo"
 		current_desc = S.industry.detokenize("[S.name] will unveil a new product on an upcoming %industrial% conference held at spacetime [spacetime(next_phase)]")
@@ -72,7 +72,7 @@ ABSTRACT_TYPE(/datum/stock/event)
 		..()
 		hidden = TRUE
 		company = S
-		var/mins = rand(9,60)
+		var/mins = rand(3,7)
 		bailout_millions = rand(70, 190)
 		next_phase = mins * 600 + (ticker?.round_elapsed_ticks ? ticker.round_elapsed_ticks : 0)
 		current_title = ""
@@ -152,7 +152,7 @@ ABSTRACT_TYPE(/datum/stock/event)
 		..()
 		hidden = TRUE
 		company = S
-		var/mins = rand(10, 35)
+		var/mins = rand(1, 10)
 		next_phase = mins * 600 + (ticker?.round_elapsed_ticks ? ticker.round_elapsed_ticks : 0)
 		current_title = ""
 		current_desc = ""
@@ -171,7 +171,7 @@ ABSTRACT_TYPE(/datum/stock/event)
 				offenses = offense
 			else
 				offenses += ", [offense]"
-		while (prob(60) && O.len > 2)
+		while (prob(60) && length(O) > 2)
 		offenses += " and [prob(20) ? "attempted " : null][pick(O)]" // lazy
 		S.addEvent(src)
 

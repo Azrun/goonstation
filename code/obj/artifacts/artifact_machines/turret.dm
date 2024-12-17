@@ -11,10 +11,11 @@
 /datum/artifact/turret
 	associated_object = /obj/machinery/artifact/turret
 	type_name = "Turret"
+	type_size = ARTIFACT_SIZE_LARGE
 	rarity_weight = 200
 	validtypes = list("wizard","eldritch","precursor")
 	validtriggers = list(/datum/artifact_trigger/force,/datum/artifact_trigger/electric,/datum/artifact_trigger/heat,
-	/datum/artifact_trigger/radiation,/datum/artifact_trigger/carbon_touch,/datum/artifact_trigger/silicon_touch)
+	/datum/artifact_trigger/radiation,/datum/artifact_trigger/carbon_touch,/datum/artifact_trigger/silicon_touch, /datum/artifact_trigger/language)
 	fault_blacklist = list(ITEM_ONLY_FAULTS)
 	activated = 0
 	activ_text = "uncovers an array of guns!"
@@ -59,7 +60,7 @@
 				if (!target_is_valid(M,O))
 					continue
 				valid_targets += M
-			if (valid_targets.len > 0)
+			if (length(valid_targets) > 0)
 				current_target = pick(valid_targets)
 				T.visible_message("<b>[O]</b> turns to face [current_target]!")
 				cycles_without_target = 0
@@ -69,18 +70,18 @@
 					cycles_without_target = 0
 					O.ArtifactDeactivated()
 		else
-			if (target_is_valid(current_target,O) && istype(bullet,/datum/projectile/artifact))
-				shoot_projectile_ST(O, bullet, current_target)
+			if (target_is_valid(current_target,O) && bullet)
+				shoot_projectile_ST_pixel_spread(O, bullet, current_target)
 			else
 				current_target = null
 
 	proc/target_is_valid(var/mob/living/M,var/obj/O)
 		if (!M || !O)
-			return 0
-		if (isdead(M))
-			return 0
+			return FALSE
+		if (isdead(M) || isintangible(M))
+			return FALSE
 		if (M == friend)
-			return 0
-		if (get_dist(M,O) > shot_range)
-			return 0
-		return 1
+			return FALSE
+		if (GET_DIST(M,O) > shot_range)
+			return FALSE
+		return TRUE

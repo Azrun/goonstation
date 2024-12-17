@@ -4,38 +4,38 @@
 	spread = "Airborne"
 	virulence = 30 // Reduced from 100 %. Station-wide, basically incurable and unavoidable epidemics weren't fun (Convair880).
 	resistance_prob = 25 // Increased from 0 %.
-	cure = "Sleep"
+	cure_flags = CURE_SLEEP
 	associated_reagent = "green mucus"
 	affected_species = list("Human")
 
-/datum/ailment/disease/flu/stage_act(var/mob/living/affected_mob,var/datum/ailment_data/D)
+/datum/ailment/disease/flu/stage_act(var/mob/living/affected_mob, var/datum/ailment_data/D, mult)
 	if (..())
 		return
 	switch(D.stage)
 		if(2)
-			if(prob(1))
+			if(probmult(1))
 				affected_mob.emote("sneeze")
-			if(prob(1))
+			if(probmult(1))
 				affected_mob.emote("cough")
-			if(prob(1))
-				boutput(affected_mob, "<span class='alert'>Your muscles ache.</span>")
+			if(probmult(1))
+				boutput(affected_mob, SPAN_ALERT("Your muscles ache."))
 				if(prob(20))
 					random_brute_damage(affected_mob, 1)
-			if(prob(1))
-				boutput(affected_mob, "<span class='alert'>Your stomach hurts.</span>")
+			if(probmult(1))
+				boutput(affected_mob, SPAN_ALERT("Your stomach hurts."))
 				if(prob(20))
 					affected_mob.take_toxin_damage(1)
 
 		if(3)
-			if(prob(1))
+			if(probmult(1))
 				affected_mob.emote("sneeze")
-			if(prob(1))
+			if(probmult(1))
 				affected_mob.emote("cough")
-			if(prob(1))
-				boutput(affected_mob, "<span class='alert'>Your muscles ache.</span>")
+			if(probmult(1))
+				boutput(affected_mob, SPAN_ALERT("Your muscles ache."))
 				if(prob(20))
 					random_brute_damage(affected_mob, 1)
-			if(prob(1))
-				boutput(affected_mob, "<span class='alert'>Your stomach hurts.</span>")
+			if(probmult(1))
+				boutput(affected_mob, SPAN_ALERT("Your stomach hurts."))
 				if(prob(20))
 					affected_mob.take_toxin_damage(1)

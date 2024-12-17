@@ -1,19 +1,6 @@
 /datum/data
 	var/name = "data"
-	var/size = 1.0
-
-/datum/data/record
-	name = "record"
-	size = 5.0
-	/// associated list of various data fields
-	var/list/fields = list(  )
-
-proc/FindRecordByFieldValue(var/list/datum/data/record/L, var/field, var/value)
-	if (!value) return
-	for(var/datum/data/record/R in L)
-		if(R.fields[field] == value)
-			return R
-	return
+	var/size = 1
 
 /datum/powernet
 	/// all cables & junctions
@@ -31,7 +18,9 @@ proc/FindRecordByFieldValue(var/list/datum/data/record/L, var/field, var/value)
 	var/viewload = 0
 
 	var/number = 0
-	/// per-apc avilability
+	/// Estimate of per-APC proportion of output
 	var/perapc = 0
 
 	var/netexcess = 0
+	/// Each APC's share of excess power, offered for recharge
+	var/apc_charge_share = 0

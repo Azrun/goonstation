@@ -34,7 +34,7 @@ change the direction of created objects.<br>
 			var/obj/window/reinforced/R = new /obj/window/reinforced(get_turf(object))
 			R.set_dir(holder.dir)
 		else if (shift)
-			new /obj/grille/steel(get_turf(object))
+			new /obj/mesh/grille/steel(get_turf(object))
 
 	click_right(atom/object, var/ctrl, var/alt, var/shift)
 		if(istype(object,/turf/simulated/wall))
@@ -43,7 +43,7 @@ change the direction of created objects.<br>
 			return
 		else if(istype(object,/turf/simulated/floor))
 			var/turf/T = object
-			T.ReplaceWithSpace()
+			T.ReplaceWithSpaceForce()
 			return
 		else if(istype(object,/turf/simulated/wall/r_wall) || istype(object, /turf/simulated/wall/auto/reinforced))
 			var/turf/T = object

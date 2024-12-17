@@ -38,7 +38,7 @@
 				continue
 			//if they are within 30 tiles of the capture point computer, it counts as helping!
 			//I do the get_turf on the current mob in case they are in a pod. This is called Pod Wars after all...
-			if (get_dist(get_turf(stat.mind?.current), computer) <= 30)
+			if (GET_DIST(get_turf(stat.mind?.current), computer) <= 30)
 				stat.control_point_capture_count ++
 
 	proc/inc_friendly_fire(var/mob/M)
@@ -97,31 +97,31 @@
 		//calculate pet survival first.
 		var/pet_dat = "<h4>Pet Stats:</h4>"
 		for(var/pet in by_cat[TR_CAT_PW_PETS])
-			if(istype(pet, /obj/critter/turtle/sylvester/Commander))
-				var/obj/critter/P = pet
-				if(P.alive)
+			if(istype(pet, /mob/living/critter/small_animal/turtle/sylvester/Commander))
+				var/mob/living/critter/small_animal/turtle/sylvester/P = pet
+				if(isalive(P))
 					if (istype(get_area(P), /area/pod_wars/team1))
-						pet_dat += "<span class='notice'>Sylvester is safe and sound on the Pytheas! Good job NanoTrasen!</span><br>"
+						pet_dat += "[SPAN_NOTICE("Sylvester is safe and sound on the Pytheas! Good job NanoTrasen!")]<br>"
 					else if (istype(get_area(P), /area/pod_wars/team2))
-						pet_dat += "<span class='alert'>Sylvester was captured by the Syndicate! Oh no!</span><br>"
+						pet_dat += "[SPAN_ALERT("Sylvester was captured by the Syndicate! Oh no!")]<br>"
 					else
-						pet_dat += "<span class='notice'>Sylvester survived! Yay!</span><br>"
+						pet_dat += "[SPAN_NOTICE("Sylvester survived! Yay!")]<br>"
 
 				else
-					pet_dat += "<span class='alert'>Sylvester was killed! Oh no!</span><br>"
+					pet_dat += "[SPAN_ALERT("Sylvester was killed! Oh no!")]<br>"
 
 			else if(istype(pet, /mob/living/carbon/human/npc/monkey/oppenheimer/pod_wars))
 				var/mob/living/carbon/human/opp = pet
 				if (isalive(opp))
 					if (istype(get_area(opp), /area/pod_wars/team2))
-						pet_dat += "<span class='notice'>Oppenheimer is safe and sound on the Lodbrok! Good job Syndicates!</span><br>"
+						pet_dat += "[SPAN_NOTICE("Oppenheimer is safe and sound on the Lodbrok! Good job Syndicates!")]<br>"
 					else if (istype(get_area(opp), /area/pod_wars/team1))
-						pet_dat += "<span class='alert'>Oppenheimer was captured by NanoTrasen! Oh no!</span><br>"
+						pet_dat += "[SPAN_ALERT("Oppenheimer was captured by NanoTrasen! Oh no!")]<br>"
 					else
-						pet_dat += "<span class='notice'>Oppenheimer survived! Yay!</span><br>"
+						pet_dat += "[SPAN_NOTICE("Oppenheimer survived! Yay!")]<br>"
 
 				else
-					pet_dat += "<span class='alert'>Oppenheimer was killed! Oh no!</span><br>"
+					pet_dat += "[SPAN_ALERT("Oppenheimer was killed! Oh no!")]<br>"
 
 		//write the player stats as a simple table
 		var/p_stat_text = ""
@@ -197,7 +197,7 @@ Player Stats
 	//returns html text
 	proc/build_rewards_text(var/list/L)
 		if (!islist(L) || !length(L))
-			logTheThing("debug", null, null, "Something trying to write one of the lists for stats...")
+			logTheThing(LOG_DEBUG, null, "Something trying to write one of the lists for stats...")
 			return
 
 		var/cr_stats_NT = ""
@@ -213,11 +213,11 @@ Player Stats
 
 		return {"
 
-<div class=\"column\">
+<div class='column'>
   <h3>NanoTrasen</h3>
   [cr_stats_NT]
 </div>
-<div class=\"column\">
+<div class='column'>
   <h3>Syndicate</h3>
   [cr_stats_SY]
 </div>

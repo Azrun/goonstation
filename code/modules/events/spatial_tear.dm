@@ -1,7 +1,8 @@
 /datum/random_event/major/spatial_tear
 	name = "Spatial Tear"
 	centcom_headline = "Spatial Anomaly"
-	centcom_message = "A severe spatial anomaly has been detected near the station. Personnel are advised to avoid any unusual phenomenae."
+	centcom_message = "A severe spatial anomaly has been detected near the station. Personnel are advised to avoid any unusual phenomena."
+	centcom_origin = ALERT_ANOMALY
 	required_elapsed_round_time = 10 MINUTES
 
 	event_effect(var/source)
@@ -29,23 +30,23 @@
 	desc = "A breach in the spatial fabric. Extremely difficult to pass."
 	icon = 'icons/effects/effects.dmi'
 	icon_state = "spat-h"
-	anchored = 1.0
+	anchored = ANCHORED
 	opacity = 1
 	density = 1
 	var/stabilized = 0
-	layer = NOLIGHT_EFFECTS_LAYER_BASE
+	plane = PLANE_ABOVE_LIGHTING
 
 	New(var/loc,var/duration)
 		..()
 		START_TRACKING
 		//spatial interdictor: mitigate spatial tears
-		//consumes 800 units of charge per tear segment weakened
+		//consumes 500 units of charge (250,000 joules) per tear segment weakened
 		//weakened tears can be traversed, but inflict minor brute damage
-		for (var/obj/machinery/interdictor/IX in by_type[/obj/machinery/interdictor])
-			if (IN_RANGE(IX,src,IX.interdict_range) && IX.expend_interdict(800))
+		for_by_tcl(IX, /obj/machinery/interdictor)
+			if (IX.expend_interdict(500,src))
 				src.stabilize()
 				break
-		SPAWN_DBG(duration)
+		SPAWN(duration)
 			qdel(src)
 
 	disposing()
@@ -62,12 +63,18 @@
 		if(AM.client?.check_key(KEY_RUN) && src.stabilized)
 			src.try_pass(AM)
 
+	ex_act(severity)
+		return
+
+	meteorhit()
+		return
+
 	proc/try_pass(mob/user)
 		actions.start(new /datum/action/bar/icon/push_through_tear(user, src), user)
 
 	proc/stabilize()
 		src.alpha = 150
-		src.opacity = 0
+		src.set_opacity(0)
 		src.stabilized = 1
 		src.name = "Stabilized Spatial Tear"
 		desc = "A breach in the spatial fabric, partially stabilized by an interdictor. Difficult to pass."
@@ -76,7 +83,6 @@
 /datum/action/bar/icon/push_through_tear
 	duration = 2 SECONDS
 	interrupt_flags = INTERRUPT_MOVE | INTERRUPT_ACT | INTERRUPT_STUNNED | INTERRUPT_ACTION
-	id = "push_through_tear"
 	icon = 'icons/ui/actions.dmi'
 	icon_state = "tear_push"
 	var/mob/ownerMob
@@ -97,14 +103,14 @@
 	onUpdate()
 		..()
 		// you gotta hold still to jump!
-		if (get_dist(ownerMob, spatialtear) > 1)
+		if (BOUNDS_DIST(ownerMob, spatialtear) > 0)
 			interrupt(INTERRUPT_ALWAYS)
 			ownerMob.show_text("Your attempt to push through the spatial tear was interrupted!", "red")
 			return
 
 	onStart()
 		..()
-		if (get_dist(ownerMob, spatialtear) > 1 || spatialtear == null || ownerMob == null)
+		if (BOUNDS_DIST(ownerMob, spatialtear) > 0 || spatialtear == null || ownerMob == null)
 			interrupt(INTERRUPT_ALWAYS)
 			return
 		for(var/mob/O in AIviewers(ownerMob))
@@ -140,10 +146,10 @@
 		if(no_no_zone)
 			// turns out trying to phase into a solid object is an EXTRA bad idea
 			if (istype(ownerMob, /mob/living))
-				if (!ownerMob.hasStatus("weakened"))
-					ownerMob.changeStatus("weakened", 4 SECONDS)
+				if (!ownerMob.hasStatus("knockdown"))
+					ownerMob.changeStatus("knockdown", 4 SECONDS)
 				ownerMob.TakeDamage("All", rand(24,30), 0, 0, DAMAGE_BLUNT)
-				playsound(spatialtear, 'sound/impact_sounds/Flesh_Tear_2.ogg', 50, 1, -1)
+				playsound(spatialtear, 'sound/impact_sounds/Flesh_Tear_2.ogg', 50, TRUE, -1)
 				for(var/mob/O in AIviewers(ownerMob))
 					O.show_text("<b>[ownerMob] shreds [himself_or_herself(ownerMob)] trying to phase into a solid object!</b>[prob(30) ? pick(" That's gotta hurt.", " <b>Holy shit!</b>", " Maybe that wasn't the wisest idea...", " Don't do that!") : null]", "red")
 			return TRUE
@@ -155,5 +161,5 @@
 			O.show_text("[ownerMob] pushes [himself_or_herself(ownerMob)] through [spatialtear].", "red")
 		ownerMob.show_text("You take some damage from pushing through the tear.", "red")
 		ownerMob.TakeDamage("chest", rand(4,6), 0, 0, DAMAGE_BLUNT)
-		playsound(spatialtear, 'sound/impact_sounds/Flesh_Tear_3.ogg', 20, 1, -1)
-		logTheThing("combat", ownerMob, spatialtear, "pushes through [spatialtear].")
+		playsound(spatialtear, 'sound/impact_sounds/Flesh_Tear_3.ogg', 20, TRUE, -1)
+		logTheThing(LOG_COMBAT, ownerMob, "pushes through [spatialtear].")

@@ -1,12 +1,12 @@
-/mob/living/critter/drone
-	name = "Drone"
-	real_name = "Drone"
+/mob/living/critter/robotic/drone
+	name = "drone"
+	real_name = "drone"
 	var/drone_designation = "SC"
 	var/num_max = 999
 	desc = "An armed and automated Syndicate scout drone."
 	density = 1
-	icon = 'icons/obj/ship.dmi'
-	icon_state = "drone"
+	icon = 'icons/mob/critter/robotic/drone/phaser.dmi'
+	icon_state = "drone_phaser"
 	custom_gib_handler = /proc/robogibs
 	hand_count = 1
 	can_throw = 0
@@ -24,12 +24,14 @@
 	var/smashes_shit = 1
 	var/list/alert_sounds = list('sound/machines/whistlealert.ogg', 'sound/machines/whistlebeep.ogg')
 
+	faction = list(FACTION_SYNDICATE)
+
 	New()
 		..()
 		setup_loot_table()
 		name = "[initial(name)] [drone_designation]-[rand(num_max)]"
 
-	Bump(atom/movable/AM)
+	bump(atom/movable/AM)
 		if(smashes_shit)
 			if(isobj(AM))
 				if (istype(AM, /obj/critter) || istype(AM, /obj/machinery/vehicle))
@@ -38,8 +40,8 @@
 					var/obj/window/W = AM
 					W.health = 0
 					W.smash()
-				else if(istype(AM,/obj/grille))
-					var/obj/grille/G = AM
+				else if(istype(AM,/obj/mesh/grille))
+					var/obj/mesh/grille/G = AM
 					G.damage_blunt(30)
 				else if(istype(AM, /obj/table))
 					AM.meteorhit()
@@ -48,18 +50,20 @@
 				else
 					AM.meteorhit()
 				playsound(src.loc, 'sound/effects/exlow.ogg', 70,1)
-				src.visible_message("<span class='alert'><B>[src]</B> smashes into \the [AM]!</span>")
+				src.visible_message(SPAN_ALERT("<B>[src]</B> smashes into \the [AM]!"))
 		..()
 
 	proc/setup_loot_table()
 		loot_table = list(/obj/item/device/prox_sensor = 25)
 
 	death(var/gibbed)
+		. = ..()
 		if (dying)
 			return
 		dying = 1
-		overlays += image('icons/obj/ship.dmi', "dying-overlay")
-		SPAWN_DBG(2 SECONDS)
+		var/image/dying_overlay = SafeGetOverlayImage("dying", 'icons/mob/critter/robotic/drone/overlays.dmi', "dying-overlay", MOB_OVERLAY_BASE)
+		src.UpdateOverlays(dying_overlay, "dying")
+		SPAWN(2 SECONDS)
 			ghostize()
 			var/turf/L = get_turf(src)
 			for (var/T in loot_table)
@@ -116,7 +120,7 @@
 	setup_hands()
 		..()
 		var/datum/handHolder/HH = hands[1]
-		HH.limb = new /datum/limb/gun/phaser
+		HH.limb = new /datum/limb/gun/energy/phaser
 		HH.name = "S-1 Light Anti-Personnel Energy Sling"
 		HH.icon = 'icons/mob/critter_ui.dmi'
 		HH.icon_state = "handphs"
@@ -126,5 +130,5 @@
 		HH.can_range_attack = 1
 
 	setup_healths()
-		add_hh_robot(-50, 50, 1)
-		add_hh_robot_burn(-50, 50, 1)
+		add_hh_robot(50, 1)
+		add_hh_robot_burn(50, 1)

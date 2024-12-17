@@ -4,9 +4,8 @@
 /datum/projectile/slam
 	name = "slam"
 	icon = null
-	icon_state = null
-	power = 1
-	ks_ratio = 0
+	icon_state = "slam"
+	damage = 1
 	damage_type = D_SPECIAL
 	hit_ground_chance = 0
 	dissipation_delay = 3
@@ -41,8 +40,8 @@
 		dummy.mouse_opacity = 0
 		dummy.name = null
 		dummy.set_density(0)
-		dummy.anchored = 1
-		dummy.opacity = 0
+		dummy.anchored = ANCHORED
+		dummy.set_opacity(0)
 		dummy.icon = null
 		dummy.overlays += charger
 		dummy.alpha = 255
@@ -50,43 +49,43 @@
 		dummy.pixel_y = O.pixel_y
 		dummy.set_dir(O.dir)
 		animate(dummy, alpha=0, time=3)
-		SPAWN_DBG(0.3 SECONDS)
+		SPAWN(0.3 SECONDS)
 			qdel(dummy)
 
 	on_hit(atom/hit, angle, var/obj/projectile/O)
 		O.special_data["valid_loc"] = get_turf(hit)
 		var/mob/charger = O.special_data["charger"]
 		if (isturf(hit))
-			hit.visible_message(__red("[charger] slams into [hit]!"), "You hear something slam!")
-			boutput(charger, __red("You slam into [hit]! Ouch!"))
+			hit.visible_message(SPAN_ALERT("[charger] slams into [hit]!"), "You hear something slam!")
+			boutput(charger, SPAN_ALERT("You slam into [hit]! Ouch!"))
 			charger.changeStatus("stunned", 3 SECONDS)
-			playsound(hit, "sound/impact_sounds/Generic_Hit_1.ogg", 50, 1, -1)
+			playsound(hit, 'sound/impact_sounds/Generic_Hit_1.ogg', 50, TRUE, -1)
 		else if (isobj(hit))
 			var/obj/H = hit
 			if (H.anchored)
-				hit.visible_message(__red("[charger] slams into [hit]!"), "You hear something slam!")
-				boutput(charger, __red("You slam into [hit]! Ouch!"))
+				hit.visible_message(SPAN_ALERT("[charger] slams into [hit]!"), "You hear something slam!")
+				boutput(charger, SPAN_ALERT("You slam into [hit]! Ouch!"))
 				charger.changeStatus("stunned", 3 SECONDS)
-				playsound(hit, "sound/impact_sounds/Generic_Hit_1.ogg", 50, 1, -1)
+				playsound(hit, 'sound/impact_sounds/Generic_Hit_1.ogg', 50, TRUE, -1)
 			else
-				hit.visible_message(__red("[charger] slams into [hit]!"), "You hear something slam!")
-				playsound(hit, "sound/impact_sounds/Generic_Hit_1.ogg", 50, 1, -1)
-				boutput(charger, __red("You slam into [hit]!"))
+				hit.visible_message(SPAN_ALERT("[charger] slams into [hit]!"), "You hear something slam!")
+				playsound(hit, 'sound/impact_sounds/Generic_Hit_1.ogg', 50, TRUE, -1)
+				boutput(charger, SPAN_ALERT("You slam into [hit]!"))
 				var/kbdir = angle_to_dir(angle)
 				step(H, kbdir, 2)
 				if (prob(10))
-					SPAWN_DBG(0.2 SECONDS)
+					SPAWN(0.2 SECONDS)
 						step(H, kbdir, 2)
 		else if (ismob(hit))
 			var/mob/M = hit
-			playsound(hit, "sound/impact_sounds/Generic_Hit_1.ogg", 50, 1, -1)
-			hit.visible_message(__red("[charger] slams into [hit]!"), "You hear something slam!")
-			boutput(charger, __red("You slam into [hit]!"))
-			boutput(M, __red("<b>[charger] slams into you!</b>"))
-			logTheThing("combat", charger, M, "slams [constructTarget(M,"combat")].")
+			playsound(hit, 'sound/impact_sounds/Generic_Hit_1.ogg', 50, TRUE, -1)
+			hit.visible_message(SPAN_ALERT("[charger] slams into [hit]!"), "You hear something slam!")
+			boutput(charger, SPAN_ALERT("You slam into [hit]!"))
+			boutput(M, SPAN_ALERT("<b>[charger] slams into you!</b>"))
+			logTheThing(LOG_COMBAT, charger, "slams [constructTarget(M,"combat")].")
 			var/kbdir = angle_to_dir(angle)
 			step(M, kbdir, 2)
-			M.changeStatus("weakened", 4 SECONDS)
+			M.changeStatus("knockdown", 4 SECONDS)
 
 	on_end(var/obj/projectile/O)
 		var/keys = ""
@@ -104,25 +103,24 @@
 	name = "Slam"
 	desc = "Charge over a short distance, until you hit a mob or an object. Knocks down mobs."
 	icon_state = "slam"
-	cooldown = 100
-	targeted = 1
-	target_anything = 1
-
-	var/datum/projectile/slam/proj = new
+	cooldown = 10 SECONDS
+	targeted = TRUE
+	target_anything = TRUE
+	var/datum/projectile/slam/proj
 
 	cast(atom/target)
+		proj = new /datum/projectile/slam()
 		if (..())
-			return 1
+			return TRUE
 		var/turf/T = get_turf(target)
 		if (!T)
-			return 1
+			return TRUE
 		var/mob/M = holder.owner
 		var/turf/S = get_turf(M)
-		var/obj/projectile/O = initialize_projectile_ST(S, proj, T)
-		if (!O)
-			return 1
-		if (!O.was_setup)
-			O.setup()
+		var/obj/projectile/O = initialize_projectile_pixel_spread(S, proj, T)
 		O.special_data["owner"] = src
 		O.launch()
-		return 0
+		return FALSE
+
+	polymorph
+		icon_state = "slam_polymorph"

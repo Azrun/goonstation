@@ -15,20 +15,24 @@
 			robot_owner.hud.update_environment()
 
 		if (hivebot_owner)
+			hivebot_owner.hud.update_charge()
+			hivebot_owner.hud.update_pulling()
 			if (ticker?.mode && istype(ticker.mode, /datum/game_mode/construction))
-				hivebot_owner.see_invisible = 9
+				hivebot_owner.see_invisible = INVIS_CONSTRUCTION
 
 		if (critter_owner)
 			critter_owner.hud.update_health()
 			critter_owner.hud.update_temp_indicator()
 			critter_owner.hud.update_blood_indicator()
 			critter_owner.hud.update_pulling()
+			critter_owner.hud.update_rad_indicator()
 
 		if (human_owner)
 			human_owner.hud.update_health_indicator()
 			human_owner.hud.update_temp_indicator()
 			human_owner.hud.update_blood_indicator()
 			human_owner.hud.update_pulling()
+			human_owner.hud.update_rad_indicator()
 
 			var/color_mod_r = 255
 			var/color_mod_g = 255

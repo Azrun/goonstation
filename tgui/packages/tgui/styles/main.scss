@@ -4,15 +4,18 @@
  */
 
 @use 'sass:meta';
-@use './base.scss';
+@use 'base';
 
 // Core styles
 @include meta.load-css('./reset.scss');
 
 // Atomic classes
 @include meta.load-css('./atomic/candystripe.scss');
+@include meta.load-css('./atomic/centered-image.scss');
 @include meta.load-css('./atomic/color.scss');
 @include meta.load-css('./atomic/debug-layout.scss');
+@include meta.load-css('./atomic/fit-text.scss');
+@include meta.load-css('./atomic/links.scss');
 @include meta.load-css('./atomic/outline.scss');
 @include meta.load-css('./atomic/text.scss');
 
@@ -20,16 +23,20 @@
 @include meta.load-css('./components/BlockQuote.scss');
 @include meta.load-css('./components/Button.scss');
 @include meta.load-css('./components/ColorBox.scss');
+@include meta.load-css('./components/Dialog.scss');
 @include meta.load-css('./components/Dimmer.scss');
 @include meta.load-css('./components/Divider.scss');
 @include meta.load-css('./components/Dropdown.scss');
 @include meta.load-css('./components/Flex.scss');
-@include meta.load-css('./components/GeneIcon.scss');
 @include meta.load-css('./components/Icon.scss');
-@include meta.load-css('./components/Image.scss');
+// |GOONSTATION-CHANGE| This component's stylesheet includes styles that apply to other things,
+// and the component is not used by Goonstation; including here for completeness, and a note that
+// until this is fixed including *all* of tgui-styles may break a bunch of our styles
+// @include meta.load-css('./components/ImageButton.scss');
 @include meta.load-css('./components/Input.scss');
 @include meta.load-css('./components/Knob.scss');
 @include meta.load-css('./components/LabeledList.scss');
+@include meta.load-css('./components/MenuBar.scss');
 @include meta.load-css('./components/Modal.scss');
 @include meta.load-css('./components/NoticeBox.scss');
 @include meta.load-css('./components/NumberInput.scss');
@@ -42,19 +49,37 @@
 @include meta.load-css('./components/Tabs.scss');
 @include meta.load-css('./components/TextArea.scss');
 @include meta.load-css('./components/Tooltip.scss');
-@include meta.load-css('./components/TooltipOverflow.scss');
+
+// Goonstation Component Styles
+@include meta.load-css('./components/goon/GeneIcon.scss');
+@include meta.load-css('./components/goon/TooltipOverflow.scss');
 
 // Interfaces
 @include meta.load-css('./interfaces/common/ListSearch.scss');
 @include meta.load-css('./interfaces/Airlock.scss');
 @include meta.load-css('./interfaces/AlertModal.scss');
+@include meta.load-css('./interfaces/BanPanel.scss');
+@include meta.load-css('./interfaces/Cashreg.scss');
+@include meta.load-css('./interfaces/ColorPicker.scss');
+@include meta.load-css('./interfaces/ComUplink.scss');
+@include meta.load-css('./interfaces/Boardgame/main.scss');
 @include meta.load-css('./interfaces/ChemDispenser.scss');
+@include meta.load-css('./interfaces/ChemHeater.scss');
 @include meta.load-css('./interfaces/CloningConsole.scss');
+@include meta.load-css('./interfaces/ClothingBooth.scss');
 @include meta.load-css('./interfaces/CyborgModuleRewriter.scss');
+@include meta.load-css('./interfaces/Gameclock.scss');
 @include meta.load-css('./interfaces/GasCanister.scss');
+@include meta.load-css('./interfaces/IDComputer.scss');
+@include meta.load-css('./interfaces/MusicInstrument.scss');
 @include meta.load-css('./interfaces/ListInput.scss');
+@include meta.load-css('./interfaces/MapVote.scss');
+@include meta.load-css('./interfaces/MinimapController.scss');
 @include meta.load-css('./interfaces/Paper.scss');
+@include meta.load-css('./interfaces/Phone.scss');
+@include meta.load-css('./interfaces/PINInputModal.scss');
 @include meta.load-css('./interfaces/PortableAtmos.scss');
+@include meta.load-css('./interfaces/TraitorTips.scss');
 @include meta.load-css('./interfaces/WeaponVendor.scss');
 
 // Layouts
@@ -63,6 +88,9 @@
 @include meta.load-css('./layouts/NtosWindow.scss');
 @include meta.load-css('./layouts/TitleBar.scss');
 @include meta.load-css('./layouts/Window.scss');
+
+// |GOOONSTATION-CHANGE|
+// @include meta.load-css('highlight.js/scss/github-dark.scss');
 
 // NT Theme
 .Layout__content {

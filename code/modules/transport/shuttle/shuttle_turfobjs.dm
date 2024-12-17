@@ -33,6 +33,11 @@
 		..()
 		if (icon_state == "tplaceholder") icon_state = "near_blank"
 
+/turf/space/shuttle_transit/safe
+	temperature = T20C
+	oxygen = MOLES_O2STANDARD
+	nitrogen = MOLES_N2STANDARD
+
 /turf/simulated/floor/shuttle
 	name = "shuttle floor"
 	icon_state = "floor"
@@ -40,9 +45,9 @@
 	thermal_conductivity = 0.05
 	heat_capacity = 0
 	turf_flags = MOB_STEP
+	can_burn = FALSE
+	can_break = FALSE
 
-	attackby()
-	attack_hand()
 	hitby()
 		. = ..()
 	reagent_act()
@@ -55,45 +60,94 @@
 	damage_piercing()
 	damage_slashing()
 	damage_blunt()
+
+/turf/simulated/floor/shuttle/yellow
+	icon_state = "floor2"
+
+/turf/simulated/floor/shuttle/white
+	icon_state = "floor3"
+
+/turf/simulated/floor/shuttle/red
+	icon_state = "floor4"
+
+/turf/simulated/floor/shuttle/purple
+	icon_state = "floor5"
+
+/turf/simulated/floor/shuttle/green
+	icon_state = "floor6"
 
 /turf/unsimulated/floor/shuttle
 	name = "shuttle floor"
 	icon_state = "floor"
 	icon = 'icons/turf/shuttle.dmi'
 	turf_flags = MOB_STEP
+	can_burn = FALSE
+	can_break = FALSE
 
-	attackby()
-	attack_hand()
-	hitby()
-		. = ..()
-	reagent_act()
-	bullet_act()
-	ex_act()
-	blob_act()
-	meteorhit()
-	damage_heat()
-	damage_corrosive()
-	damage_piercing()
-	damage_slashing()
-	damage_blunt()
+/turf/unsimulated/floor/shuttle/yellow
+	icon_state = "floor2"
 
+/turf/unsimulated/floor/shuttle/white
+	icon_state = "floor3"
 
-/turf/simulated/wall/auto/shuttle
-	icon = 'icons/turf/walls_shuttle.dmi'
-	light_mod = "wall-"
+/turf/unsimulated/floor/shuttle/red
+	icon_state = "floor4"
+
+/turf/unsimulated/floor/shuttle/purple
+	icon_state = "floor5"
+
+/turf/unsimulated/floor/shuttle/green
+	icon_state = "floor6"
+
+TYPEINFO(/turf/simulated/wall/auto/shuttle)
 	connect_overlay = 1
-	connects_to = list(/turf/simulated/wall/auto/shuttle, /turf/simulated/wall/false_wall, /obj/machinery/door, /obj/window)
-	connects_with_overlay = list(/turf/simulated/wall/false_wall/reinforced, /obj/machinery/door, /obj/window)
-/*
-	update_neighbors()
-		..()
-		for (var/obj/window/auto/O in orange(1,src))
-			O.update_icon()
-*/
-	/////////////////////////////////////////////////////////////////OBJECTS
+	connect_across_areas = FALSE
+TYPEINFO_NEW(/turf/simulated/wall/auto/shuttle)
+	. = ..()
+	// override parent so we can connect to ourselves
+	connects_to_exceptions = list()
+	connects_to = typecacheof(list(
+		/turf/simulated/wall/auto/supernorn, /turf/simulated/wall/auto/reinforced/supernorn, /turf/simulated/wall/auto/supernorn/wood,
+		/turf/simulated/wall/false_wall, /obj/machinery/door, /obj/window, /obj/mapping_helper/wingrille_spawn,
+		/turf/simulated/wall/auto/shuttle, /obj/indestructible/shuttle_corner
+	))
+	connects_with_overlay = typecacheof(list(
+		/turf/simulated/wall/auto/supernorn/wood, /turf/simulated/wall/false_wall/reinforced,
+		/obj/machinery/door, /obj/window, /obj/mapping_helper/wingrille_spawn
+	))
+/turf/simulated/wall/auto/shuttle
+	name = "shuttle wall"
+	desc = "A shuttle wall. Pretty reinforced."
+	icon = 'icons/turf/walls/shuttle/blue.dmi'
+#ifdef PERSPECTIVE_EDITOR_WALL
+	icon_state = "perspective-mapwall"
+#else
+	icon_state = "mapwall"
+#endif
+	light_mod = "wall-"
+	opacity = 0
+	flags = FLUID_DENSE | IS_PERSPECTIVE_FLUID
 
-/obj/indestructible/
-	anchored = 2
+	attackby()
+	attack_hand()
+	hitby()
+		. = ..()
+	burn_down()
+	reagent_act()
+	bullet_act()
+	ex_act()
+	blob_act()
+	meteorhit()
+	damage_heat()
+	damage_corrosive()
+	damage_piercing()
+	damage_slashing()
+	damage_blunt()
+
+// ---------------------------------------------- OBJECTS -------------------------------------
+
+/obj/indestructible
+	anchored = ANCHORED_ALWAYS
 
 	attackby()
 	attack_hand()
@@ -110,7 +164,8 @@
 	damage_slashing()
 	damage_blunt()
 
-/obj/indestructible/invisible_block // an invisible thing to stop people walking where they 'aint meant to.
+/// an invisible thing to stop people walking where they 'aint meant to.
+/obj/indestructible/invisible_block
 	density = 1
 	mouse_opacity = 0
 
@@ -148,39 +203,13 @@
 	plane = PLANE_WALL
 	name = "shuttle wall"
 	desc = "A shuttle wall. Pretty reinforced. This appears to be a corner."
-	icon = 'icons/turf/walls_shuttle.dmi'
+	icon = 'icons/turf/walls/shuttle/corner.dmi'
 	icon_state = "corner"
 	density = 1
 	opacity = 0
+	gas_impermeable = TRUE
 	layer = EFFECTS_LAYER_BASE - 1
-	flags = ALWAYS_SOLID_FLUID | IS_PERSPECTIVE_FLUID
-
-/turf/simulated/wall/auto/shuttle
-	name = "shuttle wall"
-	desc = "A shuttle wall. Pretty reinforced."
-	icon = 'icons/turf/walls_shuttle.dmi'
-	light_mod = "wall-"
-	opacity = 0
-	flags = ALWAYS_SOLID_FLUID | IS_PERSPECTIVE_FLUID
-	connect_overlay = 1
-	connects_to = list(/turf/simulated/wall/auto/supernorn, /turf/simulated/wall/auto/reinforced/supernorn, /turf/simulated/wall/auto/supernorn/wood,
-	/turf/simulated/wall/false_wall, /obj/machinery/door, /obj/window, /obj/wingrille_spawn, /turf/simulated/wall/auto/shuttle, /obj/indestructible/shuttle_corner)
-	connects_with_overlay = list(/turf/simulated/wall/auto/supernorn/wood, /turf/simulated/wall/false_wall/reinforced, /obj/machinery/door, /obj/window, /obj/wingrille_spawn)
-
-	attackby()
-	attack_hand()
-	hitby()
-		. = ..()
-	reagent_act()
-	bullet_act()
-	ex_act()
-	blob_act()
-	meteorhit()
-	damage_heat()
-	damage_corrosive()
-	damage_piercing()
-	damage_slashing()
-	damage_blunt()
+	flags = FLUID_DENSE | IS_PERSPECTIVE_FLUID
 
 //TODO: CLEAN UP
 /turf/simulated/shuttle/wall
@@ -189,12 +218,12 @@
 	var/icon_style = "wall"
 	opacity = 1
 	density = 1
-	blocks_air = 1
+	gas_impermeable = 1
 	pathable = 0
 
 	New()
 		..()
-		SPAWN_DBG(6 SECONDS) // patch up some ugly corners in derelict mode
+		SPAWN(6 SECONDS) // patch up some ugly corners in derelict mode
 			if (derelict_mode)
 				if (src.icon_state == "[src.icon_style]_space")
 					src.icon_state = "[src.icon_style]_void"

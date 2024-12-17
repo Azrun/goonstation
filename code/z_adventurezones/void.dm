@@ -19,29 +19,41 @@ CONTENTS:
 	sound_group = "void"
 	sound_loop = 'sound/ambience/spooky/Void_Song.ogg'
 	ambient_light = rgb(6.9, 4.20, 6.9)
+	area_parallax_render_source_group = /datum/parallax_render_source_group/area/void
 
-	New()
-		..()
-		SPAWN_DBG(1 SECOND)
-			process()
+/area/crunch/New()
+	. = ..()
+	START_TRACKING_CAT(TR_CAT_AREA_PROCESS)
 
-	proc/process()
-		while(current_state < GAME_STATE_FINISHED)
-			sleep(10 SECONDS)
-			if (current_state == GAME_STATE_PLAYING)
-				if(!played_fx_2 && prob(10))
-					sound_fx_2 = pick('sound/ambience/spooky/Void_Hisses.ogg','sound/ambience/spooky/Void_Screaming.ogg','sound/ambience/spooky/Void_Wail.ogg','sound/ambience/spooky/Void_Calls.ogg')
-					for(var/mob/M in src)
-						if (M.client)
-							M.client.playAmbience(src, AMBIENCE_FX_2, 50)
+/area/crunch/disposing()
+	STOP_TRACKING_CAT(TR_CAT_AREA_PROCESS)
+	. = ..()
 
+/area/crunch/area_process()
+	if(prob(20))
+		src.sound_fx_2 = pick('sound/ambience/spooky/Void_Hisses.ogg',\
+		'sound/ambience/spooky/Void_Screaming.ogg',\
+		'sound/ambience/spooky/Void_Wail.ogg',\
+		'sound/ambience/spooky/Void_Calls.ogg')
+
+		for(var/mob/living/carbon/human/H in src)
+			H.client?.playAmbience(src, AMBIENCE_FX_2, 50)
+
+/area/crunch/artifact_boh_pocket_dimension
+	name = "unknown dimension"
+	ambient_light = null
+	area_parallax_render_source_group = null
+	teleport_blocked = 2
+
+TYPEINFO(/turf/unsimulated/wall/void)
+	mat_appearances_to_ignore = list("steel")
 /turf/unsimulated/wall/void
 	name = "dense void"
 	icon = 'icons/turf/floors.dmi'
 	desc = "It seems solid..."
 	opacity = 1
 	density = 1
-	mat_appearances_to_ignore = list("steel")
+	plane = PLANE_SPACE
 #ifdef IN_MAP_EDITOR
 	icon_state = "darkvoid-map" //so we can actually the walls from the floor
 #else
@@ -51,16 +63,56 @@ CONTENTS:
 /turf/unsimulated/wall/void/crunch //putting these here for now
 	fullbright = 0
 
+TYPEINFO(/turf/unsimulated/floor/void)
+	mat_appearances_to_ignore = list("steel")
 /turf/unsimulated/floor/void
 	name = "void"
 	icon = 'icons/turf/floors.dmi'
 	icon_state = "void"
 	desc = "A strange shifting void ..."
+	plane = PLANE_SPACE
+	can_burn = FALSE
+	can_break = FALSE
+
+
+TYPEINFO(/turf/unsimulated/floor/auto/void)
 	mat_appearances_to_ignore = list("steel")
+
+/turf/unsimulated/floor/auto/void
+	name = "void"
+	icon = 'icons/obj/adventurezones/void.dmi'
+	icon_state = "void"
+	desc = "A strange shifting void ..."
+	plane = PLANE_SPACE
+	can_burn = FALSE
+	can_break = FALSE
+	edge_priority_level = INFINITY
+	icon_state_edge = "void_edge"
+
+	edge_overlays()
+		if(src.icon_state_edge)
+			var/connectdir = get_connected_directions_bitflag(list(src.type=TRUE), list(), TRUE, FALSE)
+			for (var/direction in alldirs)
+				var/turf/T = get_step(src, turn(direction, 180))
+				if(T)
+					if (istype(T, /turf/unsimulated/floor/auto))
+						var/turf/unsimulated/floor/auto/TA = T
+						if (TA.edge_priority_level >= src.edge_priority_level)
+							T.ClearSpecificOverlays("edge_[direction]") // Cull overlaps
+							continue
+					if(turn(direction, 180) & connectdir)
+						T.ClearSpecificOverlays("edge_[direction]") // Cull diagonals
+						continue
+					T.add_filter("edge_[direction]", 0, alpha_mask_filter(icon=icon(src.icon, "[icon_state_edge][direction]", dir=pick(cardinal)), flags = MASK_INVERSE))
+
+
+
 
 /turf/unsimulated/floor/void/crunch
 	fullbright = 0
 
+TYPEINFO(/turf/simulated/wall/void)
+	mat_appearances_to_ignore = list("steel")
 /turf/simulated/wall/void
 	name = "dense void"
 	icon = 'icons/turf/floors.dmi'
@@ -68,7 +120,7 @@ CONTENTS:
 	desc = "It seems solid..."
 	opacity = 1
 	density = 1
-	mat_appearances_to_ignore = list("steel")
+	plane = PLANE_SPACE
 
 	ex_act()
 		return
@@ -79,21 +131,25 @@ CONTENTS:
 	blob_act(var/power)
 		return
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		return
 
-	attackby(obj/item/W as obj, mob/user as mob)
+	attackby(obj/item/W, mob/user)
 		return
 
 
+TYPEINFO(/turf/simulated/floor/void)
+	mat_appearances_to_ignore = list("steel")
 /turf/simulated/floor/void
 	name = "void"
 	icon = 'icons/turf/floors.dmi'
 	icon_state = "void"
 	desc = "A strange shifting void ..."
+	plane = PLANE_SPACE
 	step_material = "step_lattice"
 	step_priority = STEP_PRIORITY_MED
-	mat_appearances_to_ignore = list("steel")
+	can_burn = FALSE
+	can_break = FALSE
 
 	ex_act()
 		return
@@ -104,10 +160,10 @@ CONTENTS:
 	blob_act(var/power)
 		return
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		return
 
-	attackby(obj/item/W as obj, mob/user as mob)
+	attackby(obj/item/W, mob/user)
 		return
 
 //////////////////////////////
@@ -118,7 +174,7 @@ CONTENTS:
 	name = "complicated contraption"
 	desc = "A big machine with lots of buttons and dials on it. Looks kinda dangerous."
 	density = 1
-	anchored = 1
+	anchored = ANCHORED
 
 	icon = 'icons/obj/machines/mindswap.dmi'
 	icon_state = "mindswap"
@@ -144,7 +200,7 @@ CONTENTS:
 
 	New()
 		..()
-		SPAWN_DBG(0.5 SECONDS)
+		SPAWN(0.5 SECONDS)
 			update_chairs()
 
 		overlays_list["cables"] = new /image('icons/obj/machines/mindswap.dmi', "mindswap-cables")
@@ -169,7 +225,7 @@ CONTENTS:
 		overlays_list["r_dial_0"] = new /image('icons/obj/machines/mindswap.dmi', "mindswap-dial-R-on")
 		overlays_list["r_dial_1"] = new /image('icons/obj/machines/mindswap.dmi', "mindswap-dial-R-jitter")
 
-		update_icons()
+		UpdateIcons()
 
 	attack_hand(mob/user)
 		..()
@@ -180,7 +236,7 @@ CONTENTS:
 		attack_hand(user)
 
 
-	proc/update_icons()
+	proc/UpdateIcons()
 		//src.overlays.Cut()
 
 		UpdateOverlays(overlays_list["cables"], "cables")
@@ -302,7 +358,7 @@ CONTENTS:
 
 			else if(href_list["refresh_mind_connection"])
 				src.updateUsrDialog() //lol cheats
-				update_icons()
+				UpdateIcons()
 
 			else if(href_list["execute_swap"])
 				do_swap()
@@ -315,20 +371,20 @@ CONTENTS:
 		if(activating) return
 		activating = 1
 		src.updateUsrDialog()
-		playsound(src.loc, "sound/machines/computerboot_pc_start.ogg", 50, 0)
+		playsound(src.loc, 'sound/machines/computerboot_pc_start.ogg', 50, 0)
 
 		sleep(boot_duration / 2)
 		activating = 2
-		update_icons()
+		UpdateIcons()
 
 		sleep(boot_duration / 4)
 		activating = 3
-		update_icons()
+		UpdateIcons()
 
 		sleep(boot_duration / 4)
 		active = 1
 		activating = 0
-		update_icons()
+		UpdateIcons()
 
 		remain_active = remain_active_max
 
@@ -341,12 +397,12 @@ CONTENTS:
 
 	proc/make_some_noise()
 		do
-			playsound(src.loc, "sound/machines/computerboot_pc_loop.ogg", 50, 0)
+			playsound(src.loc, 'sound/machines/computerboot_pc_loop.ogg', 50, 0)
 			sleep(loop_duration)
 		while(active && !activating && remain_active-- > 0) //So it will shut itself down after a while
 
 		if(remain_active <= 0)
-			src.visible_message("<span class='alert'>You hear a quiet click as \the [src] deactivates itself.</span>")
+			src.visible_message(SPAN_ALERT("You hear a quiet click as \the [src] deactivates itself."))
 			deactivate()
 
 
@@ -354,11 +410,11 @@ CONTENTS:
 	proc/deactivate()
 		if(!active || activating || operating) return
 		activating = 1
-		playsound(src.loc, "sound/machines/computerboot_pc_end.ogg", 50, 0)
+		playsound(src.loc, 'sound/machines/computerboot_pc_end.ogg', 50, 0)
 		sleep(2 SECONDS)
 		activating = 0
 		active = 0
-		update_icons()
+		UpdateIcons()
 
 		src.updateUsrDialog()
 
@@ -369,10 +425,28 @@ CONTENTS:
 
 		if(chair1 && !chair1.on) chair1.toggle_active()
 		if(chair2 && !chair2.on) chair2.toggle_active()
-		update_icons()
+		UpdateIcons()
 
 	proc/can_operate()
-		return chair1 && ishuman(chair1.buckled_guy) && !chair1.buckled_guy:on_chair && chair2 && ishuman(chair2.buckled_guy) && !chair2.buckled_guy:on_chair
+		return valid_mindswap(chair1?.buckled_guy) && valid_mindswap(chair2?.buckled_guy)
+
+	proc/valid_mindswap(mob/living/L)
+		. = 1
+		if(!istype(L))
+			return
+
+		if(ishuman(L))
+			var/mob/living/carbon/human/H = L
+			if(H.on_chair)
+				. = 0
+
+		if(istype(L, /mob/living/critter))
+			var/mob/living/critter/C = L
+			if(C.dormant || C.ghost_spawned)
+				. = 0
+
+		if(!L.void_mindswappable)
+			. = 0
 
 	proc/do_swap()
 
@@ -385,7 +459,7 @@ CONTENTS:
 			update_chairs()
 			if(can_operate()) //We have what we need
 				remain_active += 200 //So it won't switch itself off on us
-				update_icons()
+				UpdateIcons()
 
 				//We're not going to allow you to unbuckle during the process
 				chair1.allow_unbuckle = 0
@@ -402,30 +476,30 @@ CONTENTS:
 				playsound(src.loc, 'sound/machines/modem.ogg', 75, 1)
 
 				A.emote("scream")
-				A.changeStatus("weakened", 5 SECONDS)
+				A.changeStatus("knockdown", 5 SECONDS)
 				A.show_text("<B>IT HURTS!</B>", "red")
 				A.shock(src, 75000, ignore_gloves=1)
 
 				B.emote("scream")
-				B.changeStatus("weakened", 5 SECONDS)
+				B.changeStatus("knockdown", 5 SECONDS)
 				B.show_text("<B>IT HURTS!</B>", "red")
 				B.shock(src, 75000, ignore_gloves=1)
-				SPAWN_DBG(5 SECONDS)
+				SPAWN(5 SECONDS)
 					playsound(src.loc, 'sound/machines/modem.ogg', 100, 1)
 					A.show_text("<B>You feel your mind slipping...</B>", "red")
-					A.drowsyness = max(A.drowsyness, 10)
+					A.changeStatus("drowsy", 20 SECONDS)
 					B.show_text("<B>You feel your mind slipping...</B>", "red")
-					B.drowsyness = max(B.drowsyness, 10)
+					B.changeStatus("drowsy", 20 SECONDS)
 
 				sleep(10 SECONDS)
 				playsound(src.loc,'sound/effects/elec_bzzz.ogg', 60, 1)
 				if(A && B && can_operate()) //We're all here, still
 					A.emote("faint")
-					A.changeStatus("paralysis", 25 SECONDS)
+					A.changeStatus("unconscious", 25 SECONDS)
 					A.shock(src, 750000, ignore_gloves=1)
 
 					B.emote("faint")
-					B.changeStatus("paralysis", 25 SECONDS)
+					B.changeStatus("unconscious", 25 SECONDS)
 					A.shock(src, 750000, ignore_gloves=1)
 
 					if(A.mind)
@@ -436,7 +510,7 @@ CONTENTS:
 						success = 0
 
 				else if(!can_operate()) //Someone was being clever during the process
-					SPAWN_DBG(0)
+					SPAWN(0)
 						if(A)
 							playsound(A.loc, 'sound/impact_sounds/Machinery_Break_1.ogg', 70, 1)
 							A.show_text("<B>The residual energy from the machine suddenly rips you apart!</B>", "red")
@@ -463,15 +537,15 @@ CONTENTS:
 
 			if(success)
 				playsound(src.loc, 'sound/effects/electric_shock.ogg', 50,1)
-				src.visible_message("<span class='alert'>\The [src] emits a loud crackling sound and the smell of ozone fills the air!</span>")
+				src.visible_message(SPAN_ALERT("\The [src] emits a loud crackling sound and the smell of ozone fills the air!"))
 				loop_duration = 7 //Something is amiss oh no!
 				remain_active = min(remain_active, 100)
 				remain_active_max = 100
 				used = 1
 			else
 				playsound(src.loc, 'sound/machines/buzz-two.ogg', 50,1)
-				src.visible_message("<span class='alert'>\The [src] emits a whirring and clicking noise followed by an angry beep!</span>")
+				src.visible_message(SPAN_ALERT("\The [src] emits a whirring and clicking noise followed by an angry beep!"))
 
-		SPAWN_DBG(5 SECONDS)
+		SPAWN(5 SECONDS)
 			operating = 0
-			update_icons()
+			UpdateIcons()

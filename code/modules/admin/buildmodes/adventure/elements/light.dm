@@ -4,8 +4,8 @@
 	desc = "Light is emitted out of this point."
 	density = 0
 	opacity = 0
-	anchored = 1
-	invisibility = 20
+	anchored = ANCHORED
+	invisibility = INVIS_ADVENTURE
 
 	var/is_on = 0
 

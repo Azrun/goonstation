@@ -6,7 +6,7 @@
 /datum/movement_controller/obj_control
 	var/obj/master
 	var/move_dir = 0
-	var/move_delay = 1.0
+	var/move_delay = 1
 	var/running = 0
 	var/next_move = 0
 
@@ -59,7 +59,7 @@
 		..()
 		switch (name)
 			if("exit")
-				user.use_movement_controller = null
+				user.override_movement_controller = null
 				user.set_loc(get_turf(src.master))
 				user.reset_keymap()
 				user.client.eye = user

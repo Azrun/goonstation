@@ -9,7 +9,7 @@
 				holder.cancel_action_binding()
 			else
 				owner.waiting_for_hotkey = 1
-				boutput(usr, "<span class='notice'>Please press a number to bind this ability to...</span>")
+				boutput(usr, SPAN_NOTICE("Please press a number to bind this ability to..."))
 		else if(params["left"])
 			if (!istype(spell))
 				return
@@ -25,7 +25,7 @@
 				usr.targeting_ability = owner
 				usr.update_cursor()
 			else
-				SPAWN_DBG(0)
+				SPAWN(0)
 					spell.handleCast()
 			return
 
@@ -47,7 +47,7 @@
 	cooldown = 0
 	last_cast = 0
 	check_range = 0
-	var/disabled = 0
+	disabled = 0
 	var/toggled = 0
 	var/is_on = 0   // used if a toggle ability
 	preferred_holder_type = /datum/abilityHolder/cruiser
@@ -91,10 +91,10 @@
 
 	castcheck()
 		if (incapacitationCheck())
-			boutput(holder.owner, __red("Not while incapacitated."))
+			boutput(holder.owner, SPAN_ALERT("Not while incapacitated."))
 			return 0
 		if (disabled)
-			boutput(holder.owner, __red("You cannot use that ability at this time."))
+			boutput(holder.owner, SPAN_ALERT("You cannot use that ability at this time."))
 			return 0
 		return 1
 
@@ -103,7 +103,7 @@
 			return
 		last_cast = world.time + cooldown
 		holder.updateButtons()
-		SPAWN_DBG(cooldown + 5)
+		SPAWN(cooldown + 5)
 			holder.updateButtons()
 
 	cast(atom/target)

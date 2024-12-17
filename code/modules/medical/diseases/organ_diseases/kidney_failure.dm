@@ -4,8 +4,8 @@
 	scantype = "Medical Emergency"
 	max_stages = 3
 	spread = "The patient's kidneys are starting to fail"
-	cure = "anti-toxin drugs"
-	reagentcure = list("organ_drug2")
+	cure_flags = CURE_CUSTOM
+	cure_desc = "Anti-toxin drugs"
 	recureprob = 10
 	affected_species = list("Human")
 	stage_prob = 1
@@ -18,20 +18,20 @@
 /datum/ailment/disease/kidney_failure/right
 	failing_organ = "r"
 
-/datum/ailment/disease/kidney_failure/stage_act(var/mob/living/affected_mob,var/datum/ailment_data/D)
+/datum/ailment/disease/kidney_failure/stage_act(var/mob/living/affected_mob, var/datum/ailment_data/D, mult)
 	if (..())
 		return
 
 	if (!ishuman(affected_mob))
 		return
-	
+
 	var/mob/living/carbon/human/H = affected_mob
-		
+
 	if (!H.organHolder || (!H.organHolder.left_kidney && !H.organHolder.right_kidney))
 		H.cure_disease(D)
 		return
 
-	//so you only need to remove the one kidney to cure the disease. 
+	//so you only need to remove the one kidney to cure the disease.
 	if ((failing_organ == "l" && !H.organHolder.left_kidney) || (failing_organ == "r" && !H.organHolder.right_kidney))
 		H.cure_disease(D)
 		return
@@ -41,38 +41,38 @@
 
 		//handle robokidney failuer. should do some stuff I guess
 		// else if (H.organHolder.kidney && H.organHolder.kidney.robotic && !H.organHolder.heart.health > 0)
-	
-	if (prob(D.stage * 30))
+
+	if (probmult(D.stage * 30))
 		H.organHolder.damage_organs(0, 0, D.stage, 50, list("left_kidney", "right_kidney"))
 
 	switch (D.stage)
 		if (1)
-			if (prob(1) && prob(10))
-				boutput(H, "<span class='notice'>You feel better.</span>")
+			if (probmult(0.1))
+				boutput(H, SPAN_NOTICE("You feel better."))
 				H.cure_disease(D)
 				return
-			if (prob(8)) H.emote(pick("pale", "shudder"))
-			if (prob(5))
-				boutput(H, "<span class='alert'>Your abdomen area hurts!</span>")
+			if (probmult(8)) H.emote(pick("pale", "shudder"))
+			if (probmult(5))
+				boutput(H, SPAN_ALERT("Your abdomen area hurts!"))
 		if (2)
-			if (prob(1) && prob(10))
-				boutput(H, "<span class='notice'>You feel better.</span>")
+			if (probmult(0.1))
+				boutput(H, SPAN_NOTICE("You feel better."))
 				H.resistances += src.type
 				H.ailments -= src
 				return
-			if (prob(8)) H.emote(pick("pale", "groan"))
-			if (prob(5))
-				boutput(H, "<span class='alert'>Your back aches terribly!</span>")
-			if (prob(3))
-				boutput(H, "<span class='alert'>You feel excruciating pain in your upper-right adbomen!</span>")
+			if (probmult(8)) H.emote(pick("pale", "groan"))
+			if (probmult(5))
+				boutput(H, SPAN_ALERT("Your back aches terribly!"))
+			if (probmult(3))
+				boutput(H, SPAN_ALERT("You feel excruciating pain in your upper-right abdomen!"))
 				// H.organHolder.takekidney
 
-			if (prob(5)) H.emote(pick("faint", "collapse", "groan"))
+			if (probmult(5)) H.emote(pick("faint", "collapse", "groan"))
 		if (3)
-			if (prob(8)) H.emote(pick("twitch", "gasp"))
-				
-			if (prob(20)) 
+			if (probmult(8)) H.emote(pick("twitch", "gasp"))
+
+			if (probmult(20))
 				H.emote(pick("twitch", "gasp"))
 				H.losebreath++
-
-			H.take_toxin_damage(1)
+			if (!H.hasStatus("dialysis")) //dialysis can be a somewhat permanent solution to kidney failure
+				H.take_toxin_damage(1 * mult)

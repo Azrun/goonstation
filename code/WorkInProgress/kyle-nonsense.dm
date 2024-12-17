@@ -1,4 +1,4 @@
-/obj/fakeobjects/sec_tv
+/obj/fakeobject/sec_tv
 	name = "broken million dollar flatscreen teevee"
 	desc = "It's a broken million dollar flatscreen teevee."
 	icon = 'icons/obj/sec_TV.dmi'
@@ -11,4 +11,4 @@
 	var/file_name = "data/scores_backup_[world.realtime].txt"
 	text2file(backup_text, file_name)
 	usr << file_name
-	logTheThing( "debug", usr, null, "Backed up scores: [backup_text]" )
+	logTheThing(LOG_DEBUG, usr, "Backed up scores: [backup_text]")

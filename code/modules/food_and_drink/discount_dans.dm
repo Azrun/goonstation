@@ -5,6 +5,7 @@
 	icon = 'icons/obj/foodNdrink/food_discountdans.dmi'
 	icon_state = "noodlecup"
 	heal_amt = 1
+	fill_amt = 3
 	var/activated = 0
 	initial_volume = 60
 	can_recycle = FALSE
@@ -95,11 +96,11 @@
 				src.initial_reagents["juice_tomato"] = 4 //I guess the lunar style of pasta is with a tomato wine red sauce
 				src.initial_reagents["wine"] = 2
 				src.initial_reagents["water_holy"] = 2
-				src.initial_reagents["venom"] = 2
+				src.initial_reagents["cytotoxin"] = 2
 /*				R.add_reagent("juice_tomato",4) //I guess the lunar style of pasta is with a tomato wine red sauce
 				R.add_reagent("wine",2)
 				R.add_reagent("water_holy",2)
-				R.add_reagent("venom",2)
+				R.add_reagent("cytotoxin",2)
 */
 			if (10)
 				src.real_name = "Rabatt Dan's Snabb-Nudlar - Inkokt Lax Smörgåsbord Smak"
@@ -140,7 +141,7 @@
 				src.real_name = "Devil Dan's Quik-Noodles - Brimstone BBQ Flavor"
 				src.initial_reagents["sulfur"] = 5
 				src.initial_reagents["beff"] = 5
-				src.initial_reagents["ghostchilijuice"] = 5
+				src.initial_reagents["el_diablo"] = 5
 /*				R.add_reagent("sulfur",5)
 				R.add_reagent("beff",5)
 				R.add_reagent("ghostchilijuice",5)
@@ -168,11 +169,11 @@
 
 		src.activated = 1
 		if (reagents)
-			reagents.add_reagent("thalmerite",2)
+			reagents.add_reagent("pyrosium",2)
 			reagents.add_reagent("oxygen", 2)
 			reagents.handle_reactions()
-			SPAWN_DBG(10 SECONDS)
-				reagents.del_reagent("thalmerite")
+			SPAWN(10 SECONDS)
+				reagents.del_reagent("pyrosium")
 		boutput(user, "The cup emits a soft clack as the heater triggers.")
 		return
 
@@ -181,14 +182,14 @@
 	desc = "A self-heating convenience reinterpretation of Mexican cuisine. The exact mechanism used to heat it is probably best left to speculation."
 	icon = 'icons/obj/foodNdrink/food_discountdans.dmi'
 	icon_state = "burrito"
-	amount = 3
+	bites_left = 3
 	heal_amt = 2
+	fill_amt = 3
 	doants = 0 //Ants aren't dumb enough to try to eat these.
 	var/activated = 0
 	initial_volume = 50
 	initial_reagents = list("msg"=9)
-	brewable = 1
-	brew_result = list("sewage", "ethanol")
+	brew_result = list("sewage"=20, "ethanol"=20)
 	food_effects = list("food_sweaty")
 
 	New()
@@ -207,11 +208,13 @@
 			if (2)
 				src.real_name = "Descuento Danito's Burritos - Strawberrito Churro Flavor"
 				src.desc = "There is no way anyone could possibly justify this."
+				src.icon_state = "burrito_churro"
 				src.initial_reagents["VHFCS"] = 8
 				src.initial_reagents["oil"] = 2
 
 			if (3)
 				src.real_name = "Descuento Danito's Burritos - Spicy Beans and Wieners Ole! Flavor"
+				src.icon_state = "burrito_spicy"
 				src.initial_reagents["lithium"] = 4
 				src.initial_reagents["capsaicin"] = 6
 				src.initial_reagents["refried_beans"] = 10
@@ -219,6 +222,7 @@
 			if (4)
 				src.real_name = "Descuento Danito's Burritos - Pancake Sausage Brunch Flavor"
 				src.desc = "A self-heating breakfast burrito with a buttermilk pancake in lieu of a tortilla. A little frightening."
+				src.icon_state = "burrito_pancake"
 				src.initial_reagents["porktonium"] = 4
 				src.initial_reagents["VHFCS"] = 2
 				src.initial_reagents["coffee"] = 4
@@ -226,6 +230,7 @@
 			if (5)
 				src.real_name = "Descuento Danito's Burritos - Homestyle Comfort Flavor"
 				src.desc = "A self-heating burrito just like Mom used to make, if your mother was a souless, automated burrito production line."
+				src.icon_state = "burrito_homestyle"
 				src.initial_reagents["mashedpotatoes"] = 5
 				src.initial_reagents["gravy"] = 3
 				src.initial_reagents["diethylamine"] = 2
@@ -233,6 +238,7 @@
 			if (6)
 				src.real_name = "Spooky Dan's BOO-ritos - Texas Toast Chainsaw Massacre Flavor"
 				src.desc = "A self-heating burrito.  Isn't that concept scary enough on its own?"
+				src.icon_state = "burrito_texastoast"
 				src.initial_reagents["fakecheese"] = 3
 				src.initial_reagents["space_drugs"] = 3
 				src.initial_reagents["bloodc"] = 4
@@ -240,6 +246,7 @@
 			if (7)
 				src.real_name = "Spooky Dan's BOO-ritos - Nightmare on Elm Meat Flavor"
 				src.desc = "A self-heating burrito that purports to contain elm-smoked meat. Of some sort. Probably from an animal."
+				src.icon_state = "burrito_elmmeat"
 				src.initial_reagents["beff"] = 3
 				src.initial_reagents["synthflesh"] = 2
 				src.initial_reagents["eyeofnewt"] = 5
@@ -247,6 +254,7 @@
 			if (8)
 				src.real_name = "Sconto Danilo's Burritos - 50% Real Mozzarella Pepperoni Pizza Party Flavor"
 				src.desc = "A self-heating pizza burrito."
+				src.icon_state = "burrito_pizza"
 				src.initial_reagents["fakecheese"] = 3
 				src.initial_reagents["cheese"] = 3
 				src.initial_reagents["pepperoni"] = 3
@@ -271,13 +279,13 @@
 			return
 
 		if (prob(10) || user.is_hulk())
-			user.visible_message("<span class='alert'><b>[user]</b> snaps the burrito in half!</span>", "<span class='alert'>You accidentally snap the burrito apart. Fuck!</span>")
+			user.visible_message(SPAN_ALERT("<b>[user]</b> snaps the burrito in half!"), SPAN_ALERT("You accidentally snap the burrito apart. Fuck!"))
 			src.splat()
 			return
 
 		src.activated = 1
 		if (reagents)
-			reagents.add_reagent("thalmerite",2)
+			reagents.add_reagent("pyrosium",2)
 			reagents.add_reagent("oxygen", 2)
 			reagents.handle_reactions()
 		boutput(user, "You crack the burrito like a glow stick, activating the heater mechanism.")
@@ -291,9 +299,10 @@
 			..()
 
 	heal(var/mob/M)
+		..()
 		if (prob(5))
 			if (M.mind && M.mind.ckey)
-				boutput(M, "<span class='notice'>You find a shiny golden ticket in this bite!</span>")
+				boutput(M, SPAN_NOTICE("You find a shiny golden ticket in this bite!"))
 				new /obj/item/ticket/golden(get_turf(M))
 			else
 				M.emote("choke")
@@ -301,10 +310,10 @@
 	proc/splat()
 		var/turf/T = get_turf(src)
 		if(!locate(/obj/decal/cleanable/vomit) in T)
-			playsound(T, "sound/impact_sounds/Slimy_Splat_1.ogg", 50, 1)
+			playsound(T, 'sound/impact_sounds/Slimy_Splat_1.ogg', 50, TRUE)
 			var/obj/decal/cleanable/vomit/filling = make_cleanable( /obj/decal/cleanable/vomit,src)
 			var/icon/fillicon = icon(filling.icon, filling.icon_state)
-			fillicon.MapColors(0.50, 0.25, 0)
+			fillicon.MapColors(0.5, 0.25, 0)
 			filling.icon = fillicon
 
 			filling.name = "burrito filling"
@@ -319,13 +328,12 @@
 	desc = "A highly-processed miniature cake, coated with a thin layer of solid pseudofrosting."
 	icon = 'icons/obj/foodNdrink/food_discountdans.dmi'
 	icon_state = "snackcake"
-	amount = 2
+	bites_left = 2
 	heal_amt = 2
 	var/color_prob = 100
 	initial_volume = 50
 	initial_reagents = list("badgrease"=3,"VHFCS"=9)
-	brewable = 1
-	brew_result = list("sewage", "yuck")
+	brew_result = list("sewage"=20, "yuck"=20)
 	food_effects = list("food_sweaty")
 
 
@@ -335,7 +343,7 @@
 		icon = 'icons/obj/foodNdrink/food_discountdans.dmi'
 		icon_state = "snackcake2"
 		color_prob = 10
-		brew_result = list("sewage", "mucus")
+		brew_result = list("sewage"=20, "mucus"=20)
 
 	New()
 		..()
@@ -347,7 +355,7 @@
 
 		var/i = 3
 		while(i-- > 0)
-			reagents.add_reagent(pick("beff","sugar","eggnog","chocolate","vanilla","cleaner","luminol","poo","urine","nicotine","weedkiller","venom","jenkem","ethanol","ectoplasm","itching","infernite","histamine","foof","pancuronium","cyanide"), 5)
+			reagents.add_reagent(pick("beff","sugar","eggnog","chocolate","vanilla","cleaner","luminol","poo","nicotine","weedkiller","cytotoxin","ethanol","ectoplasm","itching","infernite","histamine","foof","pancuronium","cyanide"), 5)
 
 		if (prob(color_prob))
 			src.color = random_saturated_hex_color()
@@ -355,7 +363,7 @@
 	/*heal(var/mob/M)
 		if (prob(5))
 			if (M.mind && M.mind.ckey)
-				boutput(M, "<span class='notice'>You find a shiny platinum ticket in this bite!</span>")
+				boutput(M, SPAN_NOTICE("You find a shiny platinum ticket in this bite!"))
 				new /obj/item/ticket/platinum(get_turf(M))
 			else
 				M.emote("choke")*/
@@ -369,7 +377,7 @@
 	throwforce = 2
 	var/full = 1
 	var/traytype = 0
-	flags = ONBELT | TABLEPASS | FPRINT
+	c_flags = ONBELT
 	stamina_damage = 0
 	stamina_cost = 0
 	rand_pos = 1
@@ -406,7 +414,7 @@
 				src.desc = "A box containing a self-heating TV dinner. Have \"fusion\" dishes gone too far?"
 		return ..()
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if (user.find_in_hand(src))//r_hand == src || user.l_hand == src)
 			if (src.full == 0)
 				user.show_text("The box is empty[prob(20) ? " (much like your head)" : null].", "red")
@@ -429,9 +437,10 @@
 	desc = "A self-heating TV dinner. You should probably use a fork."
 	icon = 'icons/obj/foodNdrink/food_discountdans.dmi'
 	icon_state = "tvdinnert"
-	needfork = 1
-	amount = 2
+	required_utensil = REQUIRED_UTENSIL_FORK
+	bites_left = 2
 	heal_amt = 2
+	fill_amt = 4 //it's a whole dinner!
 	doants = 0 //Ants aren't dumb enough to try to eat these.
 	var/activated = 0
 	initial_volume = 50
@@ -545,7 +554,7 @@
 
 		src.activated = 1
 		if (reagents)
-			reagents.add_reagent("thalmerite",2)
+			reagents.add_reagent("pyrosium",2)
 			reagents.add_reagent("oxygen", 2)
 			reagents.add_reagent("radium", 1) //Self Microwaving?!
 			reagents.handle_reactions()
@@ -554,9 +563,10 @@
 		return
 
 	heal(var/mob/M)
+		..()
 		if (prob(8))
 			if (M.mind && M.mind.ckey)
-				boutput(M, "<span class='notice'>You find a shiny golden ticket in this bite!</span>")
+				boutput(M, SPAN_NOTICE("You find a shiny golden ticket in this bite!"))
 				new /obj/item/ticket/golden(get_turf(M))
 			else
 				M.emote("choke")
@@ -566,8 +576,9 @@
 	desc = "A gigantic toaster strudel with a fruit filling. It looks pretty decent!"
 	icon = 'icons/obj/foodNdrink/food_discountdans.dmi'
 	icon_state = "strudel"
-	amount = 2
+	bites_left = 2
 	heal_amt = 2
+	fill_amt = 2
 	doants = 0
 	initial_volume = 30
 	initial_reagents = list("juice_strawberry"=15,"vanilla"=6)
@@ -578,13 +589,14 @@
 
 		var/i = 3
 		while(i-- > 0)
-			reagents.add_reagent(pick("beff","sugar","eggnog","chocolate","cleaner","luminol","poo","urine","nicotine","mint","tea","juice_lemon","juice_lime","juice_apple","juice_cherry","guacamole","egg","sewage","uranium"), 3)
+			reagents.add_reagent(pick("beff","sugar","eggnog","chocolate","cleaner","luminol","poo","nicotine","mint","tea","juice_lemon","juice_lime","juice_apple","juice_banana","juice_cherry","guacamole","egg","sewage","uranium"), 3)
 
 
 	heal(var/mob/M)
+		..()
 		if (prob(5))
 			if (M.mind && M.mind.ckey)
-				boutput(M, "<span class='notice'>You find a shiny golden ticket in this bite!</span>")
+				boutput(M, SPAN_NOTICE("You find a shiny golden ticket in this bite!"))
 				new /obj/item/ticket/golden(get_turf(M))
 			else
 				M.emote("choke")

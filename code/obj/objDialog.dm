@@ -11,7 +11,7 @@ var/global/list/objects_using_dialogs
 	if (!objects_using_dialogs)
 		objects_using_dialogs = list(src)
 	else
-		if (!clients_operating || clients_operating.len <= 0)
+		if (!clients_operating || length(clients_operating) <= 0)
 			objects_using_dialogs += src
 
 	if (!clients_operating)
@@ -31,7 +31,7 @@ var/global/list/objects_using_dialogs
 	if (!objects_using_dialogs)
 		objects_using_dialogs = list()
 	else
-		if (clients_operating.len <= 0)
+		if (length(clients_operating) <= 0)
 			objects_using_dialogs -= src
 
 /obj/proc/remove_dialogs()
@@ -59,8 +59,8 @@ var/global/list/objects_using_dialogs
 		for(var/x in clients_operating)
 			C = x
 			if (C?.mob)
-				if (get_dist(C.mob,src) <= 1)
-					src.attack_hand(C.mob)
+				if (BOUNDS_DIST(C.mob, src) == 0)
+					src.Attackhand(C.mob)
 				else
 					if (C.mob.mob_flags & USR_DIALOG_UPDATES_RANGE)
 						src.attack_ai(C.mob)
@@ -73,8 +73,8 @@ var/global/list/objects_using_dialogs
 		for(var/x in clients_operating)
 			C = x
 			if (C?.mob)
-				if (get_dist(C.mob,src) <= 1)
-					src.attack_hand(C.mob)
+				if (BOUNDS_DIST(C.mob, src) == 0)
+					src.Attackhand(C.mob)
 				else
 					src.remove_dialog(C.mob)
 
@@ -83,15 +83,15 @@ var/global/list/objects_using_dialogs
 /obj/item/proc/updateSelfDialogFromTurf()	//It's weird, yes. only used for spy stickers as of now
 	if (length(clients_operating))
 		for(var/client/C in clients_operating)
-			if (C.mob && get_dist(C.mob,src) <= 1)
-				src.attack_self(C.mob)
+			if (C.mob && BOUNDS_DIST(C.mob, src) == 0)
+				src.AttackSelf(C.mob)
 
 		for_by_tcl(M, /mob/living/silicon/ai)
 			var/mob/AI = M
 			if (M.deployed_to_eyecam)
 				AI = M.eyecam
 			if (AI.client && (AI.client in clients_operating))
-				src.attack_self(AI)
+				src.AttackSelf(AI)
 
 /obj/item/proc/updateSelfDialog()
 	if (length(clients_operating))
@@ -102,7 +102,7 @@ var/global/list/objects_using_dialogs
 				if (AI.deployed_to_eyecam)
 					M = AI.eyecam
 			if(M.client && (M.client in clients_operating))
-				src.attack_self(M)
+				src.AttackSelf(M)
 
 
 /proc/AutoUpdateAI(obj/subject)
@@ -123,23 +123,6 @@ var/global/list/objects_using_dialogs
 
 /mob/proc/remove_dialog(mob/user)
 
-/mob/living/carbon/human/add_dialog(mob/user)
-	if (!user.client) return
-
-	if (!showing_inv)
-		showing_inv = list(user.client)
-	else
-		showing_inv |= user.client
-
-/mob/living/carbon/human/remove_dialog(mob/user)
-	if (!user.client) return
-
-	if (!showing_inv)
-		showing_inv = list()
-	else
-		showing_inv -= user.client
-
-
 //object stuyffs
 
 
@@ -149,7 +132,7 @@ var/global/list/objects_using_dialogs
 	if (length(clients_operating))
 		for(var/client/C in clients_operating)
 			if (C.mob)
-				if (get_dist(C.mob,src) <= 1)
+				if (BOUNDS_DIST(C.mob, src) == 0)
 					src.interacted(C.mob)
 				else if (issilicon(C.mob) || isAI(C.mob))
 					src.interacted(C.mob)
@@ -160,7 +143,7 @@ var/global/list/objects_using_dialogs
 	if (length(clients_operating))
 		for(var/client/C in clients_operating)
 			if (C.mob)
-				if (get_dist(C.mob,src) <= 1)
+				if (BOUNDS_DIST(C.mob, src) == 0)
 					src.interacted(C.mob)
 				else
 					src.remove_dialog(C.mob)
@@ -172,7 +155,7 @@ var/global/list/objects_using_dialogs
 	if (length(clients_operating))
 		for(var/client/C in clients_operating)
 			if (C.mob)
-				if (get_dist(C.mob,src) <= 1)
+				if (BOUNDS_DIST(C.mob, src) == 0)
 					src.openTrade(C.mob)
 				else if (issilicon(C.mob) || isAI(C.mob))
 					src.openTrade(C.mob)

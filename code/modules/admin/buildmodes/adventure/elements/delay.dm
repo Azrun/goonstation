@@ -6,13 +6,13 @@
 	var/selection
 
 	initialize()
-		selection = unpool(/obj/adventurepuzzle/marker)
+		selection = new /obj/adventurepuzzle/marker
 		time_delay = input("Timing amount (in 1/10 seconds)", "Timing amount", 5) as num
 		var/per = input("Is this periodic? (Repeatedly triggers until aborted if started.)", "Periodic", "yes") in list("yes", "no")
 		periodic = (per == "yes") ? 1 : 0
-		boutput(usr, "<span class='notice'>Left click to place timers, right click triggerables to (de)select them for automatic assignment to the timers. Ctrl+click anywhere to finish.</span>")
-		boutput(usr, "<span class='notice'>Right click delays to launch them immediately. (Useful for triggering periodic delays)</span>")
-		boutput(usr, "<span class='notice'>NOTE: Select stuff first, then make buttons for extra comfort!</span>")
+		boutput(usr, SPAN_NOTICE("Left click to place timers, right click triggerables to (de)select them for automatic assignment to the timers. Ctrl+click anywhere to finish."))
+		boutput(usr, SPAN_NOTICE("Right click delays to launch them immediately. (Useful for triggering periodic delays)"))
+		boutput(usr, SPAN_NOTICE("NOTE: Select stuff first, then make buttons for extra comfort!"))
 
 	proc/clear_selections()
 		for (var/obj/O in selected_triggerable)
@@ -21,7 +21,7 @@
 
 	disposing()
 		clear_selections()
-		pool(selection)
+		qdel(selection)
 		..()
 
 	build_click(var/mob/user, var/datum/buildmode_holder/holder, var/list/pa, var/atom/object)
@@ -53,16 +53,16 @@
 						selected_triggerable += object
 						selected_triggerable[object] = act
 					else
-						boutput(user, "<span class='alert'>ERROR: Missing actions definition for triggerable [object].</span>")
+						boutput(user, SPAN_ALERT("ERROR: Missing actions definition for triggerable [object]."))
 
 /obj/adventurepuzzle/triggerable/triggerer/delay
 	name = "delay"
-	invisibility = 20
+	invisibility = INVIS_ADVENTURE
 	icon = 'icons/obj/items/device.dmi'
 	icon_state = "timer0"
 	density = 0
 	opacity = 0
-	anchored = 1
+	anchored = ANCHORED
 	var/time_delay = 10
 	var/curr_time
 	var/aborted = 1
@@ -82,7 +82,7 @@
 					return
 				aborted = 0
 				curr_time = time_delay
-				SPAWN_DBG(0)
+				SPAWN(0)
 					while (1)
 						if (aborted)
 							return

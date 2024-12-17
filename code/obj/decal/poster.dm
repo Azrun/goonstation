@@ -4,12 +4,13 @@
 	name = "poster"
 	icon = 'icons/obj/items/items.dmi'
 	icon_state = "poster"
-	anchored = 1
+	anchored = ANCHORED
 	opacity = 0
 	density = 0
+	deconstruct_flags = DECON_WIRECUTTERS
 	var/imgw = 600
 	var/imgh = 400
-	var/popup_win = 1
+	var/popup_win = 0
 	layer = EFFECTS_LAYER_BASE
 	plane = PLANE_NOSHADOW_ABOVE
 
@@ -348,6 +349,24 @@
 			icon = 'icons/obj/stationobjs.dmi'
 			icon_state = "barsign"
 
+		neonicecream
+			name = "Ice-Cream"
+			desc = "A neon sign shaped like ice cream!"
+			icon = 'icons/misc/walp_decor.dmi'
+			icon_state = "neonsign_ice"
+
+		neonsparkle
+			name = "sparkle neon sign"
+			desc = "A neon sign shaped like cute sparkles."
+			icon = 'icons/misc/walp_decor.dmi'
+			icon_state = "neonsign_sparkle"
+
+		neonretro
+			name = "retro neon sign"
+			desc = "A relic from the past, or a grim prediction of the future."
+			icon = 'icons/misc/walp_decor.dmi'
+			icon_state = "neonsign_80s"
+
 		coffee
 			name ="Coffee Shop"
 			desc = "A cute little coffee cup poster."
@@ -477,11 +496,13 @@
 		poster_hair
 			name = "Fabulous Hair!"
 			desc = "There's a bunch of ladies with really fancy hair pictured on this."
+			icon = 'icons/obj/decals/posters.dmi'
 			icon_state = "wall_poster_hair"
 
 		poster_cool
 			name = "cool poster"
 			desc = "There's a couple people pictured on this poster, looking pretty cool."
+			icon = 'icons/obj/decals/posters.dmi'
 			icon_state = "wall_poster_cool3"
 			random_icon_states = list("wall_poster_cool", "wall_poster_cool2", "wall_poster_cool3")
 
@@ -557,18 +578,20 @@
 			icon = 'icons/obj/decals/posters.dmi'
 			icon_state = "wall_poster_cool3"
 			pixel_var = 1
-			random_icon_states = list("wall_poster_cool",
-																"wall_poster_cool2",
-																"wall_poster_cool3",
-																"wall_poster_hair",
-																"wall_poster_human",
-																"wall_poster_borg",
-																"wall_poster_sol",
-																"wall_poster_clown",
-																"wall_poster_beach",
-																"wall_poster_discount",
-																"wall_poster_octocluwne",
-																"wall_poser_eyetest")
+			random_icon_states = list(
+				"wall_poster_cool",
+				"wall_poster_cool2",
+				"wall_poster_cool3",
+				"wall_poster_hair",
+				"wall_poster_human",
+				"wall_poster_borg",
+				"wall_poster_sol",
+				"wall_poster_clown",
+				"wall_poster_beach",
+				"wall_poster_discount",
+				"wall_poster_octocluwne",
+				"wall_poster_eyetest"
+			)
 
 		poster_mining
 			name = "mining poster"
@@ -600,6 +623,11 @@
 			name = "warning sign"
 			desc = "A sign warning you of something."
 			icon_state = "wall_warning4"
+
+		warning_sus
+			name = "warning sign"
+			desc = "A sign warning you of something suspicious."
+			icon_state = "wall_sus"
 
 		statistics1
 			name = "statistics poster"
@@ -640,39 +668,41 @@
 				..()
 
 				var/which = pick(
-					// old contest winners
-					10;"tea1",
-					10;"tea2",
-					10;"tea3",
 					// the fuck II poster
 					30;"fuckII",
-					// new contest winners
+					// contest winners from January 2021 and June 2024
 					50;"contest1",
 					50;"contest2",
 					50;"contest3",
 					50;"contest4",
 					50;"contest5",
-					// new contest not-winners but cool nonetheless
+					50;"contest6",
+					50;"contest7",
+					50;"contest8",
+					50;"contest9",
+					50;"contest10",
+					50;"contest11",
+					50;"contest12",
+					50;"contest13",
+					50;"contest14",
+					50;"contest15",
+					50;"contest16",
+					// poster contest not-winners but cool nonetheless
 					5 ;"contest-other1",
 					5 ;"contest-other2",
 					5 ;"contest-other3",
 					5 ;"contest-other4",
 					5 ;"contest-other5",
 					5 ;"contest-other6",
-					5 ;"contest-other7"
+					5 ;"contest-other7",
+					5 ;"contest-other8",
+					5 ;"contest-other9",
+					5 ;"contest-other10",
+					5 ;"contest-other11",
+					5 ;"contest-other12",
+					5 ;"contest-other13"
 					)
 				switch(which)
-					if("tea1")
-						src.name = "Tea Hell and Back"
-						src.desc = "<i>Starring Camryn Stern, Edgar Palmer, Ryan Yeets, Jebediah Hawkins, and Frederick Cooper.</i>"
-					if("tea2")
-						src.icon_state = "teaparty2"
-						src.name = "It Came from the Void"
-						src.desc = "<i>Starring William Carr, Bruce Isaman, and Julio Hayhurst.</i>"
-					if("tea3")
-						src.icon_state = "teaparty3"
-						src.name = "Afterlife Activity"
-						src.desc = "<i>Starring Marmalade Addison, Lily White, cockroach, and Darcey Paynter.</i>"
 					if("fuckII")
 						src.name = "\proper fuck II"
 						src.desc = "A poster for \"<em>fuck II: Plumb Fuckled.\"</em>"
@@ -692,12 +722,54 @@
 					if("contest5")
 						src.name = "Work! Ranch"
 						src.icon_state = "work_ranch"
+					if("contest6")
+						src.name = "Red Saw"
+						src.icon_state = "red_saw"
+					if("contest7")
+						src.name = "Men in Red"
+						src.icon_state = "men_in_red"
+						src.desc = "The classic 50's movie with the highest amount of explosives used on set ever."
+					if("contest8")
+						src.name = "Capy King"
+						src.icon_state = "capy_king"
+						src.desc = "Who thought it was a good idea to bring the capybaby this close to the sun?"
+					if("contest9")
+						src.name = "Pie Hard"
+						src.icon_state = "pie_hard"
+						src.desc = "\"Something smells funny. The HoS is against Don McClown...and that's just the way he honks it.\""
+					if("contest10")
+						src.name = "Parting Red"
+						src.icon_state = "parting_red"
+					if("contest11")
+						src.name = "Mentors"
+						src.icon_state = "mentors"
+					if("contest12")
+						src.name = "Changer III"
+						src.icon_state = "changeriii"
+						src.desc = "Coming this summer...a totally fictional horror story. NOT based on a true story."
+					if("contest13")
+						src.name = "Clown"
+						src.icon_state = "clown"
+					if("contest14")
+						src.name = "Planet Abzu"
+						src.icon_state = "planet_abzu"
+						src.desc = {"\"This summer, take a journey to a cambrian world untouched by time and discover the mysteries
+								lying beneath the waves of this distant ocean planet.
+								A nature documentary presented by David Spacenborough.\""}
+					if("contest15")
+						src.name = "Fuckin Monky"
+						src.icon_state = "fuckin_monky"
+						src.desc = "This summer...based on real events (maybe)...the damn monkeys!"
+					if("contest16")
+						src.name = "Wraithbusters"
+						src.icon_state = "wraithbusters"
+						src.desc = "\"If there's something strange / In your stationhood. / Who you gonna call? / (Wraithbusters!)\""
 					if("contest-other1")
 						src.name = "Pack Smart"
 						src.icon_state = "pack_smart"
 					if("contest-other2")
-						src.name = "Mindslaver Device Poster"
-						src.icon_state = "mindslaver"
+						src.name = "Mindhacker Device Poster"
+						src.icon_state = "mindhacked"
 					if("contest-other3")
 						src.name = "Edit Wiki"
 						src.icon_state = "edit_wiki"
@@ -713,6 +785,26 @@
 					if("contest-other7")
 						src.name = "Code"
 						src.icon_state = "code"
+					if("contest-other8")
+						src.name = "Click 2"
+						src.icon_state = "click2"
+						src.desc = "\"What if the greatest movie of all time had a sequel?\""
+					if("contest-other9")
+						src.name = "Biodome"
+						src.icon_state = "biodome"
+					if("contest-other10")
+						src.name = "Rat"
+						src.icon_state = "rat"
+					if("contest-other11")
+						src.name = "The Honkinator"
+						src.icon_state = "the_honkinator"
+					if("contest-other12")
+						src.name = "The Cluwne"
+						src.icon_state = "the_cluwne"
+						src.desc = "\"This summer...things are getting...honked.\""
+					if("contest-other13")
+						src.name = "Cluwne XVII"
+						src.icon_state = "cluwnexvii"
 
 			attack_hand(mob/user)
 				. = ..()
@@ -742,6 +834,71 @@
 			pixel_y = -4
 			layer = 3
 
+		wizard
+			desc = "A tasteful portrait of a wizard."
+			name = "Portrait"
+			icon = 'icons/obj/decals/wallsigns.dmi'
+			icon_state = "picture_wizard"
+
+		teleport_sign
+			name = "Teleport Sign"
+			desc = "A sign that points to the nearest teleporter."
+			icon = 'icons/obj/decals/wallsigns.dmi'
+			icon_state = "wall_teleport"
+
+		escape_sign
+			name = "Escape Sign"
+			desc = "A sign that points to the station's departures wing."
+			icon = 'icons/obj/decals/wallsigns.dmi'
+			icon_state = "escape"
+
+		security_sign
+			name = "Security Sign"
+			desc = "A sign that points to the station's security department."
+			icon = 'icons/obj/decals/wallsigns.dmi'
+			icon_state = "security"
+
+		engine_sign
+			name = "Engine Sign"
+			desc = "A sign that points to the station's engineering department."
+			icon = 'icons/obj/decals/wallsigns.dmi'
+			icon_state = "engine"
+
+		research_sign
+			name = "Teleport Sign"
+			desc = "A handy sign that points to the source of all your problems."
+			icon = 'icons/obj/decals/wallsigns.dmi'
+			icon_state = "research"
+
+		medbay_sign
+			name = "Medbay Sign"
+			desc = "A sign that points to the station's medical department."
+			icon = 'icons/obj/decals/wallsigns.dmi'
+			icon_state = "medbay"
+
+		botany_sign
+			name = "Botany Sign"
+			desc = "A sign that points to the station's botany department."
+			icon = 'icons/obj/decals/wallsigns.dmi'
+			icon_state = "botany"
+
+		customs_sign
+			name = "Customs Sign"
+			desc = "A sign that points to the station's customs desk, commonly referred to as the Head of Personnel's office even if that is not the case."
+			icon = 'icons/obj/decals/wallsigns.dmi'
+			icon_state = "customs"
+
+		no_smoking
+			name = "Sign"
+			desc = "No smoking in this area!"
+			icon = 'icons/obj/decals/wallsigns.dmi'
+			icon_state = "nosmoking"
+
+		read_me
+			name = "Important Sign"
+			desc = "The huge header takes up most of the sign, everything else is so tiny it's illegible."
+			icon = 'icons/obj/decals/wallsigns.dmi'
+			icon_state = "read_me"
 
 		landscape
 			desc = "A beautiful painting of a landscape that is engulfed by flames."
@@ -762,7 +919,24 @@
 			icon = 'icons/effects/96x32.dmi'
 			icon_state = "fuq3"
 			bound_width  = 96
-			plane = -99
+			plane = PLANE_NOSHADOW_ABOVE
+
+		psa_bucket
+			desc = "<span class='alert'><i>Stuck</i></b></span> behind a mop bucket? Never fear! Just <span class='notice'><i>slide</i></span> yourself over it!"
+			icon = 'icons/obj/decals/posters.dmi'
+			icon_state = "bucket" // sprite by BatElite!
+
+		keep_it_or_melt
+			name = "KEEP IT or MELT"
+			desc = "A poster depicting an emergency suit with large text that reads \"KEEP IT or MELT\". A tiny row of text at the bottom reads \"All personnel receive suits rated for three minutes of exposure.\""
+			icon = 'icons/obj/decals/posters.dmi'
+			icon_state = "keep_it_or_melt"
+
+		eiffelposter //for Jan's office
+			desc = "A poster of the Eiffel Tower in Paris, France."
+			name = "Eiffel Poster"
+			icon = 'icons/misc/janstuff.dmi'
+			icon_state = "poster_eiffel"
 
 ///////////////////////////////////////
 // AZUNGAR'S HEAD OF DEPARTMENT ITEMS// + FIREBARRAGE HELPED TOO BUT HE SMELLS
@@ -779,6 +953,7 @@
 			var/icon_glass = "rddiploma1"
 			var/icon_award = "rddiploma"
 			var/icon_empty = "frame"
+			var/glass_type = /obj/item/sheet/glass
 			icon_state = "rddiploma"
 			pixel_y = -6
 
@@ -801,7 +976,7 @@
 							return award_text
 
 
-			attack_hand(mob/user as mob)
+			attack_hand(mob/user)
 				if (user.stat || isghostdrone(user) || !isliving(user))
 					return
 
@@ -811,13 +986,13 @@
 						src.usage_state = 1
 						src.icon_state = icon_glass
 						user.visible_message("[user] takes off the glass frame.", "You take off the glass frame.")
-						var/obj/item/sheet/glass/G = new /obj/item/sheet/glass()
+						var/obj/item/sheet/glass/G = new glass_type()
 						G.amount = 1
 						src.add_fingerprint(user)
 						user.put_in_hand_or_drop(G)
 
 					if (1)
-						playsound(src.loc, "sound/machines/click.ogg", 50, 1)
+						playsound(src.loc, 'sound/machines/click.ogg', 50, 1)
 						var/obj/item/award_item = locate(award_type) in src
 						if(award_item)
 							award_item.desc = src.desc
@@ -827,13 +1002,13 @@
 							src.add_fingerprint(user)
 							src.usage_state = 2
 
-			attackby(obj/item/W as obj, mob/user as mob)
+			attackby(obj/item/W, mob/user)
 				if (user.stat)
 					return
 
 				if (src.usage_state == 2)
 					if (istype(W, award_type))
-						playsound(src.loc, "sound/machines/click.ogg", 50, 1)
+						playsound(src.loc, 'sound/machines/click.ogg', 50, 1)
 						user.u_equip(W)
 						W.set_loc(src)
 						user.visible_message("[user] places the [award_name] back in the frame.", "You place the [award_name] back in the frame.")
@@ -843,7 +1018,8 @@
 				if (src.usage_state == 1)
 					if (istype(W, /obj/item/sheet/glass))
 						if (W.amount >= 1)
-							playsound(src.loc, "sound/machines/click.ogg", 50, 1)
+							src.glass_type = W.type
+							playsound(src.loc, 'sound/machines/click.ogg', 50, 1)
 							user.u_equip(W)
 							qdel(W)
 							user.visible_message("[user] places glass back in the frame.", "You place the glass back in the frame.")
@@ -857,7 +1033,7 @@
 		framed_award/hos_medal
 			name = "framed medal"
 			desc = "A dusty old war medal."
-			award_type = /obj/item/clothing/suit/hosmedal/
+			award_type = /obj/item/clothing/suit/hosmedal
 			award_name = "medal"
 			owner_job = "Head of Security"
 			icon_glass = "medal1"
@@ -865,7 +1041,7 @@
 			icon_empty = "frame"
 			icon_state = "medal"
 
-			attackby(obj/item/W as obj, mob/user as mob)
+			attackby(obj/item/W, mob/user)
 				if (user.stat)
 					return
 
@@ -873,7 +1049,7 @@
 					var/obj/item/paper/book/from_file/space_law/first/newbook = new /obj/item/paper/book/from_file/space_law/first
 					user.u_equip(W)
 					user.put_in_hand_or_drop(newbook)
-					boutput(user, "<span class='alert'>Beepsky's private journal transforms into Space Law 1st Print.</span>")
+					boutput(user, SPAN_ALERT("Beepsky's private journal transforms into Space Law 1st Print."))
 					qdel(W)
 
 				..()
@@ -894,7 +1070,7 @@
 		framed_award/firstbill
 			name = "framed space currency"
 			desc = "A single bill of space currency."
-			award_type = /obj/item/firstbill/
+			award_type = /obj/item/firstbill
 			award_name = "first bill"
 			owner_job = "Head of Personnel"
 			icon_glass = "hopcredit1"
@@ -914,7 +1090,7 @@
 		framed_award/rddiploma
 			name = "research directors diploma"
 			desc = "A fancy space diploma."
-			award_type = /obj/item/rddiploma/
+			award_type = /obj/item/rddiploma
 
 			get_desc(dist)
 				if(award_text)
@@ -936,6 +1112,7 @@
 		framed_award/mdlicense
 			name = "medical directors medical license"
 			desc = "There's just no way this is real."
+			award_type = /obj/item/mdlicense
 			award_name = "medical license"
 			owner_job = "Medical Director"
 			icon_glass = "mdlicense1"
@@ -987,6 +1164,7 @@
 	icon_state = "banner_base"
 	popup_win = 0
 	var/colored = FALSE
+	var/static/image/banner_holder = image('icons/obj/decals/banners.dmi', "banner_holder")
 	var/chosen_overlay
 	var/static/list/choosable_overlays = list("Horizontal Stripes","Vertical Stripes","Diagonal Stripes","Cross","Diagonal Cross","Full","Full Gradient",
 	"Left Line","Middle Line","Right Line","Northwest Line","Northeast Line","Southwest Line","Southeast Line","Big Ball","Medium Ball","Small Ball",
@@ -994,17 +1172,16 @@
 
 	proc/clear_banner()
 		if (src.material)
-			src.color = src.material.color
+			src.color = src.material.getColor()
 		else
 			src.color = "#ffffff" // In case the material is null
 		src.overlays = null
 		src.colored = FALSE
-		usr.visible_message("<span class='alert'>[usr] clears the [src.name].</span>", "<span class='alert'>You clear the [src.name].</span>")
+		usr.visible_message(SPAN_ALERT("[usr] clears the [src.name]."), SPAN_ALERT("You clear the [src.name]."))
 
 	New()
 		. = ..()
-		var/static/image/banner_holder = image(src.icon, "banner_holder")
-		banner_holder.appearance_flags = RESET_COLOR
+		banner_holder.appearance_flags = RESET_COLOR | PIXEL_SCALE
 		src.underlays.Add(banner_holder)
 
 	attackby(obj/item/W, mob/user)
@@ -1013,10 +1190,10 @@
 				chosen_overlay = tgui_input_list(user, "What do you want to draw?", "Drawings Options", choosable_overlays)
 				if (!chosen_overlay) return
 				var/mutable_appearance/new_overlay = mutable_appearance(src.icon, chosen_overlay)
-				new_overlay.appearance_flags = RESET_COLOR
+				new_overlay.appearance_flags = RESET_COLOR | PIXEL_SCALE
 				new_overlay.color = W.color
 				src.overlays.Add(new_overlay)
-				logTheThing("station", user, null, "Drew a [chosen_overlay] in the [src] with [W] at [log_loc(user)].")
+				logTheThing(LOG_STATION, user, "Drew a [chosen_overlay] in the [src] with [W] at [log_loc(user)].")
 				desc = "A banner, colored and decorated"
 				if(istype(W,/obj/item/pen/crayon/rainbow))
 					var/obj/item/pen/crayon/rainbow/R = W
@@ -1030,13 +1207,13 @@
 				desc = "A colored banner, try adding some drawings to it with a crayon!"
 
 		if(istool(W,TOOL_SNIPPING | TOOL_CUTTING | TOOL_SAWING))
-			user.visible_message("<span class='alert'>[user] cuts off the [src.name] with [W].</span>", "<span class='alert'>You cut off the [src.name] with [W].</span>")
+			user.visible_message(SPAN_ALERT("[user] cuts off the [src.name] with [W]."), SPAN_ALERT("You cut off the [src.name] with [W]."))
 			var/obj/item/material_piece/cloth/C = new(user.loc)
 			if (src.material) C.setMaterial(src.material)
 			else C.setMaterial(getMaterial("cotton")) // In case the material is null
 			qdel(src)
 
-	MouseDrop(atom/over_object, src_location, over_location)
+	mouse_drop(atom/over_object, src_location, over_location)
 		..()
 		if (usr.stat || usr.restrained() || !can_reach(usr, src))
 			return

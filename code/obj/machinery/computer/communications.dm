@@ -1,10 +1,18 @@
+#define STATE_DEFAULT 1
+#define STATE_CALLSHUTTLE 2
+#define STATE_CANCELSHUTTLE 3
+#define STATE_MESSAGELIST 4
+#define STATE_VIEWMESSAGE 5
+#define STATE_DELMESSAGE 6
+#define STATE_STATUSDISPLAY 7
+
 // The communications computer
 
 /obj/machinery/computer/communications
-	name = "Communications Console"
+	name = "communications console"
 	icon_state = "comm"
 	req_access = list(access_heads)
-	object_flags = CAN_REPROGRAM_ACCESS
+	object_flags = CAN_REPROGRAM_ACCESS | NO_GHOSTCRITTER
 	machine_registry_idx = MACHINES_COMMSCONSOLES
 	circuit_type = /obj/item/circuitboard/communications
 	var/prints_intercept = 1
@@ -15,33 +23,25 @@
 	var/aicurrmsg = 0
 	var/state = STATE_DEFAULT
 	var/aistate = STATE_DEFAULT
-	var/const
-		STATE_DEFAULT = 1
-		STATE_CALLSHUTTLE = 2
-		STATE_CANCELSHUTTLE = 3
-		STATE_MESSAGELIST = 4
-		STATE_VIEWMESSAGE = 5
-		STATE_DELMESSAGE = 6
-		STATE_STATUSDISPLAY = 7
 
-	var/status_display_freq = "1435"
+	var/status_display_freq = FREQ_STATUS_DISPLAY
 	var/stat_msg1
 	var/stat_msg2
-	desc = "A computer that allows one to call and recall the emergency shuttle, as well as recieve messages from Centcom."
+	desc = "A computer that allows one to call and recall the emergency shuttle, as well as receive messages from Centcom."
 
 	light_r =0.6
 	light_g = 1
 	light_b = 0.1
 
-	disposing()
-		radio_controller.remove_object(src, status_display_freq)
+	New()
 		..()
+		MAKE_SENDER_RADIO_PACKET_COMPONENT(null, null, status_display_freq)
 
 /obj/machinery/computer/communications/special_deconstruct(obj/computerframe/frame as obj)
 	if(src.status & BROKEN)
-		logTheThing("station", usr, null, "disassembles [src] (broken) [log_loc(src)]")
+		logTheThing(LOG_STATION, usr, "disassembles [src] (broken) [log_loc(src)]")
 	else
-		logTheThing("station", usr, null, "disassembles [src] [log_loc(src)]")
+		logTheThing(LOG_STATION, usr, "disassembles [src] [log_loc(src)]")
 
 
 /obj/machinery/computer/communications/process()
@@ -100,7 +100,7 @@
 			src.state = STATE_VIEWMESSAGE
 			if (!src.currmsg)
 				if(href_list["message-num"])
-					src.currmsg = text2num(href_list["message-num"])
+					src.currmsg = text2num_safe(href_list["message-num"])
 				else
 					src.state = STATE_MESSAGELIST
 		if("delmessage")
@@ -124,18 +124,18 @@
 		// Status display stuff
 		if("setstat")
 			switch(href_list["statdisp"])
-				if("message")
-					post_status("message", stat_msg1, stat_msg2)
-				if("alert")
-					post_status("alert", href_list["alert"])
+				if(STATUS_DISPLAY_PACKET_MODE_MESSAGE)
+					post_status(STATUS_DISPLAY_PACKET_MODE_MESSAGE, stat_msg1, stat_msg2)
+				if(STATUS_DISPLAY_PACKET_MODE_DISPLAY_ALERT)
+					post_status(STATUS_DISPLAY_PACKET_MODE_DISPLAY_ALERT, href_list["alert"])
 				else
 					post_status(href_list["statdisp"])
 
-		if("setmsg1")
+		if(STATUS_DISPLAY_PACKET_MESSAGE_TEXT_1)
 			stat_msg1 = input("Line 1", "Enter Message Text", stat_msg1) as text|null
 			stat_msg1 = copytext(adminscrub(stat_msg1), 1, MAX_MESSAGE_LEN)
 			src.updateDialog()
-		if("setmsg2")
+		if(STATUS_DISPLAY_PACKET_MESSAGE_TEXT_2)
 			stat_msg2 = input("Line 2", "Enter Message Text", stat_msg2) as text|null
 			stat_msg2 = copytext(adminscrub(stat_msg2), 1, MAX_MESSAGE_LEN)
 			src.updateDialog()
@@ -156,7 +156,7 @@
 			src.aistate = STATE_VIEWMESSAGE
 			if (!src.aicurrmsg)
 				if(href_list["message-num"])
-					src.aicurrmsg = text2num(href_list["message-num"])
+					src.aicurrmsg = text2num_safe(href_list["message-num"])
 				else
 					src.aistate = STATE_MESSAGELIST
 		if("ai-delmessage")
@@ -176,25 +176,25 @@
 	src.updateUsrDialog()
 
 /proc/disablelockdown(var/mob/usr)
-	boutput(world, "<span class='alert'>Lockdown cancelled by [usr.name]!</span>")
+	boutput(world, SPAN_ALERT("Lockdown cancelled by [usr.name]!"))
 
 	for(var/obj/machinery/firealarm/FA as anything in machine_registry[MACHINES_FIREALARMS]) //deactivate firealarms
-		SPAWN_DBG(0)
+		SPAWN(0)
 			if(FA.lockdownbyai == 1)
 				FA.lockdownbyai = 0
 				FA.reset()
 	for_by_tcl(AL, /obj/machinery/door/airlock) //open airlocks
-		SPAWN_DBG(0)
+		SPAWN(0)
 			if(AL.canAIControl() && AL.lockdownbyai == 1)
 				AL.open()
 				AL.lockdownbyai = 0
 
-/obj/machinery/computer/communications/attack_hand(var/mob/user as mob)
+/obj/machinery/computer/communications/attack_hand(var/mob/user)
 	if(..())
 		return
 
 	src.add_dialog(user)
-	var/dat = "<head><title>Communications Console</title></head><body>"
+	var/list/dat = list("<head><title>Communications Console</title></head><body>")
 	if (emergency_shuttle.online && emergency_shuttle.location == SHUTTLE_LOC_CENTCOM)
 		var/timeleft = emergency_shuttle.timeleft()
 		dat += "<B>Emergency shuttle</B><br><BR><br>ETA: [timeleft / 60 % 60]:[add_zero(num2text(timeleft % 60), 2)]<BR>"
@@ -203,7 +203,7 @@
 		var/dat2 = src.interact_ai(user) // give the AI a different interact proc to limit its access
 		if(dat2)
 			dat +=  dat2
-			user.Browse(dat, "window=communications;size=400x500")
+			user.Browse(dat.Join(), "window=communications;size=400x500")
 			onclose(user, "communications")
 		return
 
@@ -238,14 +238,14 @@
 					dat += "<BR><BR>\[ <A HREF='?src=\ref[src];operation=delmessage'>Delete \]"
 			else
 				src.state = STATE_MESSAGELIST
-				src.attack_hand(user)
+				src.Attackhand(user)
 				return
 		if(STATE_DELMESSAGE)
 			if (src.currmsg)
 				dat += "Are you sure you want to delete this message? \[ <A HREF='?src=\ref[src];operation=delmessage2'>OK</A> | <A HREF='?src=\ref[src];operation=viewmessage'>Cancel</A> \]"
 			else
 				src.state = STATE_MESSAGELIST
-				src.attack_hand(user)
+				src.Attackhand(user)
 				return
 		if(STATE_STATUSDISPLAY)
 			dat += "Set Status Displays<BR>"
@@ -261,7 +261,7 @@
 
 
 	dat += "<BR>\[ [(src.state != STATE_DEFAULT) ? "<A HREF='?src=\ref[src];operation=main'>Main Menu</A> | " : ""]<A HREF='?action=mach_close&window=communications'>Close</A> \]"
-	user.Browse(dat, "window=communications;size=400x500")
+	user.Browse(dat.Join(), "window=communications;size=400x500")
 	onclose(user, "communications")
 
 /obj/machinery/computer/communications/proc/interact_ai(var/mob/living/silicon/ai/user as mob)
@@ -286,14 +286,14 @@
 				dat += "<BR><BR>\[ <A HREF='?src=\ref[src];operation=ai-delmessage'>Delete</A> \]"
 			else
 				src.aistate = STATE_MESSAGELIST
-				src.attack_hand(user)
+				src.Attackhand(user)
 				return null
 		if(STATE_DELMESSAGE)
 			if(src.aicurrmsg)
 				dat += "Are you sure you want to delete this message? \[ <A HREF='?src=\ref[src];operation=ai-delmessage2'>OK</A> | <A HREF='?src=\ref[src];operation=ai-viewmessage'>Cancel</A> \]"
 			else
 				src.aistate = STATE_MESSAGELIST
-				src.attack_hand(user)
+				src.Attackhand(user)
 				return
 
 		if(STATE_STATUSDISPLAY)
@@ -316,19 +316,25 @@
 	set category = "AI Commands"
 	set name = "Call Emergency Shuttle"
 
-	if (usr == src || usr == src.eyecam)
-		if((alert(usr, "Are you sure?",,"Yes","No") != "Yes"))
-			return
+	var/call_reason = tgui_input_text(usr, "Please state the nature of your current emergency.", "Emergency Shuttle Call Reason", allowEmpty = TRUE)
 
-	var/call_reason = input("Please state the nature of your current emergency.", "Emergency Shuttle Call Reason", "") as text
-
+	if (isnull(call_reason)) // Cancel
+		return
 	if(isdead(src))
 		boutput(usr, "You can't call the shuttle because you are dead!")
 		return
-	logTheThing("admin", usr, null,  "called the Emergency Shuttle (reason: [call_reason])")
-	logTheThing("diary", usr, null, "called the Emergency Shuttle (reason: [call_reason])", "admin")
-	message_admins("<span class='internal'>[key_name(usr)] called the Emergency Shuttle to the station</span>")
-	call_shuttle_proc(src, call_reason)
+	if(get_z(src) != Z_LEVEL_STATION)
+		src.show_text("Your mainframe was unable relay this command that far away!", "red")
+		return
+
+	if (emergency_shuttle.online)
+		boutput(usr, SPAN_ALERT("The emergency shuttle is currently in flight!"))
+		return
+
+	logTheThing(LOG_ADMIN, usr,  "called the Emergency Shuttle (reason: [call_reason])")
+	logTheThing(LOG_DIARY, usr, "called the Emergency Shuttle (reason: [call_reason])", "admin")
+	message_admins(SPAN_INTERNAL("[key_name(usr)] called the Emergency Shuttle to the station"))
+	call_shuttle_proc(usr, call_reason)
 
 	// hack to display shuttle timer
 	if(emergency_shuttle.online)
@@ -365,17 +371,20 @@
 		boutput(user, "Centcom will not allow the shuttle to be called.")
 		return 1
 	if (signal_loss >= 75)
-		boutput(user, "<span class='alert'>Severe signal interference is preventing contact with the Emergency Shuttle.</span>")
+		boutput(user, SPAN_ALERT("Severe signal interference is preventing contact with the Emergency Shuttle."))
 		return 1
 
 	// sanitize the reason
 	if(call_reason)
-		call_reason = copytext(html_decode(trim(strip_html(html_decode(call_reason)))), 1, 140)
+		call_reason = copytext(html_decode(trimtext(strip_html(html_decode(call_reason)))), 1, 140)
 	if(!call_reason || length(call_reason) < 1)
 		call_reason = "No reason given."
 
+	message_admins(SPAN_INTERNAL("[key_name(user)] called the Emergency Shuttle to the station"))
+	logTheThing(LOG_STATION, null, "[key_name(user)] called the Emergency Shuttle to the station")
+
 	emergency_shuttle.incall()
-	command_announcement(call_reason + "<br><b><span class='alert'>It will arrive in [round(emergency_shuttle.timeleft()/60)] minutes.</span></b>", "The Emergency Shuttle Has Been Called", css_class = "notice")
+	command_announcement(call_reason + "<br><b>[SPAN_ALERT("It will arrive in [round(emergency_shuttle.timeleft()/60)] minutes.")]</b>", "The Emergency Shuttle Has Been Called", css_class = "notice")
 	return 0
 
 /proc/cancel_call_proc(var/mob/user)
@@ -383,31 +392,27 @@
 		return 1
 
 	if (!emergency_shuttle.can_recall)
-		boutput(user, "<span class='alert'>Centcom will not allow the shuttle to be recalled.</span>")
+		boutput(user, SPAN_ALERT("Centcom will not allow the shuttle to be recalled."))
 		return 1
 
 	if (signal_loss >= 75)
-		boutput(user, "<span class='alert'>Severe signal interference is preventing contact with the Emergency Shuttle.</span>")
+		boutput(user, SPAN_ALERT("Severe signal interference is preventing contact with the Emergency Shuttle."))
 		return 1
 
-	boutput(world, "<span class='notice'><B>Alert: The shuttle is going back!</B></span>") //marker4
+	boutput(world, SPAN_NOTICE("<B>Alert: The shuttle is going back!</B>")) //marker4
 
+	logTheThing(LOG_STATION, user, "recalled the Emergency Shuttle")
+	message_admins(SPAN_INTERNAL("[key_name(user)] recalled the Emergency Shuttle"))
 	emergency_shuttle.recall()
 
 	return 0
 
 /obj/machinery/computer/communications/proc/post_status(var/command, var/data1, var/data2)
-
-	var/datum/radio_frequency/frequency = radio_controller.return_frequency(status_display_freq)
-
-	if(!frequency) return
-
-
-
 	var/datum/signal/status_signal = get_free_signal()
 	status_signal.source = src
 	status_signal.transmission_method = 1
 	status_signal.data["command"] = command
+	status_signal.data["address_tag"] = "STATDISPLAY"
 
 	switch(command)
 		if("message")
@@ -416,7 +421,7 @@
 		if("alert")
 			status_signal.data["picture_state"] = data1
 
-	frequency.post_signal(src, status_signal)
+	SEND_SIGNAL(src, COMSIG_MOVABLE_POST_RADIO_PACKET, status_signal, null, status_display_freq)
 
 
 
@@ -436,3 +441,11 @@
 			if("alert")
 				set_picture(signal.data["picture_state"])
 */
+
+#undef STATE_DEFAULT
+#undef STATE_CALLSHUTTLE
+#undef STATE_CANCELSHUTTLE
+#undef STATE_MESSAGELIST
+#undef STATE_VIEWMESSAGE
+#undef STATE_DELMESSAGE
+#undef STATE_STATUSDISPLAY

@@ -13,7 +13,7 @@
 	/// The current performance of the company. Tends itself to 0 when no events happen.
 	var/performance = 0
 	/// How much the price fluctuates on an average daily basis
-	var/fluctuational_coefficient = 1
+	var/fluctuational_coefficient = 10
 	/// The history of shareholder optimism of this stock
 	var/average_optimism = 0
 	var/current_trend = 0
@@ -47,10 +47,10 @@
 		A.ticks = ticker.round_elapsed_ticks
 
 	proc/generateEvents()
-		for (var/datum/stock/event/type in concrete_typesof(/datum/stock/event))
+		for (var/type in concrete_typesof(/datum/stock/event))
 			generateEvent(type)
 
-	proc/generateEvent(datum/stock/event/type)
+	proc/generateEvent(type)
 		var/datum/stock/event/E = new type(src)
 		addEvent(E)
 
@@ -154,7 +154,7 @@
 		available_shares += share_change // temporary
 
 		if (prob(25))
-			average_optimism = max(min(average_optimism + (rand(-3, 3) - current_trend * 0.15) / 100, 1), -1)
+			average_optimism = clamp(average_optimism + (rand(-3, 3) - current_trend * 0.15) / 100, -1, 1)
 
 		var/aspec = abs(speculation)
 		if (prob((aspec - 75) * 2))
@@ -178,7 +178,7 @@
 
 		disp_value_change = (cv < current_value) ? 1 : ((cv > current_value) ? -1 : 0)
 		last_value = current_value
-		if (values.len >= 50)
+		if (length(values) >= 50)
 			values.Cut(1,2)
 		values += current_value
 
@@ -224,13 +224,15 @@
 			else if (ticker.round_elapsed_ticks > borrow.lease_expires)
 				if (borrow.borrower in shareholders)
 					var/amt = shareholders[borrow.borrower]
-					if (amt > borrow.share_debt)
+					if (amt >= borrow.share_debt)
 						shareholders[borrow.borrower] -= borrow.share_debt
 						borrows -= borrow
 						if (borrow.borrower in FrozenAccounts)
 							FrozenAccounts[borrow.borrower] -= borrow
 						if (length(FrozenAccounts[borrow.borrower]) == 0)
 							FrozenAccounts -= borrow.borrower
+						//return deposit
+						modifyAccount(borrow.borrower,borrow.deposit)
 						qdel(borrow)
 					else
 						shareholders -= borrow.borrower
@@ -251,7 +253,7 @@
 			fluctuate()
 
 	proc/generateBrokers()
-		if (borrow_brokers.len > 2)
+		if (length(borrow_brokers) > 2)
 			return
 		if (!stockExchange.stockBrokers.len)
 			stockExchange.generateBrokers()
@@ -268,11 +270,11 @@
 		borrow_brokers += B
 
 	proc/modifyAccount(whose, by, force=0)
-		var/datum/data/record/B = FindBankAccountByName(whose)
+		var/datum/db_record/B = FindBankAccountByName(whose)
 		if (B)
-			if (by < 0 && B.fields["current_money"] + by < 0 && !force)
+			if (by < 0 && B["current_money"] + by < 0 && !force)
 				return 0
-			B.fields["current_money"] += by
+			B["current_money"] += by
 			stockExchange.balanceLog(whose, by)
 			return 1
 		return 0

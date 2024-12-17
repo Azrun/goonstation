@@ -35,14 +35,14 @@
 	icon = 'icons/obj/monitors.dmi'
 	icon_state = "party"
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if (!ismob(user) || !user.client || !istype(user, /mob/living/carbon/human/virtual/))
 			return
 		src.add_fingerprint(user)
 
 		// Won't delete the VR character otherwise, which can be confusing (detective's goggles sending you to the existing body in the bomb VR etc).
 		setdead(user)
-		user.death(0)
+		user.death(FALSE)
 
 		Station_VNet.Leave_Vspace(user)
 		return
@@ -66,26 +66,26 @@ datum/v_space
 		if(!user)
 			return
 		if(!active)
-			boutput(user, "<span class='alert'>Unable to connect to the Net!</span>")
+			boutput(user, SPAN_ALERT("Unable to connect to the Net!"))
 			return
 		if(!network_device)
-			boutput(user, "<span class='alert'>You lack a device able to connect to the net!</span>")
+			boutput(user, SPAN_ALERT("You lack a device able to connect to the net!"))
 			return
 		if(!user:client)
 			return
 		if(!user.mind)
-			boutput(user, "<span class='alert'>You don't have a mind!</span>")
+			boutput(user, SPAN_ALERT("You don't have a mind!"))
 			return
 
 //		var/range_check = In_Network(user, network_device, network)
 //		if(!range_check)
-//			boutput(user, "<span class='alert'>Out of network range!</span>")
+//			boutput(user, SPAN_ALERT("Out of network range!"))
 //			return
 
 		var/turf/B = pick_landmark(network)
 
 		if(!B) //no entry landmark
-			boutput(user, "<span class='alert'>Invalid network!</span>")
+			boutput(user, SPAN_ALERT("Invalid network!"))
 			return
 
 
@@ -98,14 +98,14 @@ datum/v_space
 			V.body = user
 			user.mind.transfer_to(V)
 			character = V
-			character.visible_message("<span class='notice'><b>[user.name] logs in!</b></span>")
+			character.visible_message(SPAN_NOTICE("<b>[user.name] logs in!</b>"))
 		else
-			character = create_Vcharacter(user, network_device, network)
+			character = create_Vcharacter(user, network_device, network, B)
 			character.set_loc(B)
-			character.visible_message("<span class='notice'><b>[character.name] logs in!</b></span>")
+			character.visible_message(SPAN_NOTICE("<b>[character.name] logs in!</b>"))
 		users.Add(character)
 		// Made much more prominent due to frequent a- and mhelps (Convair880).
-		character.show_text("<h2><font color=red><B>Death in virtual reality will result in a log-out. You can also press one of the logout buttons to leave.</B></font></h2>", "red")
+		character.show_text("<h2>[SPAN_ALERT("<B>Death in virtual reality will result in a log-out. You can also press one of the logout buttons to leave.</B>")]</h2>", "red")
 		return
 
 
@@ -119,8 +119,13 @@ datum/v_space
 		if (user.client)
 			user.client.reset_view()
 
+		if (user.mind)
+			for (var/datum/antagonist/antag_role in user.mind.antagonists)
+				if (antag_role.vr)
+					antag_role.on_death()
+
 		for(var/mob/O in oviewers())
-			boutput(O, "<span class='alert'><b>[user] logs out!</b></span>")
+			boutput(O, SPAN_ALERT("<b>[user] logs out!</b>"))
 		if (istype(user.loc,/obj/racing_clowncar/kart))
 			var/obj/racing_clowncar/kart/car = user.loc
 			car.reset()
@@ -171,7 +176,7 @@ datum/v_space
 		return 0
 
 
-	proc/create_Vcharacter(var/mob/user, var/network_device, var/network)
+	proc/create_Vcharacter(var/mob/user, var/network_device, var/network, turf/B)
 		var/mob/living/carbon/human/virtual/virtual_character
 
 		if (inactive_bodies.len)
@@ -182,7 +187,7 @@ datum/v_space
 				inactive_bodies -= virtual_character
 			virtual_character.full_heal()
 		else
-			virtual_character = new(src)
+			virtual_character = new(B)
 
 		virtual_character.network_device = network_device
 		virtual_character.body = user
@@ -198,8 +203,8 @@ datum/v_space
 		S.set_loc(virtual_character)
 		C.color = clothing_color
 		S.color = clothing_color
-		virtual_character.equip_if_possible( C, virtual_character.slot_w_uniform )
-		virtual_character.equip_if_possible( S, virtual_character.slot_shoes)
+		virtual_character.equip_if_possible( C, SLOT_W_UNIFORM )
+		virtual_character.equip_if_possible( S, SLOT_SHOES)
 		if(isobserver(user) && !isAIeye(user))
 			virtual_character.isghost = user.real_name
 			virtual_character.real_name = "Virtual Spectre #[rand(1, 999)]"
@@ -207,7 +212,7 @@ datum/v_space
 			virtual_character.real_name = "Virtual [user.real_name]"
 		user.mind.virtual = virtual_character
 		user.mind.transfer_to(virtual_character)
-		SPAWN_DBG(0.8 SECONDS)
+		SPAWN(0.8 SECONDS)
 			if (virtual_character)
 				virtual_character.update_face()
 				virtual_character.update_body()
@@ -223,13 +228,13 @@ datum/v_space
 		character.pin = user.pin
 		character.bioHolder.bloodType = user.bioHolder.bloodType
 		character.bioHolder.mobAppearance.e_color = user.bioHolder.mobAppearance.e_color
-		character.bioHolder.mobAppearance.customization_first_color = user.bioHolder.mobAppearance.customization_first_color
-		character.bioHolder.mobAppearance.customization_second_color = user.bioHolder.mobAppearance.customization_second_color
-		character.bioHolder.mobAppearance.customization_third_color = user.bioHolder.mobAppearance.customization_third_color
+		character.bioHolder.mobAppearance.customizations["hair_bottom"].color = user.bioHolder.mobAppearance.customizations["hair_bottom"].color
+		character.bioHolder.mobAppearance.customizations["hair_middle"].color = user.bioHolder.mobAppearance.customizations["hair_middle"].color
+		character.bioHolder.mobAppearance.customizations["hair_top"].color = user.bioHolder.mobAppearance.customizations["hair_top"].color
 		character.bioHolder.mobAppearance.s_tone = user.bioHolder.mobAppearance.s_tone
-		character.bioHolder.mobAppearance.customization_first = user.bioHolder.mobAppearance.customization_first
-		character.bioHolder.mobAppearance.customization_second = user.bioHolder.mobAppearance.customization_second
-		character.bioHolder.mobAppearance.customization_third = user.bioHolder.mobAppearance.customization_third
+		character.bioHolder.mobAppearance.customizations["hair_bottom"].style =  user.bioHolder.mobAppearance.customizations["hair_bottom"].style
+		character.bioHolder.mobAppearance.customizations["hair_middle"].style =  user.bioHolder.mobAppearance.customizations["hair_middle"].style
+		character.bioHolder.mobAppearance.customizations["hair_top"].style =  user.bioHolder.mobAppearance.customizations["hair_top"].style
 
 		character.bioHolder.mobAppearance.underwear = user.bioHolder.mobAppearance.underwear
 		character.bioHolder.mobAppearance.u_color = user.bioHolder.mobAppearance.u_color
@@ -244,18 +249,18 @@ datum/v_space
 		var/datum/appearanceHolder/AH = character.bioHolder.mobAppearance
 		if (!AH)
 			AH = new
-		if (AH.customization_first_color == null)
-			AH.customization_first_color = "#101010"
-		if (AH.customization_first == null)
-			AH.customization_first = new /datum/customization_style/none
-		if (AH.customization_second_color == null)
-			AH.customization_second_color = "#101010"
-		if (AH.customization_second == null)
-			AH.customization_second = new /datum/customization_style/none
-		if (AH.customization_third_color == null)
-			AH.customization_third_color = "#101010"
-		if (AH.customization_third == null)
-			AH.customization_third = new /datum/customization_style/none
+		if (AH.customizations["hair_bottom"].color == null)
+			AH.customizations["hair_bottom"].color = "#101010"
+		if (AH.customizations["hair_bottom"].style == null)
+			AH.customizations["hair_bottom"].style =  new /datum/customization_style/none
+		if (AH.customizations["hair_middle"].color == null)
+			AH.customizations["hair_middle"].color = "#101010"
+		if (AH.customizations["hair_middle"].style == null)
+			AH.customizations["hair_middle"].style =  new /datum/customization_style/none
+		if (AH.customizations["hair_top"].color == null)
+			AH.customizations["hair_top"].color = "#101010"
+		if (AH.customizations["hair_top"].style == null)
+			AH.customizations["hair_top"].style =  new /datum/customization_style/none
 		if (AH.e_color == null)
 			AH.e_color = "#101010"
 		if (AH.u_color == null)

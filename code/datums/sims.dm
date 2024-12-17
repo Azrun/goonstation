@@ -6,7 +6,7 @@
 	var/value = 100
 	var/last_life_value = 100
 	var/datum/simsHolder/holder
-	var/warning_cooldown = 10
+	var/warning_cooldown = 100
 	var/depletion_rate = 0.2
 	var/image/image_meter = null
 	var/image/image_change = null
@@ -23,7 +23,7 @@
 
 	New(var/is_control = 0)
 		..()
-		SPAWN_DBG(0)
+		SPAWN(0)
 			if (src.holder)
 				var/icon/hud_style = hud_style_selection[get_hud_style(src.holder.owner)]
 				if (isicon(hud_style))
@@ -33,6 +33,11 @@
 			hud.icon = icon
 			hud.icon_state = icon_state
 			hud.layer = HUD_LAYER
+
+			if (prob(20))
+				var/v = rand(50, 100)
+				value = v
+				last_life_value = v
 
 			updateHud()
 			if (!is_control)
@@ -51,11 +56,6 @@
 		simsController.simsMotives -= src
 		..()
 
-	disposing()
-		if (hud)
-			qdel(hud)
-		..()
-
 	proc/updateHud()
 		var/change = 0
 		if (value > last_life_value)
@@ -67,9 +67,9 @@
 				src.image_change = image(src.icon, "change[change]", layer = HUD_LAYER+2)
 			else
 				src.image_change.icon_state = "change[change]"
-			src.hud.UpdateOverlays(src.image_change, "change")
+			src.hud.AddOverlays(src.image_change, "change")
 		else
-			src.hud.UpdateOverlays(null, "change")
+			src.hud.ClearSpecificOverlays("change")
 		//var/a_change = value - last_life_value
 		var/maptext_color = "#ffffff"
 		var/round_value = round(value)
@@ -93,7 +93,7 @@
 		if (!src.image_meter)
 			src.image_meter = image(src.icon, "[src.icon_state]-o", layer = HUD_LAYER+1)
 		src.image_meter.color = rgb((1 - ratio) * 255, ratio * 255, 0)
-		src.hud.UpdateOverlays(src.image_meter, "meter")
+		src.hud.AddOverlays(src.image_meter, "meter")
 
 	proc/updateHudIcon(var/icon/I)
 		if (!I || !src.hud)
@@ -101,9 +101,8 @@
 		src.icon = I
 		src.hud.icon = I
 		if (src.image_change)
-			src.hud.UpdateOverlays(null, "change")
 			src.image_change.icon = I
-			src.hud.UpdateOverlays(src.image_change, "change")
+			src.hud.AddOverlays(src.image_change, "change")
 		if (src.image_meter)
 			src.image_meter.icon = I
 			src.updateHud()
@@ -115,7 +114,7 @@
 		var/prev_value = value
 		var/affection_mod = amt < 0 ? drain_rate : gain_rate //Negative change, use drain modifier, positive, use gain modifier
 
-		value = max(min(value + (amt * affection_mod), 100), 0)
+		value = clamp(value + (amt * affection_mod), 0, 100)
 		if (prev_value < 100 && value >= 100)
 			onFill()
 		else if (prev_value > 0 && value <= 0)
@@ -136,7 +135,7 @@
 			var/warning = getWarningMessage()
 			if (warning)
 				showOwner(warning)
-				warning_cooldown = 40
+				warning_cooldown = 100
 		else
 			warning_cooldown--
 		onLife()
@@ -166,23 +165,21 @@
 
 		onIncrease()
 			if (value > debuff_threshold && debuffed)
-				showOwner("<span class='notice'>You feel considerably less [debuff]!</span>")
+				showOwner(SPAN_NOTICE("You feel considerably less [debuff]!"))
 				holder.owner.delStatus(debuff)
 				debuffed = FALSE
 
 		onDecrease()
 			if (value < debuff_threshold && !debuffed)
-				showOwner("<span class='alert'>You feel considerably [debuff]!</span>")
+				showOwner(SPAN_ALERT("You feel considerably [debuff]!"))
 				holder.owner.setStatus(debuff, duration = null)
 				debuffed = TRUE
 
 		getWarningMessage()
 			if (value < 25)
-				return pick("<span class='alert'>You are [pick("utterly", "absolutely", "positively", "completely", "extremely", "perfectly")] [pick("starving", "unfed", "ravenous", "famished")]!</span>", "<span class='alert'>You feel like you could [pick("die of [pick("hunger", "starvation")] any moment now", "eat a [pick("donkey", "horse", "whale", "moon", "planet", "star", "galaxy", "universe", "multiverse")]")]!</span>")
+				return pick(SPAN_ALERT("You are [pick("utterly", "absolutely", "positively", "completely", "extremely", "perfectly")] [pick("starving", "unfed", "ravenous", "famished")]!"), SPAN_ALERT("You feel like you could [pick("die of [pick("hunger", "starvation")] any moment now", "eat a [pick("donkey", "horse", "whale", "moon", "planet", "star", "galaxy", "universe", "multiverse")]")]!"))
 			else if (value < 50)
-				return "<span class='alert'>You feel [pick("hungry", "peckish", "ravenous", "undernourished", "famished", "esurient")]!</span>"
-			else if (value < 75)
-				return "<span class='alert'>You feel [pick("a bit", "slightly", "somewhat", "a little", "faintly")] [pick("hungry", "peckish", "famished")]!</span>"
+				return SPAN_ALERT("You feel [pick("hungry", "peckish", "ravenous", "undernourished", "famished", "esurient")]!")
 			else
 				return null
 
@@ -195,13 +192,17 @@
 
 			getWarningMessage()
 				if (value < 25)
-					return pick("<span class='alert'>You are [pick("utterly", "absolutely", "positively", "completely", "extremely", "perfectly")] dry!</span>", "<span class='alert'>You feel [pick("like you could die of thirst any moment now", "as dry as [pick("sand", "the moon", "solid carbon dioxide", "bones")]")]!</span>")
+					return pick(SPAN_ALERT("You are [pick("utterly", "absolutely", "positively", "completely", "extremely", "perfectly")] dry!"), SPAN_ALERT("You feel [pick("like you could die of thirst any moment now", "as dry as [pick("sand", "the moon", "solid carbon dioxide", "bones")]")]!"))
 				else if (value < 50)
-					return "<span class='alert'>You feel [pick("thirsty", "dry")]!</span>"
-				else if (value < 75)
-					return "<span class='alert'>You feel [pick("a bit", "slightly", "somewhat", "a little", "faintly")] [pick("thirsty", "dry")]!</span>"
+					return SPAN_ALERT("You feel [pick("thirsty", "dry")]!")
 				else
 					return null
+
+		wolfy // for werewolves - depletes slower, but only regens hunger by feeding on humans
+			name = "Ravenous Hunger" // With the name changed, all the stuff that restores hunger won't restore this
+			icon_state = "ravenous"
+			desc = "Ravenous hunger can only be satiated by feeding on the living..."
+			depletion_rate = 0.039
 
 
 	social
@@ -224,20 +225,14 @@
 
 		getWarningMessage()
 			if (value < 25)
-				return "<span class='alert'>You really feel like talking to someone, or you might [pick("go crazy", "go insane", "go nuts", "become unhinged", "become a lunatic", "become totally gaga", "go loco", "go bonkers", "go stark mad", "go mad")]!</span>"
+				return SPAN_ALERT("You really feel like talking to someone, or you might [pick("go crazy", "go insane", "go nuts", "become unhinged", "become a lunatic", "become totally gaga", "go loco", "go bonkers", "go stark mad", "go mad")]!")
 			else if (value < 50)
-				return "<span class='alert'>You feel [pick("rather ", "quite ", "moderately ", "kind of ", "pretty ", null)]socially deprived!</span>"
-			else if (value < 75)
-				return "<span class='alert'>You could go for a [pick("good", "nice", "long", "short", "great", "pleasant", "delightful", "friendly")] [pick("conversation", "chat", "discussion", "talk", "social exchange", "banter", "head-to-head", trim("t[ascii2text(234)]te-[ascii2text(224)]-t[ascii2text(234)]te"))] right now.</span>"
+				return SPAN_ALERT("You feel [pick("rather ", "quite ", "moderately ", "kind of ", "pretty ", null)]socially deprived!")
 			else
 				return null
 
 		onDeplete()
 			holder.owner.contract_disease(/datum/ailment/disease/space_madness, null, null, 1)
-			if (ishuman(holder.owner))
-				var/mob/living/carbon/human/H = holder.owner
-				if (!H.pathogens.len)
-					holder.owner.infected(ez_pathogen(/datum/pathogeneffects/malevolent/serious_paranoia))
 
 		onLife()
 			if (value < 10 && prob((10 - value) * 10))
@@ -256,82 +251,28 @@
 				if (protection > 0)
 					protection--
 					return 0
+				// Devera-class interdictor: prevent passive hygiene decrease within the field
+				if (holder.owner.hasStatus("devera_field"))
+					return 0
 				return 1
 
 		onIncrease()
 			protection = round(value / 5)
 
 		onLife()
-			if (value < 15 && prob(33))
-				if (holder.owner.bioHolder && !(holder.owner.bioHolder.HasEffect("sims_stinky")))
-					holder.owner.bioHolder.AddEffect("sims_stinky")
-			/*
-			if (value < 10 && prob((10 - value) * 1.5))
-				for (var/mob/living/carbon/human/H in viewers(2, holder.owner))
-					if (H != holder.owner && prob(30 - value) * 2)
-						//H.stunned = max(holder.owner.stunned, 1) <- Let's not punish others for our poor choices in life - unrealistic but more fun
-						H.vomit()
-						H.visible_message("<span class='alert'>[H] throws up all over \himself. Gross!</span>")
-						boutput(H, "<span class='alert'>You are [pick("disgusted", "revolted", "repelled", "sickened", "nauseated")] by [holder.owner]'s [pick("smell", "odor", "body odor", "scent", "fragrance", "bouquet", "savour", "tang", "whiff")]!</span>")
-				holder.owner.changeStatus("stunned", 1 SECOND)
-				holder.owner.visible_message("<span class='alert'>[holder.owner] throws up all over \himself. Gross!</span>")
-				holder.owner.vomit()
-				showOwner("<span class='alert'>You are [pick("disgusted", "revolted", "repelled", "sickened", "nauseated")] by your own [pick("smell", "odor", "body odor", "scent", "fragrance", "bouquet", "savour", "tang", "whiff")]!</span>")
-			*/
-			#ifdef CREATE_PATHOGENS //PATHOLOGY_REMOVAL
-			if (value < 5 && prob(1) && prob(25))
-				var/datum/pathogen/P = unpool(/datum/pathogen)
-				P.create_weak()
-				P.spread = 0
-				holder.owner.infected(P)
-				showOwner("<span class='alert'>You feel really sick.</span>") // in a bad way
-			#endif
+			if (value < SIMS_HYGIENE_THRESHOLD_FILTHY && prob(33))
+				if (holder.owner.bioHolder && !(holder.owner.bioHolder.HasEffect("sims_stinky")) && !holder.owner.hasStatus("filthy"))
+					holder.owner.setStatus("filthy", 3 MINUTES)
+			else if ((value >= SIMS_HYGIENE_THRESHOLD_FILTHY) && holder.owner.hasStatus("rancid"))
+				holder.owner.delStatus("rancid")
 
 		getWarningMessage()
 			if (value < 25)
-				return pick("<span class='alert'>You [pick("smell", "stink", "reek")]!</span>", "<span class='alert'>You are [pick("absolutely", "utterly", "completely")] [pick("disgusting", "revolting", "repellent", "sickening", "nauseating", "stomach-churning", "gross")]!</span>", "<span class='alert'><b>Take a [pick("shower", "bath")]!</b></span>")
+				return pick(SPAN_ALERT("You [pick("smell", "stink", "reek")]!"), SPAN_ALERT("You are [pick("absolutely", "utterly", "completely")] [pick("disgusting", "revolting", "repellent", "sickening", "nauseating", "stomach-churning", "gross")]!"), SPAN_ALERT("<b>Take a [pick("shower", "bath")]!</b>"))
 			else if (value < 50)
-				return "<span class='alert'>You feel [pick("smelly", "stinky", "unclean", "filthy", "dirty", "a bit disgusting", "grimy", "mucky", "foul", "unwashed", "begrimed", "tainted")]!</span>"
-			else if (value < 75)
-				return "<span class='alert'>You feel [pick("a bit", "slightly", "somewhat", "a little", "faintly")] [pick("unclean", "dirty", "filthy", "stinky", "smelly")].</span>"
+				return SPAN_ALERT("You feel [pick("smelly", "stinky", "unclean", "filthy", "dirty", "a bit disgusting", "grimy", "mucky", "foul", "unwashed", "begrimed", "tainted")]!")
 			else
 				return null
-
-	bladder
-		name = "Bladder"
-		icon_state = "bladder"
-		desc = "You can raise your bladder by releasing your urges in the toilet. Be sure to stand above a toilet and type '*pee'."
-		depletion_rate = 0.067 //53
-		gain_rate = 1
-
-		getWarningMessage()
-			var/list/urination = list("urinate", "piss", "pee", "answer the call of nature", "wee-wee", "spend a penny", "have a leak", "take a leak", "relieve yourself", "have a Jimmy", "have a whizz", "have a piddle", "pass water", "empty the tank", "flush the buffers", "lower the water level", "pay the water bill", "park your breakfast", "make your bladder gladder", "release the pressure", "put out the fire", "visit the urination station", "drain the tank")
-			var/to_urinate = pick(urination)
-			if (value < 25)
-				return "<span class='alert'>You feel like you could [pick("wet", "piss", "pee", "urinate into", "leak into")] your pants any minute now!</span>"
-			else if (value < 50)
-				return "<span class='alert'>You feel a [pick("serious", "pressing", "critical", "dire", "burning")] [pick("inclination", "desire", "need", "call", "urge", "motivation")] to [to_urinate]!</span>"
-			else if (value < 75)
-				return "<span class='alert'>You feel a [pick("slight", "tiny", "faint", "distant", "minimal", "little")] [pick("inclination", "desire", "need", "urge", "call", "motivation")] to [to_urinate].</span>"
-			else
-				return null
-
-		onDeplete()
-			showOwner("<span class='alert'><b>You piss all over yourself!</b></span>")
-			modifyValue(100)
-			holder.affectMotive("Hygiene", -100)
-			holder.owner.changeStatus("stunned", 2 SECONDS)
-			if (ishuman(holder.owner))
-				var/mob/living/carbon/human/H = holder.owner
-				if (H.w_uniform)
-					var/obj/item/clothing/U = H.w_uniform
-					U.add_stain("piss-soaked")
-					//U.name = "piss-soaked [initial(U.name)]"
-				else if (H.wear_suit)
-					var/obj/item/clothing/U = H.wear_suit
-					U.add_stain("piss-soaked")
-					//U.name = "piss-soaked [initial(U.name)]"
-			make_cleanable(/obj/decal/cleanable/urine,holder.owner.loc)
 
 	comfort
 		name = "comfort"
@@ -351,11 +292,9 @@
 
 		getWarningMessage()
 			if (value < 25)
-				return "<span class='alert'>You really [pick("need", "require", "feel the need for", "are in need of")] the [pick("hug", "feeling", "embrace", "comfort")] of a soft [pick("sofa", "bed", "chair", "pillow")]!</span>"
+				return SPAN_ALERT("You really [pick("need", "require", "feel the need for", "are in need of")] the [pick("hug", "feeling", "embrace", "comfort")] of a soft [pick("sofa", "bed", "chair", "pillow")]!")
 			else if (value < 50)
-				return "<span class='alert'>You feel like [pick("sitting down", "lying down", "you need a bit of comfort")]!</span>"
-			else if (value < 75)
-				return "<span class='alert'>You feel [pick("slightly", "minimally", "a tiny bit", "a little", "just a bit")] uncomfortable.</span>"
+				return SPAN_ALERT("You feel like [pick("sitting down", "lying down", "you need a bit of comfort")]!")
 			else
 				return null
 
@@ -384,21 +323,19 @@
 
 		getWarningMessage()
 			if (value < 25)
-				return "<span class='alert'>You are [pick("<b>so</b>", "so very", "painfully", "extremely", "excruciatingly", "rather uncomfortably")] bored![prob(25)? " You'd rather die!" : null]</span>"
+				return SPAN_ALERT("You are [pick("<b>so</b>", "so very", "painfully", "extremely", "excruciatingly", "rather uncomfortably")] bored![prob(25)? " You'd rather die!" : null]")
 			else if (value < 50)
-				return "<span class='alert'>You're [pick("quite", "rather", "super", "really", "pretty", "moderately", "very")] bored!</span>"
-			else if (value < 75)
-				return pick("<span class='alert'>You feel like doing something fun.</span>", "<span class='alert'>You feel a bit bored.</span>")
+				return SPAN_ALERT("You're [pick("quite", "rather", "super", "really", "pretty", "moderately", "very")] bored!")
 			else
 				return null
 
 		onDeplete()
 			if (prob(10))
-				showOwner("<span class='alert'><b>You can't take being so bored anymore!</b></span>")
+				showOwner(SPAN_ALERT("<b>You can't take being so bored anymore!</b>"))
 				if (ishuman(holder.owner))
 					var/mob/living/carbon/human/H = holder.owner
-					H.force_suicide()
-					modifyValue(50)
+					H.death()
+					logTheThing(LOG_COMBAT, usr, "died from the sims fun motive at [log_loc(H)].")
 
 		onLife()
 			if (value < 10)
@@ -416,11 +353,9 @@
 		getWarningMessage()
 			var/a_mess = pick("mess", "clusterfuck", "disorder", "disarray", "clutter", "landfill", "dump")
 			if (value < 25)
-				return "<span class='alert'>This place is a [pick("fucking", "complete", "total", "downright", "consummate", "veritable", "proper")] [a_mess].</span>"
+				return SPAN_ALERT("This place is a [pick("fucking", "complete", "total", "downright", "consummate", "veritable", "proper")] [a_mess].")
 			else if (value < 50)
-				return "<span class='alert'>This place is a [a_mess]!</span>"
-			else if (value < 75)
-				return "<span class='alert'>This place is a [pick("bit of a mess", "bit messy", "little messy")].</span>"
+				return SPAN_ALERT("This place is a [a_mess]!")
 			else
 				return null
 
@@ -444,9 +379,9 @@
 		mayStandardDeplete()
 			if (..())
 				// JFC fuck mobs
-				if (holder.owner.getStatusDuration("weakened"))
+				if (holder.owner.getStatusDuration("knockdown"))
 					return 0
-				if (holder.owner.getStatusDuration("paralysis"))
+				if (holder.owner.getStatusDuration("unconscious"))
 					return 0
 				if (holder.owner.lying)
 					return 0
@@ -461,7 +396,7 @@
 			if (forced_sleep)
 				if (value < 25)
 					if (!L.hasStatus("resting"))
-						showOwner("<span class='alert'>You overworked yourself and cannot wake up until you are minimally rested!</span>")
+						showOwner(SPAN_ALERT("You overworked yourself and cannot wake up until you are minimally rested!"))
 						L.setStatus("resting", INFINITE_STATUS)
 					L.sleeping += 1
 				else
@@ -476,17 +411,15 @@
 				modifyValue(sm)
 
 		onDeplete()
-			showOwner("<span class='alert'><b>You cannot stay awake anymore!</b></span>")
+			showOwner(SPAN_ALERT("<b>You cannot stay awake anymore!</b>"))
 			forced_sleep = 1
 			modifyValue(5)
 
 		getWarningMessage()
 			if (value < 25)
-				return "<span class='alert'>You're [pick("extremely", "seriously", "incredibly", "tremendously", "overwhelmingly")] [pick("tired", "exhausted", "weary", "fatigued", "drowsy", "spent", "drained", "jaded")].</span>"
+				return SPAN_ALERT("You're [pick("extremely", "seriously", "incredibly", "tremendously", "overwhelmingly")] [pick("tired", "exhausted", "weary", "fatigued", "drowsy", "spent", "drained", "jaded")].")
 			else if (value < 50)
-				return "<span class='alert'>You feel [pick("rather", "quite", "very", "pretty", "really")] [pick("tired", "sleepy", "drowsy")]!</span>"
-			else if (value < 75)
-				return "<span class='alert'>You feel [pick("somewhat", "a bit", "slightly", "a little", "a little bit", "a tiny bit")] tired.</span>"
+				return SPAN_ALERT("You feel [pick("rather", "quite", "very", "pretty", "really")] [pick("tired", "sleepy", "drowsy")]!")
 			else
 				return null
 
@@ -495,7 +428,7 @@
 		name = "Sanity"
 		icon_state = "sanity"
 		desc = "Your sanity slowly increases by itself, but you can speed that up with certain substances or by making sure that your mind won't be further afflicted."
-		depletion_rate = 0.0
+		depletion_rate = 0
 
 		gain_rate = 0.1
 
@@ -509,25 +442,20 @@
 	var/list/motives = list()
 	var/list/datum/simsHolder/simsHolders = list()
 	var/list/datum/simsMotive/simsMotives = list()
-
-#ifdef RP_MODE
 	var/provide_plumbobs = 0
-#else
-	var/provide_plumbobs = 1
-#endif
 
 	New()
 		..()
-		SPAWN_DBG(1 SECOND) //Give it some time to finish creating the simsController because fak
+		SPAWN(1 SECOND) //Give it some time to finish creating the simsController because fak
 			for (var/M in childrentypesof(/datum/simsMotive))
 				motives[M] = new M(1)
 #ifdef RP_MODE
-			SPAWN_DBG(0)
+			SPAWN(0)
 				set_multiplier(1)
 #endif
 
 	Topic(href, href_list)
-		usr_admin_only
+		USR_ADMIN_ONLY
 		if (href_list["mot"])
 			var/datum/simsMotive/M = locate(href_list["mot"])
 			if (!istype(M) || M != motives[M.type])
@@ -587,7 +515,7 @@
 
 	proc/set_global_sims_var(var/datum/simsMotive/M, var/var_name, var/new_value) //Change one value on every simsHolder
 		if(!(var_name in M.vars))
-			logTheThing("debug", null, null, "<B>SpyGuy/Sims:</B> Tried to set \"[var_name]\" var on simsMotive [M] but could not find it in vars list.")
+			logTheThing(LOG_DEBUG, null, "<B>SpyGuy/Sims:</B> Tried to set \"[var_name]\" var on simsMotive [M] but could not find it in vars list.")
 			return
 		for(var/datum/simsMotive/SM in simsMotives)
 			if(SM.type == M.type)
@@ -642,7 +570,6 @@ var/global/datum/simsControl/simsController = new()
 			addMotive(/datum/simsMotive/hunger/thirst)
 			addMotive(/datum/simsMotive/social)
 			addMotive(/datum/simsMotive/hygiene)
-			addMotive(/datum/simsMotive/bladder)
 			addMotive(/datum/simsMotive/comfort)
 			addMotive(/datum/simsMotive/fun)
 			addMotive(/datum/simsMotive/energy)
@@ -653,10 +580,11 @@ var/global/datum/simsControl/simsController = new()
 		make_motives()
 			addMotive(/datum/simsMotive/hunger)
 			addMotive(/datum/simsMotive/hunger/thirst)
-			addMotive(/datum/simsMotive/hygiene)
-			//addMotive(/datum/simsMotive/bladder)
-			//addMotive(/datum/simsMotive/energy)
-			//addMotive(/datum/simsMotive/sanity)
+
+		wolf
+			make_motives()
+				addMotive(/datum/simsMotive/hunger/wolfy)
+				addMotive(/datum/simsMotive/hunger/thirst)
 
 	New(var/mob/living/L)
 		..()
@@ -720,12 +648,18 @@ var/global/datum/simsControl/simsController = new()
 			cv += M.value
 		return cv / mv * base_mood_value
 
-	proc/addMotive(var/mt)
+	proc/addMotive(var/mt, var/rand_val)
 		var/datum/simsMotive/M = new mt
 		if (initial(M.name) in motives)
 			return
 		motives[initial(M.name)] = M
 		M.holder = src
+
+	proc/removeMotive(var/name)
+		if((name in src.motives))
+			var/datum/simsMotive/S = src.motives[name]
+			src.motives.Remove(name)
+			qdel(S)
 
 	proc/getValue(var/name)
 		if (name in motives)
@@ -756,34 +690,31 @@ var/global/datum/simsControl/simsController = new()
 				attach_plum(owner)
 
 			plumbob.color = rgb((1 - color_t) * 255, color_t * 255, 0)
-			plumbob.light.set_color(1 - color_t, color_t, 0)
+			plumbob.add_simple_light("plumbob", list(1 - color_t, color_t, 0, 100))
 
 /obj/effect/plumbob
 	name = "plumbob"
 	icon = 'icons/obj/junk.dmi'
 	icon_state = "plum-desat"
 	mouse_opacity = 0
-	anchored = 1.0
+	anchored = ANCHORED
+	animate_movement = SYNC_STEPS
 	pixel_y = 32
 	var/mob/living/owner
-	var/datum/light/light
 
 	New()
 		..()
 		animate_bumble(src, Y1 = 32, Y2 = 30, slightly_random = 0)
-		light = new /datum/light/point
-		light.attach(src)
-		light.set_brightness(0.5)
-		light.enable()
+		add_simple_light("plumbob", list(255, 255, 255, 100))
 
 	// relay procs
-	attackby(obj/item/W as obj, mob/user as mob)
+	attackby(obj/item/W, mob/user)
 		if (owner)
-			owner.attackby(W, user)
+			owner.Attackby(W, user)
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if (owner)
-			owner.attack_hand(user)
+			owner.Attackhand(user)
 
 	attack_ai(mob/user as mob)
 		if (owner)

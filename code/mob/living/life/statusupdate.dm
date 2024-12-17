@@ -22,7 +22,7 @@
 				owner.sleeping = 2
 			else
 				owner.sleeping = max(owner.sleeping - mult, 0)
-			owner.changeStatus("paralysis", 3 SECONDS * mult)
+			owner.changeStatus("unconscious", 3 SECONDS * mult)
 			if (prob(10) && (owner.health > 0))
 				owner.emote("snore")
 			if (!owner.last_sleep) // we are asleep but weren't previously
@@ -46,12 +46,13 @@
 		if (owner.getStatusDuration("blinded"))
 			owner.blinded = 1
 		else
-			for (var/thing in owner.get_equipped_items())
-				if (!thing) continue
-				var/obj/item/I = thing
-				if (I.block_vision)
-					owner.blinded = 1
-					break
+			if(!(HAS_ATOM_PROPERTY(owner, PROP_MOB_XRAYVISION) || HAS_ATOM_PROPERTY(owner, PROP_MOB_XRAYVISION_WEAK)))
+				for (var/thing in owner.get_equipped_items())
+					if (!thing) continue
+					var/obj/item/I = thing
+					if (I.block_vision)
+						owner.blinded = 1
+						break
 
 		if (manualblinking && human_owner)
 			var/showmessages = 1
@@ -76,7 +77,7 @@
 					if (src.blinktimernotifredundant < 3)
 						src.blinktimerstage = 3
 				if (60 to 100)
-					owner.take_eye_damage(max(0, min(3, 3 - tempblind)), 1)
+					owner.take_eye_damage(clamp(3 - tempblind, 0, 3), 1)
 					if (src.blinktimernotifredundant < 4)
 						src.blinktimerstage = 4
 				if (100 to INFINITY)
@@ -85,25 +86,25 @@
 						src.blinktimerstage = 5
 			switch(src.blinktimerstage)
 				if (0)
-					// this statement is intentionally left blank
+					; // this statement is intentionally left blank
 				if (1)
-					if (showmessages) boutput(owner, "<span class='alert'>Your eyes feel slightly uncomfortable!</span>")
+					if (showmessages) boutput(owner, SPAN_ALERT("Your eyes feel slightly uncomfortable!"))
 					src.blinktimernotifredundant = 1
 				if (2)
-					if (showmessages) boutput(owner, "<span class='alert'>Your eyes feel quite dry!</span>")
+					if (showmessages) boutput(owner, SPAN_ALERT("Your eyes feel quite dry!"))
 					src.blinktimernotifredundant = 2
 				if (3)
-					if (showmessages) boutput(owner, "<span class='alert'>Your eyes feel very dry and uncomfortable, it's getting difficult to see!</span>")
+					if (showmessages) boutput(owner, SPAN_ALERT("Your eyes feel very dry and uncomfortable, it's getting difficult to see!"))
 					src.blinktimernotifredundant = 3
 				if (4)
-					if (showmessages) boutput(owner, "<span class='alert'>Your eyes are so dry that you can't see a thing!</span>")
+					if (showmessages) boutput(owner, SPAN_ALERT("Your eyes are so dry that you can't see a thing!"))
 					src.blinktimernotifredundant = 4
 				if (5) //blinking won't save you now, buddy
-					if (showmessages) boutput(owner, "<span class='alert'>You feel a horrible pain in your eyes. That can't be good.</span>")
+					if (showmessages) boutput(owner, SPAN_ALERT("You feel a horrible pain in your eyes. That can't be good."))
 					src.blinktimernotifredundant = 5
 			src.blinktimerstage = 0
 
-			if (src.blinkstate) owner.take_eye_damage(max(0, min(1, 1 - tempblind)), 1)
+			if (src.blinkstate) owner.take_eye_damage(clamp(1 - tempblind, 0, 1), 1)
 
 		if (owner.get_eye_damage(1)) // Temporary blindness.
 			owner.take_eye_damage(-mult, 1)
@@ -129,94 +130,12 @@
 			owner.take_toxin_damage(-5000)
 			owner.take_oxygen_deprivation(-5000)
 			owner.take_brain_damage(-120)
-			owner.delStatus("radiation")
-			owner.delStatus("paralysis")
-			owner.delStatus("weakened")
-			owner.delStatus("stunned")
 			owner.stuttering = 0
 			owner.take_ear_damage(-INFINITY)
 			owner.take_ear_damage(-INFINITY, 1)
 			owner.change_eye_blurry(-INFINITY)
 			owner.druggy = 0
 			owner.blinded = null
-
-		if (hivebot_owner)
-			hivebot_owner.hud.update_charge()
-			hivebot_owner.health = hivebot_owner.max_health - (hivebot_owner.fireloss + hivebot_owner.bruteloss)
-			return ..()
-
-		if (robot_owner)
-			if(!robot_owner.part_chest)
-				// this doesn't even make any sense unless you're rayman or some shit
-
-				if (robot_owner.mind && robot_owner.mind.special_role)
-					robot_owner.handle_robot_antagonist_status("death", 1) // Mindslave or rogue (Convair880).
-
-				robot_owner.visible_message("<b>[owner]</b> falls apart with no chest to keep it together!")
-				logTheThing("combat", robot_owner, null, "was destroyed at [log_loc(robot_owner)].") // Brought in line with carbon mobs (Convair880).
-
-				if (robot_owner.part_arm_l)
-					if (robot_owner.part_arm_l.slot == "arm_both")
-						robot_owner.part_arm_l.set_loc(robot_owner.loc)
-						robot_owner.part_arm_l = null
-						robot_owner.part_arm_r = null
-					else
-						robot_owner.part_arm_l.set_loc(robot_owner.loc)
-						robot_owner.part_arm_l = null
-				if (robot_owner.part_arm_r)
-					if (robot_owner.part_arm_r.slot == "arm_both")
-						robot_owner.part_arm_r.set_loc(robot_owner.loc)
-						robot_owner.part_arm_l = null
-						robot_owner.part_arm_r = null
-					else
-						robot_owner.part_arm_r.set_loc(robot_owner.loc)
-						robot_owner.part_arm_r = null
-
-				if (robot_owner.part_leg_l)
-					if (robot_owner.part_leg_l.slot == "leg_both")
-						robot_owner.part_leg_l.set_loc(robot_owner.loc)
-						robot_owner.part_leg_l = null
-						robot_owner.part_leg_r = null
-					else
-						robot_owner.part_leg_l.set_loc(robot_owner.loc)
-						robot_owner.part_leg_l = null
-				if (robot_owner.part_leg_r)
-					if (robot_owner.part_leg_r.slot == "leg_both")
-						robot_owner.part_leg_r.set_loc(robot_owner.loc)
-						robot_owner.part_leg_r = null
-						robot_owner.part_leg_l = null
-					else
-						robot_owner.part_leg_r.set_loc(robot_owner.loc)
-						robot_owner.part_leg_r = null
-
-				if (robot_owner.part_head)
-					robot_owner.part_head.set_loc(robot_owner.loc)
-					robot_owner.part_head = null
-					//no chest means you are dead. Placed here to avoid duplicate alert in event that head was already destroyed and you then destroy torso
-					robot_owner.borg_death_alert()
-
-				if (robot_owner.client)
-					var/mob/dead/observer/newmob = robot_owner.ghostize()
-					if (newmob)
-						newmob.corpse = null
-
-				new /obj/item/parts/robot_parts/robot_frame(get_turf(robot_owner))
-
-				qdel(robot_owner)
-
-			else if (!robot_owner.part_head && robot_owner.client)
-				// no head means no brain!!
-
-				if (robot_owner.mind && robot_owner.mind.special_role)
-					robot_owner.handle_robot_antagonist_status("death", 1) // Mindslave or rogue (Convair880).
-
-				robot_owner.visible_message("<b>[owner]</b> completely stops moving and shuts down...")
-				robot_owner.borg_death_alert()
-				logTheThing("combat", owner, null, "was destroyed at [log_loc(robot_owner)].") // Ditto (Convair880).
-
-				var/mob/dead/observer/newmob = robot_owner.ghostize()
-				if (newmob)
-					newmob.corpse = null
 
 		..()
 

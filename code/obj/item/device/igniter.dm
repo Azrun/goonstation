@@ -1,32 +1,35 @@
+TYPEINFO(/obj/item/device/igniter)
+	mats = 2
+
 /obj/item/device/igniter
 	name = "igniter"
-	desc = "A small electronic device able to ignite combustable substances."
+	desc = "A small electronic device can be paired with other electronics, or used to heat chemicals directly."
 	icon_state = "igniter"
-	var/status = 1.0
-	flags = FPRINT | TABLEPASS| CONDUCT | ONBELT | USEDELAY
+	var/status = 1
+	flags = TABLEPASS | CONDUCT | USEDELAY
+	c_flags = ONBELT
 	item_state = "electronic"
 	m_amt = 100
 	throwforce = 5
 	w_class = W_CLASS_TINY
 	throw_speed = 3
 	throw_range = 10
-	mats = 2
-	module_research = list("science" = 1, "miniaturization" = 5, "devices" = 3)
-	firesource = TRUE
+	firesource = FIRESOURCE_IGNITER
 
 	//blcok spamming shit because inventory uncaps click speed and kinda makes this an exploit
 	//its still a bit stronger than non-inventory interactions, why not
 	var/last_ignite = 0
 
-/obj/item/device/igniter/attack(mob/M as mob, mob/user as mob)
-	if (ishuman(M))
-		if (M:bleeding || (M:butt_op_stage == 4 && user.zone_sel.selecting == "chest"))
-			if (!src.cautery_surgery(M, user, 15))
+/obj/item/device/igniter/attack(mob/target, mob/user, def_zone, is_special = FALSE, params = null)
+	if (ishuman(target))
+		var/mob/living/carbon/human/H = target
+		if (H:bleeding || (H.organHolder.back_op_stage > BACK_SURGERY_CLOSED && user.zone_sel.selecting == "chest"))
+			if (!src.cautery_surgery(target, user, 15))
 				return ..()
 		else return ..()
 	else return ..()
 
-/obj/item/device/igniter/attackby(obj/item/W as obj, mob/user as mob)
+/obj/item/device/igniter/attackby(obj/item/W, mob/user)
 	if ((istype(W, /obj/item/device/radio/signaler) && !( src.status )))
 		var/obj/item/device/radio/signaler/S = W
 		if (!( S.b_stat ))
@@ -110,14 +113,14 @@
 
 		R.setDetState(0)
 		src.add_fingerprint(user)
-		user.show_message("<span class='notice'>You hook up the igniter to the multitool's panel.</span>")
+		user.show_message(SPAN_NOTICE("You hook up the igniter to the multitool's panel."))
 
 	if (isscrewingtool(W))
 		src.status = !(src.status)
 		if (src.status)
-			user.show_message("<span class='notice'>The igniter is ready!</span>")
+			user.show_message(SPAN_NOTICE("The igniter is ready!"))
 		else
-			user.show_message("<span class='notice'>The igniter can now be attached!</span>")
+			user.show_message(SPAN_NOTICE("The igniter can now be attached!"))
 		src.add_fingerprint(user)
 
 	return
@@ -125,7 +128,7 @@
 /obj/item/device/igniter/attack_self(mob/user as mob)
 
 	src.add_fingerprint(user)
-	SPAWN_DBG( 5 )
+	SPAWN( 5 )
 		ignite()
 		return
 	return
@@ -135,7 +138,8 @@
 
 /obj/item/device/igniter/afterattack(atom/target, mob/user as mob)
 	if (!ismob(target) && target.reagents && can_ignite())
-		boutput(user, "<span class='notice'>You heat \the [target.name]</span>")
+		flick("igniter_light", src)
+		boutput(user, SPAN_NOTICE("You heat \the [target.name]."))
 		target.reagents.temperature_reagents(4000,400)
 		last_ignite = world.time
 
@@ -146,6 +150,7 @@
 		if (src.master)
 			location = src.master.loc
 
+		flick("igniter_light", src)
 		location = get_turf(location)
 		location?.hotspot_expose((isturf(location) ? 3000 : 4000),2000)
 		last_ignite = world.time

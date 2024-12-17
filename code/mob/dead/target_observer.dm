@@ -1,90 +1,67 @@
-var/list/observers = list()
-
 /mob/dead/target_observer
 	density = 1
 	name = "spooky ghost"
 	icon = null
 	event_handler_flags = 0
 	var/atom/target
-	var/mob/corpse = null
-	var/mob/dead/observer/my_ghost = null
+	var/is_respawnable = TRUE
+	/// Is this observer locked to one particular owner?
+	var/locked = FALSE
 
 	New()
 		..()
-		APPLY_MOB_PROPERTY(src, PROP_INVISIBILITY, src, INVIS_GHOST)
-		observers += src
-		mobs += src
-		//set_observe_target(target)
-
-	unpooled()
-		..()
-		src.mob_properties = list()
-		APPLY_MOB_PROPERTY(src, PROP_INVISIBILITY, src, INVIS_GHOST)
-		observers += src
-		mobs += src
-		src.move_dir = 0
-
-	pooled()
-		mobs -= src
-		//Remove ourselves from the global observer list
-		observers -= src
-		//If our target is a mob we should also clean ourselves up and leave their observer list without a null in it.
-		var/mob/living/M = src.target
-		if(istype(M))
-			M.observers -= src
-
-		if (my_ghost )
-			my_ghost.set_loc(get_turf(src))
-		my_ghost = null
-		target = null
-
-
-		for (var/datum/hud/H in huds)
-			for (var/atom/movable/screen/hud/S in H.objects)
-				if (S:master == src)
-					S:master = null
-			detach_hud(H)
-			H.mobs -= src
-		huds.len = 0
-
-		..()
+		APPLY_ATOM_PROPERTY(src, PROP_MOB_EXAMINE_ALL_NAMES, src)
+		APPLY_ATOM_PROPERTY(src, PROP_MOB_INVISIBILITY, src, INVIS_GHOST)
+		START_TRACKING
 
 	disposing()
-		//Remove ourselves from the global observer list
-		observers -= src
 		//If our target is a mob we should also clean ourselves up and leave their observer list without a null in it.
 		var/mob/living/M = src.target
 		if(istype(M))
-			M.observers -= src
+			LAZYLISTREMOVE(M.observers, src)
+			src.UnregisterSignal(M, list(COMSIG_TGUI_WINDOW_OPEN))
 
-		if (my_ghost)
-			my_ghost.set_loc(get_turf(src))
-		my_ghost = null
-		target = null
+		if (isobj(target))
+			src.UnregisterSignal(target, list(COMSIG_PARENT_PRE_DISPOSING))
 
+		if (!src.ghost)
+			src.ghost = new(src.corpse)
+
+			if (!src.corpse)
+				src.ghost.name = src.name
+				src.ghost.real_name = src.real_name
+
+		if (corpse)
+			corpse.ghost = src.ghost
+			src.ghost.corpse = corpse
+
+		src.ghost.delete_on_logout = src.ghost.delete_on_logout_reset
+
+		if (src.client)
+			src.removeOverlaysClient(src.client)
+
+		STOP_TRACKING
 		..()
 
 	// Observer Life() only runs for admin ghosts (Convair880).
 	Life(datum/controller/process/mobs/parent)
 		if (..(parent))
 			return 1
-		if (src.client && src.client.holder)
-			src.antagonist_overlay_refresh(0, 0)
 
 #ifdef TWITCH_BOT_ALLOWED
 		if (IS_TWITCH_CONTROLLED(src))
 			if (ismob(target))
 				var/mob/M = target
 				if (isdead(M))
-					stop_observing()
+					qdel(src)
 			else
-				stop_observing()
+				qdel(src)
 #endif
 		return
 
 	process_move(keys)
 		if(keys && src.move_dir)
-			src.stop_observing()
+			stop_observing()
 
 	apply_camera(client/C)
 		var/mob/living/M = src.target
@@ -97,13 +74,12 @@ var/list/observers = list()
 		set hidden = 1
 		return
 
-	//Alias ghostize() to stop_observing() so that a target observer is correctly ghostified.
-	ghostize()
-		stop_observing()
-
+	/// Let's have a proc so as to make it easier to reassign an observer.
 	proc/set_observe_target(target)
 		//If there's an existing target we should clean up after ourselves
-		if(src.target == target) return //No sense in doing all this if we're not changing targets
+		if(src.target == target)
+			return //No sense in doing all this if we're not changing targets
+
 		if(src.target)
 			var/mob/living/M = src.target
 			src.target = null
@@ -111,76 +87,101 @@ var/list/observers = list()
 			for (var/datum/hud/hud in M.huds)
 				src.detach_hud(hud)
 			if(istype(M))
-				M.observers -= src
-
-
+				LAZYLISTREMOVE(M.observers, src)
 
 		if(!target) //Uh oh, something went wrong here. Act natural and return the user to a regular ghost.
-			stop_observing()
+			qdel(src)
 			return
-		//Let's have a proc so as to make it easier to reassign an observer.
+
 		src.target = target
 		src.set_loc(target)
-
+		if(src.ghost?.auto_tgui_open)
+			RegisterSignal(target, COMSIG_TGUI_WINDOW_OPEN, PROC_REF(open_tgui_if_interactive))
 		set_eye(target)
 
 		var/mob/living/M = target
 		if (istype(M))
-			M.observers += src
+			LAZYLISTADD(M.observers, src)
 			if(src.client)
 				M.updateOverlaysClient(src.client)
 			for (var/datum/hud/hud in M.huds)
 				src.attach_hud(hud)
 
 		if (isobj(target))
-			src.RegisterSignal(target, list(COMSIG_PARENT_PRE_DISPOSING), .verb/stop_observing)
+			src.RegisterSignal(target, COMSIG_PARENT_PRE_DISPOSING, VERB_REF(stop_observing))
 
+	click(atom/target, params, location, control)
+		if(!isnull(target) && (target.flags & TGUI_INTERACTIVE))
+			if(ismob(src.target))
+				var/mob/mob_target = src.target
+				for(var/datum/tgui/ui in mob_target.tgui_open_uis)
+					if(ui.src_object == target)
+						return target.ui_interact(src)
+		return ..()
+
+	/// Checks if the tgui window being created is from an object with TGUI_INTERACTIVE, and opens the window for the observer if true
+	proc/open_tgui_if_interactive(mob/sender, datum/tgui/observe_window)
+		if(istype(observe_window.src_object, /atom))
+			var/atom/atom_object = observe_window.src_object
+			if(atom_object.flags & TGUI_INTERACTIVE)
+				return observe_window.src_object.ui_interact(src)
 
 	verb
 		stop_observing()
 			set name = "Stop Observing"
 			set category = "Commands"
 
-			if (isobj(target))
-				src.UnregisterSignal(target, list(COMSIG_PARENT_PRE_DISPOSING))
-
-			if (!my_ghost)
-				my_ghost = new(src.corpse)
-
-				if (!src.corpse)
-					my_ghost.name = src.name
-					my_ghost.real_name = src.real_name
-
-			if (corpse)
-				corpse.ghost = my_ghost
-				my_ghost.corpse = corpse
-
-			my_ghost.delete_on_logout = my_ghost.delete_on_logout_reset
-
-			if (src.client)
-				src.removeOverlaysClient(src.client)
-				client.mob = my_ghost
-
-			if (src.mind)
-				mind.transfer_to(my_ghost)
-
-			var/ASLoc = pick_landmark(LANDMARK_OBSERVER, locate(1, 1, 1))
-			if (target)
-				var/turf/T = get_turf(target)
-				if (T && (!isghostrestrictedz(T.z) || (isghostrestrictedz(T.z) && (restricted_z_allowed(my_ghost, T) || (my_ghost.client && my_ghost.client.holder)))))
-					my_ghost.set_loc(T)
-				else
-					if (ASLoc)
-						my_ghost.set_loc(ASLoc)
-					else
-						my_ghost.z = 1
-			else
-				if (ASLoc)
-					my_ghost.set_loc(ASLoc)
-				else
-					my_ghost.z = 1
-
-			src.my_ghost = null
-			pool(src)
+			qdel(src) //lol
 
 
+/mob/dead/target_observer/slasher_ghost
+	name = "spooky not-quite ghost"
+	is_respawnable = FALSE
+	locked = TRUE
+	var/start_time
+
+	New()
+		..()
+		start_time = world.time
+
+
+	stop_observing()
+		return
+
+	proc/slasher_ghostize()
+		RETURN_TYPE(/mob/dead/observer)
+		if(src.key || src.client)
+			var/mob/dead/observer/O = new/mob/dead/observer(src)
+			O.bioHolder.CopyOther(src.bioHolder, copyActiveEffects = 0)
+			if (client) client.set_color()
+			setdead(O)
+
+			src.mind?.transfer_to(O)
+			src.ghost = O
+
+			O.update_item_abilities()
+			return O
+		return null
+
+
+/mob/dead/target_observer/verb/ghostjump(x as num, y as num, z as num)
+	set name = ".ghostjump"
+	set hidden = TRUE
+
+	if(src.type != /mob/dead/target_observer)
+		return // ugh, bad inheritance :whelm:
+
+	var/turf/T = locate(x, y, z)
+	if (!can_ghost_be_here(src, T))
+		return
+
+	if(isnull(src.ghost))
+		src.ghost = new(src.corpse)
+
+		if (!src.corpse)
+			src.ghost.name = src.name
+			src.ghost.real_name = src.real_name
+
+	var/mob/dead/observer/ghost = src.ghost
+	qdel(src)
+	ghost.set_loc(T)

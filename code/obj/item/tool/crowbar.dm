@@ -7,18 +7,19 @@
 	icon_state = "crowbar"
 	item_state = "crowbar"
 
-	flags = FPRINT | TABLEPASS | CONDUCT | ONBELT
+	flags = TABLEPASS | CONDUCT
+	c_flags = ONBELT
 	tool_flags = TOOL_PRYING
+	health = 5
 	w_class = W_CLASS_SMALL
 
-	force = 7.0
-	throwforce = 7.0
+	force = 7
+	throwforce = 7
 	stamina_damage = 35
 	stamina_cost = 12
 	stamina_crit_chance = 10
 
 	m_amt = 50
-	module_research = list("tools" = 4, "metals" = 2)
 	rand_pos = 1
 	custom_suicide = 1
 
@@ -27,14 +28,14 @@
 		src.setItemSpecial(/datum/item_special/tile_fling)
 		BLOCK_SETUP(BLOCK_ROD)
 
-	attack(mob/living/carbon/M as mob, mob/user as mob)
-		if (!pry_surgery(M, user))
+	attack(mob/target, mob/user, def_zone, is_special = FALSE, params = null)
+		if (!pry_surgery(target, user))
 			return ..()
 
 	suicide(var/mob/user as mob)
 		if (!src.user_can_suicide(user))
 			return 0
-		user.visible_message("<span class='alert'><b>[user] beats [him_or_her(user)]self in the head with a crowbar, like some kind of suicidal theoretical physicist.</b></span>")
+		user.visible_message(SPAN_ALERT("<b>[user] beats [him_or_her(user)]self in the head with a crowbar, like some kind of suicidal theoretical physicist.</b>"))
 		take_bleeding_damage(user, null, 25, src.hit_type)
 		user.TakeDamage("head", 160, 0)
 		return 1
@@ -50,3 +51,34 @@
 /obj/item/crowbar/yellow
 	desc = "A tool used as a lever to pry objects. This one's a nice lemon color."
 	icon_state = "crowbar-yellow"
+
+/obj/item/crowbar/blue
+	desc = "A tool used as a lever to pry objects. The handle is painted an appropriate light blue."
+	icon_state = "crowbar-blue"
+
+/obj/item/crowbar/grey
+	desc = "A tool used as a lever to pry objects. Now in grey!"
+	icon_state = "crowbar-grey"
+
+/obj/item/crowbar/orange
+	desc = "A tool used as a lever to pry objects. This one's got a hue somewhere between yellow and red."
+	icon_state = "crowbar-orange"
+
+/obj/item/crowbar/green
+	desc = "A tool used as a lever to pry objects, with added green."
+	icon_state = "crowbar-green"
+
+/obj/item/crowbar/glowbar
+	desc = "That doesn't look safe to handle, at all. The name 'KANG' is etched into the metal."
+	name = "glowbar"
+	icon_state = "crowbar-green"
+	rarity = 7
+	quality = 100
+
+	New()
+		..()
+		AddComponent(/datum/component/radioactive, 25, FALSE, TRUE, 1)
+		AddComponent(/datum/component/loctargeting/simple_light, 255, 50, 135, 135)
+		src.setProperty("searing", 7)
+		src.setProperty("unstable", 7)
+		setItemSpecial(/datum/item_special/suck)

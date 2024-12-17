@@ -3,7 +3,8 @@
 	set name = "Ticklag"
 	set desc = "Ticklag"
 	set hidden = 1
-	admin_only
+	ADMIN_ONLY
+	SHOW_VERB_DESC
 
 	if (src.holder.level < LEVEL_CODER)
 		alert("You must be at least a Coder to modify ticklag.")
@@ -15,7 +16,7 @@
 			return
 
 	world.tick_lag = number
-	logTheThing("admin", src, null, "set tick_lag to [number]")
-	logTheThing("diary", src.mob, null, "set tick_lag to [number]", "admin")
+	logTheThing(LOG_ADMIN, src, "set tick_lag to [number]")
+	logTheThing(LOG_DIARY, src.mob, "set tick_lag to [number]", "admin")
 	message_admins("[key_name(usr)] modified world's tick_lag to [number]")
 	return

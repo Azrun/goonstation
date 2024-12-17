@@ -4,11 +4,12 @@
 
 /datum/artifact/healer_bio
 	associated_object = /obj/artifact/healer_bio
-	type_name = "Healer"
+	type_name = "Single Target Healer"
+	type_size = ARTIFACT_SIZE_LARGE
 	rarity_weight = 350
 	validtypes = list("martian","precursor")
 	validtriggers = list(/datum/artifact_trigger/force,/datum/artifact_trigger/electric,/datum/artifact_trigger/heat,
-	/datum/artifact_trigger/radiation,/datum/artifact_trigger/carbon_touch)
+	/datum/artifact_trigger/radiation,/datum/artifact_trigger/carbon_touch, /datum/artifact_trigger/language)
 	fault_blacklist = list(ITEM_ONLY_FAULTS)
 	activated = 0
 	activ_text = "begins to pulse softly."
@@ -36,7 +37,7 @@
 			return
 		var/turf/T = get_turf(O)
 		if (recharging)
-			boutput(user, "<span class='alert'>The artifact pulses briefly, but nothing else happens.</span>")
+			boutput(user, SPAN_ALERT("The artifact pulses briefly, but nothing else happens."))
 			return
 		if (recharge_time > 0)
 			recharging = 1
@@ -45,14 +46,14 @@
 			var/mob/living/carbon/C = user
 			C.HealDamage("All", heal_amt, heal_amt)
 			O.ArtifactFaultUsed(C)
-			boutput(C, "<span class='notice'>Soothing energy saturates your body, making you feel refreshed and healthy.</span>")
+			boutput(C, SPAN_NOTICE("Soothing energy saturates your body, making you feel refreshed and healthy."))
 		if (field_range > 0)
 			for (var/mob/living/carbon/C in range(field_range,T))
 				if (C == user)
 					continue
 				C.HealDamage("All", heal_amt, heal_amt)
 				O.ArtifactFaultUsed(C)
-				boutput(C, "<span class='notice'>Waves of soothing energy wash over you, making you feel refreshed and healthy.</span>")
-		SPAWN_DBG(recharge_time)
+				boutput(C, SPAN_NOTICE("Waves of soothing energy wash over you, making you feel refreshed and healthy."))
+		SPAWN(recharge_time)
 			recharging = 0
 			T.visible_message("<b>[O]</b> becomes energized.")

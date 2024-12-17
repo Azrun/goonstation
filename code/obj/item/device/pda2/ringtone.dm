@@ -3,7 +3,11 @@
 	name = "Ringtone"
 	size = 4
 	/// The list of ringtone datii included in this program. Assoc'd list, "ringtone_ID" = new/datum/ringtone/urtone
-	var/list/ring_list = list("ring1" = new/datum/ringtone)
+	var/list/ring_list = list(
+		"ring1" = new/datum/ringtone,
+		"ring2" = new/datum/ringtone/thinktronic,
+		"ring3" = new/datum/ringtone/thinktronic/quad1,
+		"ring4" = new/datum/ringtone/thinktronic/quad2)
 	/// The text that goes at the top
 	var/topText = "<h4>Thinktronic Systems PDA Sound System Backup</h4>"
 	/// The text that goes just under the header
@@ -152,7 +156,6 @@
 			else
 				var/datum/ringtone/Rtone = src.ring_list[href_list["previewTone"]]
 				src.master.set_ringtone(Rtone, 1, src.overrideAlertMessage)
-				var/datum/radio_frequency/transmit_connection = radio_controller.return_frequency("1149")
 				var/datum/signal/signal = get_free_signal()
 				signal.data["command"] = "text_message"
 				signal.data["message"] = "[Rtone.previewMessage]"
@@ -160,8 +163,7 @@
 				signal.data["sender_name"] = "[Rtone.previewSender]"
 				signal.data["sender"] = "UNKNOWN"
 				signal.data["address_1"] = src.master.net_id
-				signal.transmission_method = TRANSMISSION_RADIO
-				transmit_connection.post_signal(null, signal)
+				radio_controller.get_frequency(FREQ_PDA).post_packet_without_source(signal)
 			src.ResetTheMenu()
 
 		src.master.add_fingerprint(usr)

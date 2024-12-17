@@ -16,14 +16,14 @@
 	name = ""
 	desc = ""
 	density = 0
-	anchored = 1
+	anchored = ANCHORED
 	opacity = 0
 
 /*
 /proc/start_hallucinating(var/mob/M)
 	for(var/turf/T in world)
 		if(prob(4) && istype(T))
-			SPAWN_DBG(1 SECOND)
+			SPAWN(1 SECOND)
 				explosion(src, T, 3, 1)
 */
 
@@ -33,7 +33,7 @@
 	var/tmp = ""
 	for(var/i = 1, i <= length(t), i++)
 		if(prob(p))
-			tmp += pick("{", "|", "}", "~", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�", "�")
+			tmp += pick("{", "|", "}", "~", "€", "ƒ", "†", "‡", "‰", "¡", "¢", "£", "¤", "¥", "¦", "§", "©", "«", "¬", "®", "°", "±", "²", "³", "¶", "¿", "ø", "ÿ", "þ")
 		else
 			tmp += copytext(t, i, i+1)
 	return tmp

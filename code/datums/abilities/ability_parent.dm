@@ -6,13 +6,15 @@
 
 	var/topBarRendered = 1
 	var/rendered = 1
+	///Is this holder temporarily hidden
+	var/hidden = FALSE
 	var/datum/targetable/shiftPower = null
 	var/datum/targetable/ctrlPower = null
 	var/datum/targetable/altPower = null
 
 	var/usesPoints = 1
 	var/pointName = ""
-	var/notEnoughPointsMessage = "<span class='alert'>You do not have enough points to use that ability.</span>"
+	var/notEnoughPointsMessage = SPAN_ALERT("You do not have enough points to use that ability.")
 	var/points = 0 //starting points
 	var/regenRate = 1 //starting regen
 	var/bonus = 0
@@ -20,13 +22,15 @@
 	var/tabName = "Spells"
 
 	var/mob/owner = null
+	var/datum/abilityHolder/relay = null
 
 	var/x_occupied = 0
 	var/y_occupied = 0
-	var/datum/abilityHolder/composite_owner = 0
+	var/datum/abilityHolder/composite/composite_owner = null
 	var/any_abilities_displayed = 0
 
 	var/cast_while_dead = 0
+	var/remove_on_clone = FALSE
 
 	// cirr's effort to make these work like normal huds, take 1
 	var/datum/hud/hud
@@ -37,23 +41,22 @@
 
 	var/points_last = 0
 
+#ifdef BONUS_POINTS
+	points = 99999
+#endif
 
 	New(var/mob/M)
 		..()
 		owner = M
 		hud = new()
 		if(owner)
-			owner.attach_hud(hud)
-			if (ishuman(owner))
-				var/mob/living/carbon/human/H = owner
-				H.hud?.update_ability_hotbar()
+			onAttach(owner)
 
 	disposing()
 		for (var/atom/movable/screen/S in hud.objects)
 			if (hasvar(S, "master") && S:master == src)
 				S:master = null
-		if (owner)
-			owner.detach_hud(hud)
+		onRemove(owner)
 		hud.clear_master()
 		hud.mobs -= src
 
@@ -65,6 +68,9 @@
 			qdel(abilitystat)
 			abilitystat = null
 
+		for(var/ability in src.abilities)
+			qdel(ability)
+		src.abilities = null
 		..()
 
 	proc/onLife(var/mult = 1) //failsafe for UI not doing its update correctly elsewhere
@@ -72,6 +78,18 @@
 		if (points_last != points)
 			points_last = points
 			src.updateText(0, src.x_occupied, src.y_occupied)
+
+	/// Called just before we're removed from a mob
+	proc/onRemove(mob/from_who)
+		SHOULD_CALL_PARENT(TRUE)
+		from_who?.detach_hud(hud)
+
+	proc/onAttach(mob/to_whom)
+		SHOULD_CALL_PARENT(TRUE)
+		to_whom.attach_hud(hud)
+		if (ishuman(to_whom))
+			var/mob/living/carbon/human/H = to_whom
+			H.hud?.update_ability_hotbar()
 
 	proc/updateCounters()
 		// this is probably dogshit but w/e
@@ -85,12 +103,6 @@
 			if (istype(B.object, /atom/movable/screen/ability/topBar))
 				var/atom/movable/screen/ability/topBar/A = B.object
 				A.update_cooldown_cost()
-				num++
-
-		if (ishuman(owner))
-			var/mob/living/carbon/human/H = owner
-			for(var/atom/movable/screen/ability/topBar/genetics/G in H.hud.objects)
-				G.update_cooldown_cost()
 				num++
 
 		return num
@@ -107,7 +119,7 @@
 		y_occupied = 0
 		any_abilities_displayed = 0
 
-		if (src.topBarRendered && src.rendered)
+		if (src.topBarRendered && src.rendered && !src.hidden)
 
 			if (!called_by_owner)
 				for(var/atom/movable/screen/ability/A in src.hud.objects)
@@ -145,7 +157,7 @@
 
 			for(var/datum/targetable/B in src.abilities)
 				if(istype(B.object, /atom/movable/screen/ability) && !istype(B.object, /atom/movable/screen/ability/topBar))
-					B.object.updateIcon()
+					B.object.UpdateIcon()
 			return
 
 	proc/updateText(var/called_by_owner = 0)
@@ -157,16 +169,30 @@
 			abilitystat = new
 			abilitystat.owner = src
 
-		var/msg = ""
-		var/style = "font-size: 7px;"
+		var/list/lines = list()
+
+		var/i = 0
+		var/longest_line = 0
 		var/list/stats = onAbilityStat()
 		for (var/x in stats)
-			msg += "[x] [stats[x]]<br>"
+			var/line_length = length(x) + 1 + max(length(num2text(stats[x])), length(stats[x]))
+			longest_line = max(longest_line, line_length)
+			lines += "[x] [stats[x]]"
+			i++
 
-		abilitystat.maptext = "<span class='ps2p l vt ol' style=\"[style]\">[msg] </span>"
+		abilitystat.maptext = "<span class='vga l vt ol'>[lines.Join("<br>")]</span>"
+		abilitystat.maptext_width = longest_line * 9 //font size is 9px
+
+		if (i >= 2)
+			abilitystat.maptext_height = i * 15
+			abilitystat.maptext_y = -abilitystat.maptext_height + 32
+		else
+			abilitystat.maptext_height = initial(abilitystat.maptext_height)
+			abilitystat.maptext_y = initial(abilitystat.maptext_y)
 
 	proc/deepCopy()
 		var/datum/abilityHolder/copy = new src.type
+		copy.remove_on_clone = src.remove_on_clone
 		for (var/datum/targetable/T in src.suspended)
 			if (!T.copiable)
 				continue
@@ -188,17 +214,9 @@
 		bonus = 0
 
 	proc/transferOwnership(var/newbody)
-		owner?.detach_hud(hud)
+		onRemove(owner)
 		owner = newbody
-		if(owner)
-			owner.attach_hud(hud)
-
-	proc/Stat()
-		if (usesPoints && pointName != "" && rendered)
-			stat(null, " ")
-			stat("[src.pointName]:", src.points)
-			if (src.regenRate || src.lastBonus)
-				stat("Generation Rate:", "[src.regenRate] + [src.lastBonus]")
+		onAttach(newbody)
 
 	proc/StatAbilities()
 		if (!rendered)
@@ -245,7 +263,7 @@
 			abilityType = text2path(abilityType)
 		if (!ispath(abilityType))
 			return
-		if (abilityType in src.abilities)
+		if (locate(abilityType) in src.abilities)
 			return
 		var/datum/targetable/A = new abilityType(src)
 		A.holder = src // redundant but can't hurt I guess
@@ -288,6 +306,7 @@
 		src.updateButtons()
 
 	proc/getAbility(var/abilityType)
+		RETURN_TYPE(/datum/targetable)
 		if (!ispath(abilityType))
 			return null
 		for (var/datum/targetable/A in src.abilities)
@@ -295,14 +314,22 @@
 				return A
 		return null
 
-	proc/pointCheck(cost)
+	proc/on_clone()
+		if (src.remove_on_clone)
+			if (src.composite_owner)
+				src.composite_owner.removeHolder(src.type)
+			else
+				src.owner?.remove_ability_holder(src)
+
+	proc/pointCheck(cost, quiet = FALSE)
 		if (!usesPoints)
 			return 1
 		if (src.points < 0) // Just-in-case fallback.
-			logTheThing("debug", usr, null, "'s ability holder ([src.type]) was set to an invalid value (points less than 0), resetting.")
+			logTheThing(LOG_DEBUG, usr, "'s ability holder ([src.type]) was set to an invalid value (points less than 0), resetting.")
 			src.points = 0
 		if (cost > points)
-			boutput(owner, notEnoughPointsMessage)
+			if (!quiet)
+				boutput(owner, notEnoughPointsMessage)
 			return 0
 		return 1
 
@@ -312,32 +339,32 @@
 		if (params["alt"])
 			if (altPower)
 				if(!altPower.cooldowncheck())
-					boutput(owner, "<span class='alert'>That ability is on cooldown for [round((altPower.last_cast - world.time) / 10)] seconds.</span>")
+					boutput(owner, SPAN_ALERT("That ability is on cooldown for [round((altPower.last_cast - world.time) / 10)] seconds."))
 					return 0
 				altPower.handleCast(target, params)
 				return 1
 			//else
-			//	boutput(owner, "<span class='alert'>Nothing is bound to alt.</span>")
+			//	boutput(owner, SPAN_ALERT("Nothing is bound to alt."))
 			return 0
 		else if (params["ctrl"])
 			if (ctrlPower)
 				if(!ctrlPower.cooldowncheck())
-					boutput(owner, "<span class='alert'>That ability is on cooldown for [round((ctrlPower.last_cast - world.time) / 10)] seconds.</span>")
+					boutput(owner, SPAN_ALERT("That ability is on cooldown for [round((ctrlPower.last_cast - world.time) / 10)] seconds."))
 					return 0
 				ctrlPower.handleCast(target, params)
 				return 1
 			//else
-			//	boutput(owner, "<span class='alert'>Nothing is bound to ctrl.</span>")
+			//	boutput(owner, SPAN_ALERT("Nothing is bound to ctrl."))
 			return 0
 		else if (params["shift"])
 			if (shiftPower)
 				if(!shiftPower.cooldowncheck())
-					boutput(owner, "<span class='alert'>That ability is on cooldown for [round((shiftPower.last_cast - world.time) / 10)] seconds.</span>")
+					boutput(owner, SPAN_ALERT("That ability is on cooldown for [round((shiftPower.last_cast - world.time) / 10)] seconds."))
 					return 0
 				shiftPower.handleCast(target, params)
 				return 1
 			//else
-			//	boutput(owner, "<span class='alert'>Nothing is bound to shift.</span>")
+			//	boutput(owner, SPAN_ALERT("Nothing is bound to shift."))
 			return 0
 
 	proc/actionKey(var/num)
@@ -347,7 +374,7 @@
 				unbind_action_number(num)
 				T.waiting_for_hotkey = 0
 				T.action_key_number = num
-				boutput(owner, "<span class='notice'>Bound [T.name] to [num].</span>")
+				boutput(owner, SPAN_NOTICE("Bound [T.name] to [num]."))
 				updateButtons()
 				return 1
 
@@ -370,7 +397,7 @@
 					T.holder.updateButtons()
 					return 1
 				else
-					boutput(owner, "<span class='alert'>That ability is on cooldown for [round((T.last_cast - world.time) / 10)] seconds!</span>")
+					boutput(owner, SPAN_ALERT("That ability is on cooldown for [round((T.last_cast - world.time) / 10)] seconds!"))
 					return 1
 		return 0
 
@@ -383,7 +410,7 @@
 		for (var/datum/targetable/T in src.abilities)
 			if(T.action_key_number == num)
 				T.action_key_number = -1
-				boutput(owner, "<span class='alert'>Unbound [T.name] from [num].</span>")
+				boutput(owner, SPAN_ALERT("Unbound [T.name] from [num]."))
 		updateButtons()
 		return 0
 
@@ -391,10 +418,17 @@
 		return 0
 
 	proc/remove_unlocks()
+		for (var/datum/targetable/geneticsAbility/ability in src.abilities)
+			if (!ability.linked_power)
+				src.removeAbilityInstance(ability)
 		return 0
 
 	proc/set_loc_callback(var/newloc)
 		.=0
+
+	///Returns the actual mob currently controlling this holder, in case src.owner and composite_owner.owner differ (eg flockmind in a drone)
+	proc/get_controlling_mob()
+		return src.composite_owner?.owner || src.owner
 
 /atom/movable/screen/ability
 	var/datum/targetable/owner
@@ -416,37 +450,41 @@
 		owner = null
 		..()
 
-	proc/updateIcon()
-		src.overlays.Cut()
+	update_icon()
 		if (owner.waiting_for_hotkey)
-			src.overlays += src.binding
+			AddOverlays(src.binding, "binding")
+		else
+			ClearSpecificOverlays("binding")
+
 		if(owner.action_key_number > -1)
-			set_number_overlay(owner.action_key_number)
+			AddOverlays(set_number_overlay(owner.action_key_number), "action_key_number")
+		else
+			ClearSpecificOverlays("action_key_number")
 		return
 
 	proc/set_number_overlay(var/num)
+
 		switch(num)
 			if(1)
-				src.overlays += src.one
+				. = src.one
 			if(2)
-				src.overlays += src.two
+				. = src.two
 			if(3)
-				src.overlays += src.three
+				. = src.three
 			if(4)
-				src.overlays += src.four
+				. = src.four
 			if(5)
-				src.overlays += src.five
+				. = src.five
 			if(6)
-				src.overlays += src.six
+				. += src.six
 			if(7)
-				src.overlays += src.seven
+				. = src.seven
 			if(8)
-				src.overlays += src.eight
+				. = src.eight
 			if(9)
-				src.overlays += src.nine
+				. = src.nine
 			if(0)
-				src.overlays += src.zero
-		return
+				. = src.zero
 
 	// Switch to targeted only if multiple mobs are in range. All screen abilities customize their clicked(),
 	// and you have to call this proc there if you want to use it. You also need to set 'target_selection_check = 1'
@@ -463,16 +501,16 @@
 
 		if (spell.target_selection_check == 1)
 			var/list/mob/targets = spell.target_reference_lookup()
-			if (targets.len <= 0)
-				boutput(owner.holder.owner, "<span class='alert'>There's nobody in range.</span>")
+			if (length(targets) <= 0)
+				boutput(owner.holder.owner, SPAN_ALERT("There's nobody in range."))
 				use_targeted = 2 // Abort parent proc.
-			else if (targets.len == 1) // Only one guy nearby, but we need the mob reference for handleCast() then.
+			else if (length(targets) == 1) // Only one guy nearby, but we need the mob reference for handleCast() then.
 				use_targeted = 0
-				SPAWN_DBG(0)
+				SPAWN(0)
 					spell.handleCast(targets[1])
 				use_targeted = 2 // Abort parent proc.
 			else
-				boutput(owner.holder.owner, "<span class='alert'><b>Multiple targets detected, switching to manual aiming.</b></span>")
+				boutput(owner.holder.owner, SPAN_ALERT("<b>Multiple targets detected, switching to manual aiming.</b>"))
 				use_targeted = 1
 
 		return use_targeted
@@ -503,7 +541,7 @@
 
 	New()
 		..()
-		SPAWN_DBG(1 SECOND) //sorry, some race condition i couldt figure out
+		SPAWN(1 SECOND) //sorry, some race condition i couldt figure out
 			if (ishuman(owner?.owner))
 				var/mob/living/carbon/human/H = owner?.owner
 				H.hud?.update_ability_hotbar()
@@ -514,7 +552,7 @@
 		..()
 
 	proc/get_controlling_mob()
-		var/mob/M = owner.owner
+		var/mob/M = owner.get_controlling_mob()
 		if (!istype(M) || !M.client)
 			return null
 		return M
@@ -578,7 +616,7 @@
 		if (isnull(darkener)) // fuck. -drsingh
 			darkener = image('icons/mob/spell_buttons.dmi',"darkener")
 		darkener.alpha = 100
-		SPAWN_DBG(0)
+		SPAWN(0)
 			if(owner)
 				T.color = owner.cd_text_color
 				S.color = owner.cd_text_color
@@ -593,30 +631,42 @@
 		..()
 
 
-	updateIcon()
+	update_icon()
 		var/mob/M = get_controlling_mob()
 		if (!istype(M) || !M.client)
 			return null
 
-		src.overlays = list()
 		if (owner.holder)
-			if (src == owner.holder.shiftPower)
-				src.overlays += src.shift_highlight
-			if (src == owner.holder.ctrlPower)
-				src.overlays += src.ctrl_highlight
-			if (src == owner.holder.altPower)
-				src.overlays += src.alt_highlight
+			if (src.owner == src.owner.holder.shiftPower)
+				AddOverlays(src.shift_highlight, "shift_highlight")
+			else
+				ClearSpecificOverlays("shift_highlight")
+
+			if (src.owner == owner.holder.ctrlPower)
+				AddOverlays(src.ctrl_highlight, "ctrl_highlight")
+			else
+				ClearSpecificOverlays("ctrl_highlight")
+
+			if (src.owner == owner.holder.altPower)
+				AddOverlays(src.alt_highlight, "alt_highlight")
+			else
+				ClearSpecificOverlays("alt_highlight")
+
 			if (owner.waiting_for_hotkey)
-				src.overlays += src.binding
+				AddOverlays(src.binding, "binding")
+			else
+				ClearSpecificOverlays("binding")
 
 		if(owner.action_key_number > -1)
-			set_number_overlay(owner.action_key_number)
+			AddOverlays(set_number_overlay(owner.action_key_number), "action_key_number")
+		else
+			ClearSpecificOverlays("action_key_number")
 
 		update_cooldown_cost()
 		return
 
 	proc/get_controlling_mob()
-		var/mob/M = owner.holder.owner
+		var/mob/M = owner.holder.get_controlling_mob()
 		if (!istype(M) || !M.client)
 			return null
 		return M
@@ -635,9 +685,13 @@
 			else
 				point_overlay.maptext = "<span class='sh vb r ps2p'>[owner.pointCost]</span>"
 		else
-			src.maptext = null
+			point_overlay.maptext = null
 
-		if (on_cooldown > 0)
+		if (!owner.allowcast())
+			newcolor = rgb(64, 64, 64)
+			point_overlay.maptext = "<span class='sh vb r ps2p' style='color: #cc2222;'>X</span>"
+			point_overlay.alpha = 255
+		else if (on_cooldown > 0)
 			newcolor = rgb(96, 96, 96)
 			cooldown_overlay.alpha = 255
 			cooldown_overlay.maptext = "<span class='sh vb c ps2p'>[min(999, on_cooldown)]</span>"
@@ -654,14 +708,14 @@
 
 	proc/update_on_hud(var/pos_x = 0,var/pos_y = 0)
 
-		updateIcon()
+		UpdateIcon()
 
 		if (owner.special_screen_loc)
 			src.screen_loc = owner.special_screen_loc
 		else
 			src.screen_loc = "NORTH-[pos_y],[pos_x]"
 
-		var/name = initial(owner.name)
+		var/name = owner.name
 		if (owner.holder)
 			if (owner.holder.usesPoints && owner.pointCost)
 				name += "<br> Cost: [owner.pointCost] [owner.holder.pointName]"
@@ -672,7 +726,7 @@
 		var/datum/hud/abilityHud
 		if(owner.holder)
 			// for nice, well-behaved abilities that live in a holder
-			abilityHud = owner.holder.hud
+			abilityHud = owner.holder.composite_owner?.hud || owner.holder.hud
 		else
 			// for fucking deviant genetics abilities that know neither ethics nor morality
 			var/mob/M = get_controlling_mob()
@@ -682,32 +736,15 @@
 
 		if (abilityHud) //BAD BAD, this shouldnt happen but somehow it do
 			abilityHud.add_object(src)
-		/*
-		abilityHud.remove_object(src.cd_tens)
-		abilityHud.remove_object(src.cd_secs)
-
-		var/on_cooldown = round((owner.last_cast - world.time) / 10)
-		if (on_cooldown > 0)
-			on_cooldown = min(on_cooldown,99)
-			src.overlays += src.darkener
-			src.overlays += src.cooldown
-			if (on_cooldown >= 10)
-				src.cd_tens.icon_state = "[get_digit_from_number(on_cooldown,2)]"
-				src.cd_tens.screen_loc = "NORTH-[pos_y]:[src.tens_offset_y],[pos_x]:[src.tens_offset_x]"
-				abilityHud.add_object(src.cd_tens)
-			src.cd_secs.icon_state = "[get_digit_from_number(on_cooldown,1)]"
-			src.cd_secs.screen_loc = "NORTH-[pos_y]:[src.secs_offset_y],[pos_x]:[src.secs_offset_x]"
-			abilityHud.add_object(src.cd_secs)
-		*/
 		last_x = pos_x
 		last_y = pos_y
 
 	clicked(parameters)
-		if (!owner.holder || !owner.holder.owner || usr != owner.holder.owner)
-			boutput(usr, "<span class='alert'>You do not own this ability.</span>")
+		if (!owner.holder || !owner.holder.owner || usr != owner.holder.get_controlling_mob())
+			boutput(usr, SPAN_ALERT("You do not own this ability."))
 			return
 		var/datum/abilityHolder/holder = owner.holder
-		var/mob/user = holder.owner
+		var/mob/user = holder.composite_owner?.owner || holder.owner
 
 		if(parameters["left"])
 			if (owner.targeted && user.targeting_ability == owner)
@@ -717,54 +754,54 @@
 
 			if (parameters["ctrl"])
 				if (owner == holder.altPower || owner == holder.shiftPower)
-					boutput(user, "<span class='alert'>That ability is already bound to another key.</span>")
+					boutput(user, SPAN_ALERT("That ability is already bound to another key."))
 					return
 
 				if (owner == holder.ctrlPower)
 					holder.ctrlPower = null
-					boutput(user, "<span class='notice'><b>[owner.name] has been unbound from Ctrl-Click.</b></span>")
+					boutput(user, SPAN_NOTICE("<b>[owner.name] has been unbound from Ctrl-Click.</b>"))
 					holder.updateButtons()
 				else
 					holder.ctrlPower = owner
-					boutput(user, "<span class='notice'><b>[owner.name] is now bound to Ctrl-Click.</b></span>")
+					boutput(user, SPAN_NOTICE("<b>[owner.name] is now bound to Ctrl-Click.</b>"))
 
 			else if (parameters["alt"])
 				if (owner == holder.shiftPower || owner == holder.ctrlPower)
-					boutput(user, "<span class='alert'>That ability is already bound to another key.</span>")
+					boutput(user, SPAN_ALERT("That ability is already bound to another key."))
 					return
 
 				if (owner == holder.altPower)
 					holder.altPower = null
-					boutput(user, "<span class='notice'><b>[owner.name] has been unbound from Alt-Click.</b></span>")
+					boutput(user, SPAN_NOTICE("<b>[owner.name] has been unbound from Alt-Click.</b>"))
 					holder.updateButtons()
 				else
 					holder.altPower = owner
-					boutput(user, "<span class='notice'><b>[owner.name] is now bound to Alt-Click.</b></span>")
+					boutput(user, SPAN_NOTICE("<b>[owner.name] is now bound to Alt-Click.</b>"))
 
 			else if (parameters["shift"])
 				if (owner == holder.altPower || owner == holder.ctrlPower)
-					boutput(user, "<span class='alert'>That ability is already bound to another key.</span>")
+					boutput(user, SPAN_ALERT("That ability is already bound to another key."))
 					return
 
 				if (owner == holder.shiftPower)
 					holder.shiftPower = null
-					boutput(user, "<span class='notice'><b>[owner.name] has been unbound from Shift-Click.</b></span>")
+					boutput(user, SPAN_NOTICE("<b>[owner.name] has been unbound from Shift-Click.</b>"))
 					holder.updateButtons()
 				else
 					holder.shiftPower = owner
-					boutput(user, "<span class='notice'><b>[owner.name] is now bound to Shift-Click.</b></span>")
+					boutput(user, SPAN_NOTICE("<b>[owner.name] is now bound to Shift-Click.</b>"))
 
 			else
 				if (holder.help_mode && owner.helpable)
-					boutput(user, "<span class='notice'><b>This is your [owner.name] ability.</b></span>")
-					boutput(user, "<span class='notice'>[owner.desc]</span>")
+					boutput(user, SPAN_NOTICE("<b>This is your [owner.name] ability.</b>"))
+					boutput(user, SPAN_NOTICE("[owner.desc]"))
 					if (owner.holder.usesPoints)
-						boutput(user, "<span class='notice'>Cost: <strong>[owner.pointCost]</strong></span>")
+						boutput(user, SPAN_NOTICE("Cost: <strong>[owner.pointCost]</strong>"))
 					if (owner.cooldown)
-						boutput(user, "<span class='notice'>Cooldown: <strong>[owner.cooldown / 10] seconds</strong></span>")
+						boutput(user, SPAN_NOTICE("Cooldown: <strong>[owner.cooldown / 10] seconds</strong>"))
 				else
 					if (!owner.cooldowncheck())
-						boutput(holder.owner, "<span class='alert'>That ability is on cooldown for [round((owner.last_cast - world.time) / 10)] seconds.</span>")
+						boutput(holder.owner, SPAN_ALERT("That ability is on cooldown for [round((owner.last_cast - world.time) / 10)] seconds."))
 						return
 
 					if (!owner.targeted)
@@ -778,7 +815,7 @@
 				holder.cancel_action_binding()
 			else
 				owner.waiting_for_hotkey = 1
-				boutput(usr, "<span class='notice'>Please press a number to bind this ability to...</span>")
+				boutput(usr, SPAN_NOTICE("Please press a number to bind this ability to..."))
 
 		owner.holder.updateButtons()
 
@@ -789,7 +826,7 @@
 			return
 		var/atom/movable/screen/ability/source = O
 		if (!istype(src.owner) || !istype(source.owner))
-			boutput(src.owner, "<span class='alert'>You may only switch the places of ability buttons.</span>")
+			boutput(src.owner, SPAN_ALERT("You may only switch the places of ability buttons."))
 			return
 
 		var/index_source = owner.holder.abilities.Find(source.owner)
@@ -798,148 +835,187 @@
 		owner.holder.updateButtons()
 
 /datum/targetable
-	var
-		name = null
-		desc = null
 
-		max_range = 10
-		targeted = 0
-		target_anything = 0
-		target_in_inventory = 0
-		last_cast = 0
-		cooldown = 100
-		start_on_cooldown = 0
-		datum/abilityHolder/holder
-		atom/movable/screen/ability/object
-		pointCost = 0
-		special_screen_loc = null
-		helpable = 1
-		cd_text_color = "#FFFFFF"
-		copiable = 1
-		target_nodamage_check = 0
-		target_selection_check = 0 // See comment in /atom/movable/screen/ability.
-		dont_lock_holder = 0 // Bypass holder lock when we cast this spell.
-		ignore_holder_lock = 0 // Can we cast this spell when the holder is locked?
-		restricted_area_check = 0 // Are we prohibited from casting this spell in 1 (all of Z2) or 2 (only the VR)?
-		can_target_ghosts = 0 // Can we target observers if we see them (ectogoggles)?
-		check_range = 1 //Does this check for range at all?
-		sticky = 0 //Targeting stays active after using spell if this is 1. click button again to disable the active spell.
-		ignore_sticky_cooldown = 0 //if 1, Ability will stick to cursor even if ability goes on cooldown after first cast.
-		interrupt_action_bars = 1 //if 1, we will interrupt any action bars running with the INTERRUPT_ACT flag
+	var/name = null
+	var/desc = null
 
-		action_key_number = -1 //Number hotkey assigned to this ability. Only used if > 0
-		waiting_for_hotkey = 0 //If 1, the next number hotkey pressed will be bound to this.
+	var/max_range = 10
+	var/disabled = FALSE // For actionbars or sustained actions
+	var/last_cast = 0
+	var/cooldown = 0
+	var/start_on_cooldown = FALSE
+	var/datum/abilityHolder/holder
+	var/atom/movable/screen/ability/object
+	var/pointCost = 0
+	var/special_screen_loc = null
+	var/helpable = TRUE
+	var/cd_text_color = "#FFFFFF"
+	var/copiable = TRUE
 
-		preferred_holder_type = /datum/abilityHolder
+	var/targeted = FALSE					//! Does this need a target? If FALSE, ability is performed instantly
+	var/target_anything = FALSE				//! Can we target absolutely anything?
+	var/target_in_inventory = FALSE			//! Can we target items in our inventory?
+	var/target_nodamage_check = FALSE 		//! Can we target godmoded mobs?
+	var/target_ghosts = FALSE				//! Can we target observers if we see them (ectogoggles)?
+	var/target_selection_check = FALSE 		//! See comment in /atom/movable/screen/ability.
+	var/lock_holder = TRUE 					//! If FALSE, bypass holder lock when we cast this spell.
+	var/ignore_holder_lock = FALSE			//! Can we cast this spell when the holder is locked?
+	var/restricted_area_check = FALSE 		//! Are we prohibited from casting this spell in 1 (all of Z2) or 2 (only the VR)?
+	var/check_range = TRUE					//! Does this check for range at all?
+	var/sticky = FALSE 						//! Targeting stays active after using spell if this is 1. click button again to disable the active spell.
+	var/ignore_sticky_cooldown = FALSE		//! If TRUE, Ability will stick to cursor even if ability goes on cooldown after first cast.
+	var/interrupt_action_bars = TRUE 		//! If TRUE, we will interrupt any action bars running with the INTERRUPT_ACT flag
+	var/cooldown_after_action = FALSE		//! if TRUE, cooldowns will be handled after action bars have ended. Needs action to call afterAction() on end.
 
-		icon = 'icons/mob/spell_buttons.dmi'
-		icon_state = "blob-template"
+	var/action_key_number = -1 //Number hotkey assigned to this ability. Only used if > 0
+	var/waiting_for_hotkey = FALSE //If TRUE, the next number hotkey pressed will be bound to this.
 
-		theme = null // for wire's tooltips, it's about time this got varized
-		tooltip_flags = null
+	var/preferred_holder_type = /datum/abilityHolder/generic
+
+	var/icon = 'icons/mob/spell_buttons.dmi'
+	var/icon_state = "blob-template"
+
+	var/theme = null // for wire's tooltips, it's about time this got varized
+	var/tooltip_flags = null
+
+	///do we log casting this action? set false for stuff that doesn't need to be logged, like dancing
+	var/do_logs = TRUE
 
 	//DON'T OVERRIDE THIS. OVERRIDE onAttach()!
+	// 38 types have overriden this.
 	New(datum/abilityHolder/holder)
 		SHOULD_CALL_PARENT(FALSE) // I hate this but refactoring /datum/targetable is a big project I'll do some other time
 		..()
 		src.holder = holder
 		if (src.icon && src.icon_state)
-			var/atom/movable/screen/ability/topBar/B = new /atom/movable/screen/ability/topBar(null)
-			B.icon = src.icon
-			B.icon_state = src.icon_state
-			B.owner = src
-			B.name = src.name
-			B.desc = src.desc
-			src.object = B
+			var/atom/movable/screen/ability/topBar/button = new /atom/movable/screen/ability/topBar()
+			button.icon = src.icon
+			button.icon_state = src.icon_state
+			button.owner = src
+			button.name = src.name
+			button.desc = src.desc
+			src.object = button
 
 	disposing()
-		if (object && object.owner == src)
+		if(src.holder?.owner?.targeting_ability == src)
+			src.holder.owner.targeting_ability = null
+			src.holder.owner.update_cursor()
+		if (object?.owner == src)
 			if(src.holder?.hud)
 				src.holder.hud.remove_object(object)
-			object.owner = null
 			qdel(object)
 			src.object = null
+			src.holder = null
 		..()
 
 	proc
 		handleCast(atom/target, params)
 			var/result = tryCast(target, params)
-			if (result && result != 999)
-				last_cast = 0 // reset cooldown
-			else if (result != 999)
+#ifdef NO_COOLDOWNS
+			result = TRUE
+#endif
+			if (src.cooldown_after_action)
+				return // We call afterAction() when ending our action
+			// Do cooldown unless we explicitly say not to, OR there was a failure somewhere in the cast() proc which we relay
+			if (result != CAST_ATTEMPT_FAIL_NO_COOLDOWN && result != CAST_ATTEMPT_FAIL_CAST_FAILURE)
 				doCooldown()
 			afterCast()
-			holder.updateButtons()
 
+		/// Handle actual ability effects. This is the one you want to override.
+		/// Returns for this proc can be found in defines/abilities.dm.
 		cast(atom/target)
-			if(interrupt_action_bars) actions.interrupt(holder.owner, INTERRUPT_ACT)
-			return
+			SHOULD_CALL_PARENT(TRUE)
+			if (do_logs)
+				logCast(target)
+			if(interrupt_action_bars)
+				actions.interrupt(holder.owner, INTERRUPT_ACT)
 
 		//Use this when you need to do something at the start of the ability where you need the holder or the mob owner of the holder. DO NOT change New()
 		onAttach(var/datum/abilityHolder/H)
+#ifndef NO_COOLDOWNS
 			if (src.start_on_cooldown)
 				doCooldown()
+#endif
 			return
 
 		// Don't remove the holder.locked checks, as lots of people used lag and click-spamming
 		// to execute one ability multiple times. The checks hopefully make it a bit more difficult.
 		tryCast(atom/target, params)
-			if (!holder || !holder.owner)
-				logTheThing("debug", usr, null, "orphaned ability clicked: [name]. ([holder ? "no owner" : "no holder"])")
-				return 1
-			if (src.holder.locked == 1 && src.ignore_holder_lock != 1)
-				boutput(holder.owner, "<span class='alert'>You're already casting an ability.</span>")
-				return 999
-			if (src.dont_lock_holder != 1)
-				src.holder.locked = 1
-			if (!holder.pointCheck(pointCost))
-				src.holder.locked = 0
-				return 1000
-			if (!holder.cast_while_dead && isdead(holder.owner))
-				boutput(holder.owner, "<span class='alert'>You cannot cast this ability while you are dead.</span>")
-				src.holder.locked = 0
-				return 999
+			if (!holder?.owner)
+				logTheThing(LOG_DEBUG, usr, "orphaned ability clicked: [name]. ([holder ? "no owner" : "no holder"])")
+				return CAST_ATTEMPT_FAIL_CAST_FAILURE
+			if (src.holder.locked && !src.ignore_holder_lock)
+				boutput(holder.owner, SPAN_ALERT("You're already casting an ability."))
+				return CAST_ATTEMPT_FAIL_NO_COOLDOWN
+			if (src.lock_holder)
+				src.holder.locked = TRUE
+			if (!src.holder.pointCheck(pointCost))
+				src.holder.locked = FALSE
+				return CAST_ATTEMPT_FAIL_NO_COOLDOWN
+			if (!src.holder.cast_while_dead && isdead(holder.owner))
+				boutput(holder.owner, SPAN_ALERT("You cannot cast this ability while you are dead."))
+				src.holder.locked = FALSE
+				return CAST_ATTEMPT_FAIL_NO_COOLDOWN
 			if (last_cast > world.time)
-				boutput(holder.owner, "<span class='alert'>That ability is on cooldown for [round((last_cast - world.time) / 10)] seconds.</span>")
-				src.holder.locked = 0
-				return 999
+				boutput(holder.owner, SPAN_ALERT("That ability is on cooldown for [round((last_cast - world.time) / 10)] seconds."))
+				src.holder.locked = FALSE
+				return CAST_ATTEMPT_FAIL_NO_COOLDOWN
 			if (src.restricted_area_check)
 				var/turf/T = get_turf(holder.owner)
 				if (!T || !isturf(T))
-					boutput(holder.owner, "<span class='alert'>That ability doesn't seem to work here.</span>")
-					src.holder.locked = 0
-					return 999
+					boutput(holder.owner, SPAN_ALERT("That ability doesn't seem to work here."))
+					src.holder.locked = FALSE
+					return CAST_ATTEMPT_FAIL_NO_COOLDOWN
 				switch (src.restricted_area_check)
-					if (1)
+					if (ABILITY_AREA_CHECK_ALL_RESTRICTED_Z)
 						if (isrestrictedz(T.z))
-							boutput(holder.owner, "<span class='alert'>That ability doesn't seem to work here.</span>")
-							src.holder.locked = 0
-							return 999
-					if (2)
+							boutput(holder.owner, SPAN_ALERT("That ability doesn't seem to work here."))
+							src.holder.locked = FALSE
+							return CAST_ATTEMPT_FAIL_NO_COOLDOWN
+					if (ABILITY_AREA_CHECK_VR_ONLY)
 						var/area/A = get_area(T)
 						if (A && istype(A, /area/sim))
-							boutput(holder.owner, "<span class='alert'>You can't use this ability in virtual reality.</span>")
-							src.holder.locked = 0
-							return 999
-			if (src.targeted && src.target_nodamage_check && (target && target != holder.owner && check_target_immunity(target) == 1))
-				target.visible_message("<span class='alert'><B>[src.holder.owner]'s attack has no effect on [target] whatsoever!</B></span>")
-				src.holder.locked = 0
-				return 998
-			if (!castcheck())
-				src.holder.locked = 0
-				return 998
+							boutput(holder.owner, SPAN_ALERT("You can't use this ability in virtual reality."))
+							src.holder.locked = FALSE
+							return CAST_ATTEMPT_FAIL_NO_COOLDOWN
+			if (src.targeted && src.target_nodamage_check && (target && target != holder.owner && check_target_immunity(target)))
+				target.visible_message(SPAN_ALERT("<B>[src.holder.owner]'s attack has no effect on [target] whatsoever!</B>"))
+				src.holder.locked = FALSE
+				return CAST_ATTEMPT_FAIL_DO_COOLDOWN
+			if (!castcheck(target))
+				src.holder.locked = FALSE
+				return CAST_ATTEMPT_FAIL_NO_COOLDOWN
+			var/datum/abilityHolder/localholder = src.holder
 			. = cast(target, params)
-			src.holder.locked = 0
-			if (!.)
-				holder.deductPoints(pointCost)
+			if(!QDELETED(localholder))
+				localholder.locked = FALSE
+				if (!.)
+					localholder.deductPoints(pointCost)
+
+		logCast(atom/target)
+			if (src.targeted)
+				if (!isnull(target))
+					logTheThing(LOG_COMBAT, src.holder?.owner, "uses [src.name] on [constructTarget(target, "combat")] at [log_loc(target)]")
+			else
+				logTheThing(LOG_COMBAT, src.holder?.owner, "uses [src.name] at [log_loc(src.holder?.owner)]")
 
 		updateObject()
 			return
 
 		doCooldown()
+			var/datum/abilityHolder/localholder = src.holder
 			src.last_cast = world.time + src.cooldown
+			if(!QDELETED(localholder))
+				localholder.updateButtons()
 
-		castcheck()
+		/// Passive cast checking. Returns TRUE if the cast can proceed.
+		/// This fires every update, and is currently only used to gray out buttons/indicate to players that the ability is unusable.
+		/// Useful for things like different point requirements or only allowing casts under certain conditions.
+		/// Actual logic to prevent the cast from firing should be done in the cast() override too!
+		allowcast()
+			return 1
+
+		castcheck(atom/target)
 			return 1
 
 		cooldowncheck()
@@ -949,6 +1025,11 @@
 
 		afterCast()
 			return
+
+		/// Used for abilities with action bars which don't want to do cooldowns until after
+		afterAction()
+			doCooldown()
+			afterCast()
 
 		Stat()
 			updateObject(holder.owner)
@@ -969,7 +1050,7 @@
 				var/obj/item/grab/GD = M.equipped()
 
 				if (!GD || !istype(GD) || (!GD.affecting || !ismob(GD.affecting)))
-					boutput(M, __red("You need to grab hold of the target with your active hand first!"))
+					boutput(M, SPAN_ALERT("You need to grab hold of the target with your active hand first!"))
 					return 0
 
 				var/mob/living/L = GD.affecting
@@ -977,9 +1058,9 @@
 					if (GD.state >= state)
 						G = GD
 					else
-						boutput(M, __red("You need a tighter grip!"))
+						boutput(M, SPAN_ALERT("You need a tighter grip!"))
 				else
-					boutput(M, __red("You need to grab hold of the target with your active hand first!"))
+					boutput(M, SPAN_ALERT("You need to grab hold of the target with your active hand first!"))
 
 				return G
 
@@ -998,10 +1079,10 @@
 								G = G2
 								break
 							else
-								boutput(M, __red("You need a tighter grip!"))
+								boutput(M, SPAN_ALERT("You need a tighter grip!"))
 								return 0
 					if (isnull(G) || !istype(G))
-						boutput(M, __red("You need to grab hold of [target] first!"))
+						boutput(M, SPAN_ALERT("You need to grab hold of [target] first!"))
 						return 0
 					else
 						return G
@@ -1055,6 +1136,12 @@
 		holders = null
 		..()
 
+	on_clone()
+		for (var/datum/abilityHolder/H in src.holders)
+			H.composite_owner = src
+			H.on_clone()
+		. = ..()
+
 	//return holder on success, null on fail
 	proc/addHolder(holderType)
 		for (var/datum/abilityHolder/H in holders)
@@ -1070,12 +1157,13 @@
 		return holders[holders.len]
 
 	//return holder on success, null on fail
-	proc/addHolderInstance(var/datum/abilityHolder/N)
+	proc/addHolderInstance(var/datum/abilityHolder/N, keep_owner = FALSE)
 		for (var/datum/abilityHolder/H in holders)
 			if (H == N)
 				return
 		holders += N
-		if (N.owner != owner)
+		N.composite_owner = src
+		if (N.owner != owner && !keep_owner)
 			N.owner = owner
 		N.onAbilityHolderInstanceAdd()
 		updateButtons()
@@ -1088,7 +1176,8 @@
 	proc/removeHolder(holderType)
 		for (var/datum/abilityHolder/H in holders)
 			if (H.type == holderType)
-				H.composite_owner = 0
+				H.composite_owner = null
+				H.onRemove(src.owner)
 				holders -= H
 		updateButtons()
 
@@ -1136,47 +1225,29 @@
 	updateButtons(var/called_by_owner = 0, var/start_x = 1, var/start_y = 0)
 		if (src.topBarRendered && src.rendered && src.hud)
 			for(var/atom/movable/screen/ability/A in src.hud.objects)
-				src.hud.objects -= A
+				src.hud.remove_object(A)
 
-		x_occupied = 1
-		y_occupied = 0
+		x_occupied = start_x
+		y_occupied = start_y
 		any_abilities_displayed = 0
-		for (var/datum/abilityHolder/H in holders)
-			if (H.topBarRendered || H.rendered)
-				H.updateButtons(called_by_owner = 1, start_x = x_occupied, start_y = y_occupied)
-				x_occupied = H.x_occupied
-				y_occupied = H.y_occupied
-				any_abilities_displayed = any_abilities_displayed || H.any_abilities_displayed
+		if (!src.hidden)
+			for (var/datum/abilityHolder/H in holders)
+				if (H.topBarRendered || H.rendered)
+					H.updateButtons(called_by_owner = 1, start_x = x_occupied, start_y = y_occupied)
+					x_occupied = H.x_occupied
+					y_occupied = H.y_occupied
+					any_abilities_displayed = any_abilities_displayed || H.any_abilities_displayed
 
 
 		if (src.topBarRendered)
 			src.updateText(0, x_occupied, y_occupied)
 			src.abilitystat?.update_on_hud(x_occupied,y_occupied)
 
-	updateText(var/called_by_owner = 0)
-		if (!abilitystat)
-			abilitystat = new
-			abilitystat.owner = src
-
-		var/msg = ""
-		var/style = "font-size: 7px;"
-
-		var/i = 0
+	onAbilityStat()
+		. = list()
 		for (var/datum/abilityHolder/H in holders)
 			if (H.topBarRendered && H.rendered)
-				var/list/stats = H.onAbilityStat()
-				for (var/x in stats)
-					msg += "[x] [stats[x]]<br>"
-					i++
-
-		abilitystat.maptext = "<span class='ps2p l vt ol' style=\"[style]\">[msg] </span>"
-
-		if (i > 2)
-			abilitystat.maptext_height = ((i+1) % 2) * 32
-			abilitystat.maptext_y = -abilitystat.maptext_height + 16
-		else if (abilitystat.maptext_height > 32)
-			abilitystat.maptext_height = initial(abilitystat.maptext_height)
-			abilitystat.maptext_y = initial(abilitystat.maptext_y)
+				. += H.onAbilityStat()
 
 	click(atom/target, params)
 		// ok, this is not ideal since each ability holder has its own keybinds. That sucks and should be reworked
@@ -1191,10 +1262,6 @@
 	generatePoints(var/mult = 1)
 		for (var/datum/abilityHolder/H in holders)
 			H.generatePoints(mult)
-
-	Stat()
-		for (var/datum/abilityHolder/H in holders)
-			H.Stat()
 
 	StatAbilities()
 		for (var/datum/abilityHolder/H in holders)
@@ -1221,33 +1288,31 @@
 			H.resumeAllAbilities()
 
 	addAbility(var/abilityType)
-		//why was this? Weird
-		// if (!holders.len)
-		// 	return
 		if (istext(abilityType))
 			abilityType = text2path(abilityType)
 		if (!ispath(abilityType))
 			return
 
-		var/datum/targetable/tmp_A = new abilityType(src)
-
+		var/datum/targetable/tmp_A = abilityType
+		var/preferred_holder_type = initial(tmp_A.preferred_holder_type)
 		if (holders.len)
 			for (var/datum/abilityHolder/H in holders)
-				if (istype(H, tmp_A.preferred_holder_type))
+				if (istype(H, preferred_holder_type))
 					return H.addAbility(abilityType)
 
-		var/datum/targetable/A = new abilityType(src)
-		var/datum/abilityHolder/X
-		if (holders.len)
-			X = holders[1]
+		var/datum/abilityHolder/holder
+		if (length(src.holders) && (!istype(src.holders[1], /datum/abilityHolder/hidden) || ispath(preferred_holder_type, /datum/abilityHolder/hidden)))
+			holder = holders[1]
 		else
-			X = src.addHolder(A.preferred_holder_type)
-		A = X.addAbility(abilityType)
+			holder = src.addHolder(preferred_holder_type)
+		var/datum/targetable/ability = holder.addAbility(abilityType)
 
 		src.updateButtons()
-		return A
+		return ability
 
 	removeAbility(var/abilityType)
+		if (istext(abilityType))
+			abilityType = text2path(abilityType)
 		if (!ispath(abilityType))
 			return
 		for (var/datum/abilityHolder/H in holders)
@@ -1270,7 +1335,7 @@
 				return R
 		return null
 
-	pointCheck(cost)
+	pointCheck(cost, quiet = FALSE)
 		return 1
 
 	deepCopy()
@@ -1282,7 +1347,7 @@
 	transferOwnership(var/newbody)
 		for (var/datum/abilityHolder/H in holders)
 			H.transferOwnership(newbody)
-		owner = newbody
+		..()
 
 	remove_unlocks()
 		for (var/datum/abilityHolder/H in holders)

@@ -11,9 +11,9 @@
 	var/obj/machinery/bot/active 	// the active bot; if null, show bot list
 	var/list/botstatus			// the status signal sent by the bot
 
-	var/control_freq = 1447 //Just for sending, adjust what the actual pda hooks to for receive
+	var/control_freq = FREQ_BOT_CONTROL //Just for sending, adjust what the actual pda hooks to for receive
 
-	proc/post_status(var/freq, var/key, var/value, var/key2, var/value2, var/key3, var/value3)
+	proc/post_status(var/conn_id, var/key, var/value, var/key2, var/value2, var/key3, var/value3)
 		if(!src.master)
 			return
 
@@ -26,12 +26,38 @@
 		if(key3)
 			signal.data[key3] = value3
 
-		src.post_signal(signal, freq)
+		src.post_signal(signal, conn_id)
 
-	init()
-		//boutput(world, "<h5>Adding [master]@[master.loc]:[master.bot_freq],[master.beacon_freq]")
-		radio_controller.add_object(master, "[master.bot_freq]")
-		radio_controller.add_object(master, "[master.beacon_freq]")
+	on_activated(obj/item/device/pda2/pda)
+		pda.AddComponent(
+			/datum/component/packet_connected/radio, \
+			"bot_beacon",\
+			pda.beacon_freq, \
+			pda.net_id, \
+			null, \
+			FALSE, \
+			null, \
+			FALSE \
+		)
+		pda.AddComponent(
+			/datum/component/packet_connected/radio, \
+			"bot_control",\
+			control_freq, \
+			pda.net_id, \
+			null, \
+			FALSE, \
+			null, \
+			FALSE \
+		)
+		RegisterSignal(pda, COMSIG_MOVABLE_RECEIVE_PACKET, PROC_REF(receive_signal))
+
+	on_deactivated(obj/item/device/pda2/pda)
+		qdel(get_radio_connection_by_id(pda, "bot_beacon"))
+		qdel(get_radio_connection_by_id(pda, "bot_control"))
+		UnregisterSignal(pda, COMSIG_MOVABLE_RECEIVE_PACKET)
+
+	proc/receive_signal(obj/item/device/pda2/pda, datum/signal/signal, transmission_method, range, connection_id)
+		return
 
 #define SECACC_MENU_MAIN 1
 #define SECACC_MENU_AREAS 2
@@ -39,7 +65,7 @@
 /datum/computer/file/pda_program/bot_control/secbot
 	name = "Securitron Access"
 	var/header_thing = "Securitron Interlink"
-	size = 8.0
+	size = 8
 	var/menumode = 1
 	var/all_guard = 0
 	var/lockdown = 0
@@ -105,7 +131,7 @@
 		var/turf/summon_turf = get_turf(PDA)
 		if (isAIeye(usr))
 			summon_turf = get_turf(usr)
-			if (!(summon_turf.cameras && length(summon_turf.cameras)))
+			if (!(summon_turf.camera_coverage_emitters && length(summon_turf.camera_coverage_emitters)))
 				summon_turf = get_turf(PDA)
 
 		if(href_list["active"])
@@ -120,7 +146,7 @@
 			if("scanbots") // find all bots
 				botlist = null
 				self_text("Scanning for security robots...")
-				post_status(control_freq, "command", "bot_status")
+				post_status("bot_control", "command", "bot_status")
 
 			if("guardhere", "allguardhere", "lockdown", "alllockdown")
 				var/list/stationAreas = get_accessible_station_areas()
@@ -133,9 +159,13 @@
 				else
 					src.lockdown = 0
 				var/area/guardthis = input(usr, "Please type 'Here' or the name of an area. Capitalization matters!", "GuardTron 0.0.1a", "Here") as text
-				if(IN_RANGE(get_turf(usr), get_turf(src.master), 1))
+				var/turf/summon_location = get_turf(usr) // summon_turf is already used
+				if((BOUNDS_DIST(get_turf(usr), get_turf(src.master)) == 0) || isAIeye(usr))
 					if(guardthis == "Here")
-						guardthis = get_area(get_turf(src.master))
+						if(isAIeye(usr) && (summon_location.camera_coverage_emitters && length(summon_location.camera_coverage_emitters))) // God damn AI eyes
+							guardthis = get_area(get_turf(usr))
+						else
+							guardthis = get_area(get_turf(src.master))
 					else if(guardthis in stationAreas)
 						guardthis = stationAreas[guardthis]
 					else
@@ -144,18 +174,18 @@
 				if(guardthis)
 					if(!src.all_guard)
 						if(src.lockdown)
-							post_status(control_freq, "command", "lockdown", "active", active, "target", guardthis)
+							post_status("bot_control", "command", "lockdown", "active", active, "target", guardthis)
 							self_text("[active] ordered to lockdown [guardthis].")
 						else
-							post_status(control_freq, "command", "guard", "active", active, "target", guardthis)
+							post_status("bot_control", "command", "guard", "active", active, "target", guardthis)
 							self_text("[active] ordered to guard [guardthis].")
-						post_status(control_freq, "command", "bot_status", "active", active)
+						post_status("bot_control", "command", "bot_status", "active", active)
 					else
 						src.all_guard = 0
 						if (!botlist.len)
 							PDA.updateSelfDialog()
 							return
-						SPAWN_DBG(0)
+						SPAWN(0)
 							// yeah its cheating, but holy heck is it laggy to send a zillion signals via PDA
 							var/list/bots = list()
 							for(var/obj/machinery/bot/secbot/bot in src.botlist)
@@ -165,28 +195,28 @@
 								self_text("[english_list(bots)] ordered to guard [guardthis].")
 
 			if("stop", "go")
-				post_status(control_freq, "command", href_list["op"], "active", active)
-				post_status(control_freq, "command", "bot_status", "active", active)
+				post_status("bot_control", "command", href_list["op"], "active", active)
+				post_status("bot_control", "command", "bot_status", "active", active)
 				if(href_list["op"] == "go")
 					self_text("[active] set to patrol.")
 				else
 					self_text("[active] set to not patrol.")
 
 			if("summon")
-				post_status(control_freq, "command", "summon", "active", active, "target", summon_turf )
-				post_status(control_freq, "command", "bot_status", "active", active)
-				self_text("[active] summoned to [summon_turf]")
+				post_status("bot_control", "command", "summon", "active", active, "target", summon_turf )
+				post_status("bot_control", "command", "bot_status", "active", active)
+				self_text("[active] summoned to [summon_turf.loc].")
 
 			if("proc")
-				post_status(control_freq, "command", "proc", "active", active)
-				post_status(control_freq, "command", "bot_status", "active", active)
+				post_status("bot_control", "command", "proc", "active", active)
+				post_status("bot_control", "command", "bot_status", "active", active)
 				self_text("[active] action request sent.")
 
 			if("summonall")
 				if (!botlist.len)
 					PDA.updateSelfDialog()
 					return
-				SPAWN_DBG(0)
+				SPAWN(0)
 					var/list/bots = list()
 					// again, yeah, cheating, but let's just pretend it isnt
 					for(var/obj/machinery/bot/secbot/bot in src.botlist)
@@ -197,16 +227,13 @@
 							self_text("Summon failed.")
 							break
 					if(length(bots) >= 1)
-						self_text("[english_list(bots)] summoned to [summon_turf].")
+						self_text("[english_list(bots)] summoned to [summon_turf.loc].")
 		src.lockdown = 0
 		src.all_guard = 0
 		PDA.updateSelfDialog()
 
-	receive_signal(datum/signal/signal)
-		if(..())
-			return
-
-		if(signal.data["type"] == "secbot")
+	receive_signal(obj/item/device/pda2/pda, datum/signal/signal, transmission_method, range, connection_id)
+		if(connection_id == "bot_control" && signal.data["type"] == "secbot" && !signal.encryption)
 			if(!botlist)
 				botlist = new()
 
@@ -219,48 +246,41 @@
 			src.master.updateSelfDialog()
 /datum/computer/file/pda_program/bot_control/secbot/pro
 	name = "Securitron Access PRO"
-	size = 8.0
+	size = 8
 	header_thing = "Securitron Interlink PRO"
 	can_summon_all = 1
 	can_force_proc = 1
 
 /datum/computer/file/pda_program/bot_control/mulebot
 	name = "MULE Bot Control"
-	size = 16.0
+	size = 16
 	var/list/beacons
 
 	return_text()
 		if(..())
 			return
+		// Pre scan destinations
+		beacons = null
+		src.post_status("bot_beacon", "findbeacon", "delivery", "address_tag", "delivery")
 
 		. = list(src.return_text_header())
 		. += "<h4>M.U.L.E. bot Interlink V0.8</h4>"
-
 		if(!src.active)
 			// list of bots
 			if(!src.botlist || (src.botlist && src.botlist.len==0))
 				. += "No bots found.<BR>"
-
 			else
 				for(var/obj/machinery/bot/mulebot/B in src.botlist)
 					. += "<A href='byond://?src=\ref[src];op=control;bot=\ref[B]'>[B] at [get_area(B)]</A><BR>"
-
-
-
 			. += "<BR><A href='byond://?src=\ref[src];op=scanbots'>Scan for active bots</A><BR>"
-
 		else	// bot selected, control it
 
-
 			. += "<B>[src.active]</B><BR> Status: (<A href='byond://?src=\ref[src];op=control;bot=\ref[src.active]'><i>refresh</i></A>)<BR>"
-
 			if(!src.botstatus)
 				. += "Waiting for response...<BR>"
 			else
-
 				. += "Location: [src.botstatus["loca"] ]<BR>"
 				. += "Mode: "
-
 				switch(src.botstatus["mode"])
 					if(0)
 						. += "Ready"
@@ -303,54 +323,51 @@
 
 			if("control")
 				active = locate(href_list["bot"])
-				post_status(control_freq, cmd, "bot_status")
+				post_status("bot_control", cmd, "bot_status")
 
 			if("scanbots")		// find all bots
 				botlist = null
-				post_status(control_freq, "command", "bot_status")
+				post_status("bot_control", "command", "bot_status")
 
 			if("scanbeacons")
 				beacons = null
-				src.post_status(src.master.beacon_freq, "findbeacon", "delivery")
+				src.post_status("bot_beacon", "findbeacon", "delivery", "address_tag", "delivery")
 
 			if("botlist")
 				active = null
 				PDA.updateSelfDialog()
 
 			if("unload")
-				post_status(control_freq, cmd, "unload")
-				post_status(control_freq, cmd, "bot_status")
+				post_status("bot_control", cmd, "unload")
+				post_status("bot_control", cmd, "bot_status")
 			if("setdest")
 				if(beacons)
 					var/dest = input("Select Bot Destination", "Mulebot [active.suffix] Interlink", active:destination) as null|anything in beacons
 					if(dest)
-						post_status(control_freq, cmd, "target", "destination", dest)
-						post_status(control_freq, cmd, "bot_status")
+						post_status("bot_control", cmd, "target", "destination", dest)
+						post_status("bot_control", cmd, "bot_status")
 
 			if("retoff")
-				post_status(control_freq, cmd, "autoret", "value", 0)
-				post_status(control_freq, cmd, "bot_status")
+				post_status("bot_control", cmd, "autoret", "value", 0)
+				post_status("bot_control", cmd, "bot_status")
 			if("reton")
-				post_status(control_freq, cmd, "autoret", "value", 1)
-				post_status(control_freq, cmd, "bot_status")
+				post_status("bot_control", cmd, "autoret", "value", 1)
+				post_status("bot_control", cmd, "bot_status")
 
 			if("pickoff")
-				post_status(control_freq, cmd, "autopick", "value", 0)
-				post_status(control_freq, cmd, "bot_status")
+				post_status("bot_control", cmd, "autopick", "value", 0)
+				post_status("bot_control", cmd, "bot_status")
 			if("pickon")
-				post_status(control_freq, cmd, "autopick", "value", 1)
-				post_status(control_freq, cmd, "bot_status")
+				post_status("bot_control", cmd, "autopick", "value", 1)
+				post_status("bot_control", cmd, "bot_status")
 
 			if("stop", "go", "home")
-				post_status(control_freq, cmd, href_list["op"])
-				post_status(control_freq, cmd, "bot_status")
+				post_status("bot_control", cmd, href_list["op"])
+				post_status("bot_control", cmd, "bot_status")
 		return
 
-	receive_signal(datum/signal/signal)
-		if(..())
-			return
-
-		if(signal.data["type"] == "mulebot")
+	receive_signal(obj/item/device/pda2/pda, datum/signal/signal, transmission_method, range, connection_id)
+		if(signal.data["type"] == "mulebot" && connection_id == "bot_control" && !signal.encryption)
 			if(!botlist)
 				botlist = new()
 
@@ -362,13 +379,11 @@
 
 			src.master.updateSelfDialog()
 
-		else if(signal.data["beacon"])
+		else if(signal.data["beacon"] && connection_id == "bot_beacon")
 			if(!beacons)
 				beacons = new()
 
 			beacons[signal.data["beacon"] ] = signal.source
-
-		return
 
 #undef SECACC_MENU_MAIN
 #undef SECACC_MENU_AREAS

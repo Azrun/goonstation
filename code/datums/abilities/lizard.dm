@@ -1,24 +1,3 @@
-/mob/living/carbon/human/proc/give_lizard_powers()
-	if (ishuman(src)) // not4long
-		var/datum/abilityHolder/lizard/A = src.get_ability_holder(/datum/abilityHolder/lizard)
-		if (A && istype(A))
-			return
-		var/datum/abilityHolder/lizard/W = src.add_ability_holder(/datum/abilityHolder/lizard)
-		W.addAbility(/datum/targetable/lizardAbility/colorshift)
-		W.addAbility(/datum/targetable/lizardAbility/colorchange)
-		W.addAbility(/datum/targetable/lizardAbility/regrow_tail)
-	else return
-
-/mob/living/carbon/human/proc/remove_lizard_powers()
-	if (ishuman(src))
-		var/datum/abilityHolder/lizard/W = src.get_ability_holder(/datum/abilityHolder/lizard)
-		if (W && istype(W))
-			W.removeAbility(/datum/targetable/lizardAbility/colorshift)
-			W.removeAbility(/datum/targetable/lizardAbility/colorchange)
-			W.removeAbility(/datum/targetable/lizardAbility/regrow_tail)
-			src.remove_ability_holder(/datum/abilityHolder/lizard)
-	else return
-
 /mob/living/carbon/human/proc/update_lizard_parts()
 	if (ishuman(src))
 		var/mob/living/carbon/human/liz = src
@@ -43,9 +22,9 @@
 		if (liz.organHolder?.head)
 			var/obj/item/organ/head/hed = liz.organHolder.head
 			if(hed.head_type == HEAD_LIZARD)
-				hed.update_icon(ignore_transplant = 1) // Chromatophores are chromatophores
+				hed.UpdateIcon(/*makeshitup*/ null, /*ignore_transplant*/TRUE) // Chromatophores are chromatophores
 			else
-				hed.update_icon(ignore_transplant = 0)
+				hed.UpdateIcon(/*makeshitup*/ null, /*ignore_transplant*/FALSE)
 		if (istype(liz?.organHolder.tail, /obj/item/organ/tail/lizard))
 			var/obj/item/organ/tail/T = liz.organHolder.tail
 			T.colorize_tail(liz.bioHolder.mobAppearance)
@@ -75,7 +54,7 @@
 /datum/targetable/lizardAbility/regrow_tail
 	name = "Regrow Tail"
 	desc = "Regrow your tail... (If cast while you have a tail, shoot off your tail and regrow a new one)"
-	cooldown = 5 MINUTES
+	cooldown = 2 MINUTES
 	targeted = 0
 	pointCost = 2
 
@@ -83,16 +62,24 @@
 		if (..())
 			return 1
 
-		if (L.mutantrace && !istype(L.mutantrace, /datum/mutantrace/lizard) || !L.organHolder)
-			boutput(L, "<span class='notice'>You don't have any chromatophores.</span>")
+		if (!istype(L.mutantrace, /datum/mutantrace/lizard) || !L.organHolder)
+			boutput(L, SPAN_NOTICE("You don't have any chromatophores."))
 			return 1
 
 		//shoot off tail
 		if (L.organHolder?.tail)
-			L.drop_and_throw_organ("tail", dist = 2, speed = 1, showtext = 1)
+			var/mob/living/critter/small_animal/livingtail/C = new /mob/living/critter/small_animal/livingtail(get_turf(src.holder.owner))
+			playsound(src, 'sound/impact_sounds/Slimy_Splat_1.ogg', 30, TRUE)
+			make_cleanable(/obj/decal/cleanable/blood/splatter, L.loc)
+			C.tail_memory = L.organHolder.tail
+			C.primary_color = L.organHolder.tail.organ_color_2
+			C.secondary_color = L.organHolder.tail.organ_color_1
+			C.setup_overlays()
+			var/obj/item/organ/tail/lizard/T = L.organHolder.drop_organ("tail")
+			T.set_loc(C)
 
 		//simply make a new tail
-		L.visible_message("<span class='notice'><b>[L.name]</b> visibly exerts [himself_or_herself(L)] and a new tail starts to sprout!</span>")
+		L.visible_message(SPAN_NOTICE("<b>[L.name]</b> visibly exerts [himself_or_herself(L)] and a new tail starts to sprout!"))
 		L.organHolder.receive_organ(new/obj/item/organ/tail/lizard, "tail", 0.0, 1)
 
 
@@ -106,23 +93,23 @@
 		if (..())
 			return 1
 
-		if (L.mutantrace && !istype(L.mutantrace, /datum/mutantrace/lizard))
-			boutput(L, "<span class='notice'>You don't have any chromatophores.</span>")
+		if (!istype(L.mutantrace, /datum/mutantrace/lizard))
+			boutput(L, SPAN_NOTICE("You don't have any chromatophores."))
 			return 1
 
 		if (L?.bioHolder?.mobAppearance)
 			var/datum/appearanceHolder/AHs = L.bioHolder.mobAppearance
 
-			var/col1 = AHs.customization_first_color
-			var/col2 = AHs.customization_second_color
-			var/col3 = AHs.customization_third_color
+			var/col1 = AHs.customizations["hair_bottom"].color
+			var/col2 = AHs.customizations["hair_middle"].color
+			var/col3 = AHs.customizations["hair_top"].color
 
-			AHs.customization_first_color = col3
-			AHs.customization_second_color = col1
-			AHs.customization_third_color = col2
-			AHs.s_tone = AHs.customization_first_color
+			AHs.customizations["hair_bottom"].color = col3
+			AHs.customizations["hair_middle"].color = col1
+			AHs.customizations["hair_top"].color = col2
+			AHs.s_tone = AHs.customizations["hair_bottom"].color
 
-			L.visible_message("<span class='notice'><b>[L.name]</b> changes colors!</span>")
+			L.visible_message(SPAN_NOTICE("<b>[L.name]</b> changes colors!"))
 			L.update_lizard_parts()
 
 /datum/targetable/lizardAbility/colorchange
@@ -136,8 +123,8 @@
 		if (..())
 			return 1
 
-		if (L.mutantrace && !istype(L.mutantrace, /datum/mutantrace/lizard))
-			boutput(L, "<span class='notice'>You're fresh out of chromatophores.</span>")
+		if (!istype(L.mutantrace, /datum/mutantrace/lizard))
+			boutput(L, SPAN_NOTICE("You're fresh out of chromatophores."))
 			return 1
 
 		if (L?.bioHolder?.mobAppearance)
@@ -146,13 +133,13 @@
 			var/which_region = input(L, "Pick which region to color", "Where to color") as null | anything in src.regions
 
 			if (!which_region)
-				boutput(L, "<span class='notice'>You leave your pigmentation as-is.</span>")
+				boutput(L, SPAN_NOTICE("You leave your pigmentation as-is."))
 				return 1
 
 			var/coloration = input(L, "Please select skin color.", "Character Generation")  as null | color
 
 			if (!coloration)
-				boutput(L, "<span class='notice'>You think it looks fine the way it is.</span>")
+				boutput(L, SPAN_NOTICE("You think it looks fine the way it is."))
 				return 1
 
 			actions.start(new/datum/action/bar/lizcolor(L, fix_colors(coloration), regions[which_region], which_region, AHs), L)
@@ -161,7 +148,6 @@
 /datum/action/bar/lizcolor
 	duration = 7 SECONDS
 	interrupt_flags = INTERRUPT_STUNNED | INTERRUPT_ACTION
-	id = "lizcolor"
 	var/mob/living/carbon/human/L
 	var/color
 	var/region
@@ -177,7 +163,7 @@
 		region = part
 		region_name = partname
 		AHliz = AHs
-		L.visible_message("[L] tenses up and starts changing color.", "<span class='notice'>You focus on your [region_name], trying to change its color.</span>")
+		L.visible_message("[L] tenses up and starts changing color.", SPAN_NOTICE("You focus on your [region_name], trying to change its color."))
 		..()
 
 	onEnd()
@@ -186,19 +172,19 @@
 		var/spot
 		switch(region)
 			if (1)
-				AHliz.customization_first_color = color
+				AHliz.customizations["hair_bottom"].color = color
 				AHliz.s_tone = color
 				spot = "skin"
 			if (2)
-				AHliz.customization_second_color = color
+				AHliz.customizations["hair_middle"].color = color
 				spot = "belly splotch"
 			if (3)
-				AHliz.customization_third_color = color
+				AHliz.customizations["hair_top"].color = color
 				spot = "head thing"
-		L.visible_message("[L]'s [spot] changes color!", "<span class='notice'>Your [region_name] changes color!</span>")
+		L.visible_message("[L]'s [spot] changes color!", SPAN_NOTICE("Your [region_name] changes color!"))
 		L.update_lizard_parts()
 		..()
 
 	onInterrupt()
-		boutput(L, "You were interrupted, snapping your [region_name] back to the color it was!")
+		boutput(L, SPAN_ALERT("You were interrupted, snapping your [region_name] back to the color it was!"))
 		..()

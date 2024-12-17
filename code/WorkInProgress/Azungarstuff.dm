@@ -70,7 +70,7 @@
 			return_if_overlay_or_effect(O)
 
 			if (O.throwing && !isliving(O))
-				SPAWN_DBG(0.8 SECONDS)
+				SPAWN(0.8 SECONDS)
 					if (O && O.loc == src)
 						melt_away(O)
 				return
@@ -85,10 +85,11 @@
 				if (istype(H))
 					H.unkillable = 0
 				if(!M.stat) M.emote("scream")
-				src.visible_message("<span class='alert'><B>[M]</B> falls into the [src] and melts away!</span>")
+				src.visible_message(SPAN_ALERT("<B>[M]</B> falls into the [src] and melts away!"))
+				logTheThing(LOG_COMBAT, M, "was firegibbed by [src] ([src.type]) at [log_loc(M)].")
 				M.firegib() // thanks ISN!
 		else
-			src.visible_message("<span class='alert'><B>[O]</B> falls into the [src] and melts away!</span>")
+			src.visible_message(SPAN_ALERT("<B>[O]</B> falls into the [src] and melts away!"))
 			qdel(O)
 
 	ex_act(severity)
@@ -106,80 +107,40 @@
 	icon = 'icons/misc/AzungarAdventure.dmi'
 	icon_state = "lava_edges"
 	temperature = 10+T0C
+	can_burn = FALSE
+	can_break = FALSE
 
-	Entered(var/mob/M)
-		if (istype(M,/mob/dead) || istype(M,/mob/wraith) || istype(M,/mob/living/intangible) || istype(M, /obj/lattice))
-			return
+	Crossed(atom/movable/AM)
+		. = ..()
+		if (do_lava_burn(AM))
+			SPAWN (5 SECONDS)
+				while(AM.loc == src)
+					if (!do_lava_burn(AM))
+						break
+					sleep(5 SECONDS)
+
+	proc/do_lava_burn(mob/M)
 		if(!ismob(M))
 			return
-		return_if_overlay_or_effect(M)
-
-
-		SPAWN_DBG(0)
-			if(M.loc == src)
-				if (ishuman(M))
-					var/mob/living/carbon/human/H = M
-					M.canmove = 0
-					M.changeStatus("weakened", 6 SECONDS)
-					boutput(M, "You get too close to the edge of the lava and spontaniously combust from the heat!")
-					visible_message("<span class='alert'>[M] gets too close to the edge of the lava and spontaniously combusts from the heat!</span>")
-					H.set_burning(500)
-					playsound(M.loc, "sound/effects/mag_fireballlaunch.ogg", 50, 0)
-					M.emote("scream")
-				if (isrobot(M))
-					M.canmove = 0
-					M.TakeDamage("chest", pick(5,10), 0, DAMAGE_BURN)
-					M.emote("scream")
-					playsound(M.loc, "sound/effects/mag_fireballlaunch.ogg", 50, 0)
-					boutput(M, "You get too close to the edge of the lava and spontaniously combust from the heat!")
-					visible_message("<span class='alert'>[M] gets too close to the edge of the lava and their internal wiring suffers a major burn!</span>")
-					M.changeStatus("stunned", 6 SECONDS)
-			sleep(5 SECONDS)
-			if(M.loc == src)
-				if (ishuman(M))
-					var/mob/living/carbon/human/H = M
-					M.changeStatus("weakened", 10 SECONDS)
-					M.set_body_icon_dirty()
-					H.set_burning(1000)
-					playsound(M.loc, "sound/effects/mag_fireballlaunch.ogg", 50, 0)
-					M.emote("scream")
-					if (H.limbs.l_leg && H.limbs.r_leg)
-						if (H.limbs.l_leg)
-							H.limbs.l_leg.delete()
-						if (H.limbs.r_leg)
-							H.limbs.r_leg.delete()
-						boutput(M, "You can feel how both of your legs melt away!")
-						visible_message("<span class='alert'>[M] continues to remain too close to the lava, their legs literally melting away!</span>")
-					else
-						boutput(M, "You can feel intense heat on the lower part of your torso.")
-						visible_message("<span class='alert'>[M] continues to remain too close to the lava, if they had any legs, they would have melted away!</span>")
-
-				if (isrobot(M))
-					var/mob/living/silicon/robot/R = M
-					R.canmove = 0
-					R.TakeDamage("chest", pick(20,40), 0, DAMAGE_BURN)
-					R.emote("scream")
-					playsound(R.loc, "sound/effects/mag_fireballlaunch.ogg", 50, 0)
-					R.changeStatus("stunned", 10 SECONDS)
-					R.part_leg_r.holder = null
-					qdel(R.part_leg_r)
-					if (R.part_leg_r.slot == "leg_both")
-						R.part_leg_l = null
-						R.update_bodypart("l_leg")
-					R.part_leg_r = null
-					R.update_bodypart("r_leg")
-					R.part_leg_l.holder = null
-					qdel(R.part_leg_l)
-					if (R.part_leg_l.slot == "leg_both")
-						R.part_leg_r = null
-						R.update_bodypart("r_leg")
-					R.part_leg_l = null
-					R.update_bodypart("l_leg")
-					visible_message("<span class='alert'>[M] continues to remain too close to the lava, their legs literally melting away!</span>")
-					boutput(M, "You can feel how both of your legs melt away!")
-				else
-					boutput(M, "You can feel intense heat on the lower part of your torso.")
-					visible_message("<span class='alert'>[M] continues to remain too close to the lava, if they had any legs, they would have melted away!</span>")
+		if (istype(M,/mob/dead) || istype(M,/mob/living/intangible))
+			return
+		if (isdead(M))
+			return
+		if (isrobot(M))
+			M.TakeDamage("chest", pick(5,10), 0, DAMAGE_BURN)
+			M.changeStatus("stunned", 2 SECONDS)
+			M.emote("scream")
+			playsound(M.loc, 'sound/effects/mag_fireballlaunch.ogg', 50, 0)
+			boutput(M, "You get too close to the edge of the lava and spontaniously combust from the heat!")
+			visible_message(SPAN_ALERT("[M] gets too close to the edge of the lava and their internal wiring suffers a major burn!"))
+		else
+			M.changeStatus("burning", 30 SECONDS)
+			M.changeStatus("knockdown", 2 SECONDS)
+			M.emote("scream",)
+			playsound(M.loc, 'sound/effects/mag_fireballlaunch.ogg', 50, 0)
+			boutput(M, "You get too close to the edge of the lava and spontaniously combust from the heat!")
+			visible_message(SPAN_ALERT("[M] gets too close to the edge of the lava and spontaniously combusts from the heat!"))
+		return TRUE
 
 	corners
 		icon_state = "lava_corners"
@@ -203,135 +164,135 @@
 	icon = 'icons/turf/carpet.dmi'
 	icon_state = "fpurple1"
 	innercross
-		dir = 1
+		dir = NORTH
 	outercross
-		dir = 4
+		dir = EAST
 
 /turf/unsimulated/floor/carpet/purple/standard/edge
 	icon = 'icons/turf/carpet.dmi'
 	icon_state = "purple2"
 
 	north
-		dir = 1
+		dir = NORTH
 	south
-		dir = 2
+		dir = SOUTH
 	east
-		dir = 4
+		dir = EAST
 	west
-		dir = 8
+		dir = WEST
 	ne
-		dir = 5
+		dir = NORTHEAST
 	se
-		dir = 6
+		dir = SOUTHEAST
 	nw
-		dir = 9
+		dir = NORTHWEST
 	sw
-		dir = 10
+		dir = SOUTHWEST
 
 /turf/unsimulated/floor/carpet/purple/standard/innercorner
 	icon = 'icons/turf/carpet.dmi'
 	icon_state = "purple3"
 
 	ne
-		dir = 5
+		dir = NORTHEAST
 	se
-		dir = 6
+		dir = SOUTHEAST
 	nw
-		dir = 9
+		dir = NORTHWEST
 	sw
-		dir = 10
+		dir = SOUTHWEST
 	north
-		dir = 1
+		dir = NORTH
 	south
-		dir = 2
+		dir = SOUTH
 	east
-		dir = 4
+		dir = EAST
 	west
-		dir = 8
+		dir = WEST
 	ne_triple
 		icon_state = "purple4"
-		dir = 5
+		dir = NORTHEAST
 	se_triple
 		icon_state = "purple4"
-		dir = 6
+		dir = SOUTHEAST
 	nw_triple
 		icon_state = "purple4"
-		dir = 9
+		dir = NORTHWEST
 	sw_triple
 		icon_state = "purple4"
-		dir = 10
+		dir = SOUTHWEST
 	ne_sw
 		icon_state = "purple1"
-		dir = 5
+		dir = NORTHEAST
 	nw_se
 		icon_state = "purple1"
-		dir = 9
+		dir = NORTHWEST
 	omni
 		icon_state = "purple1"
-		dir = 8
+		dir = WEST
 
 /turf/unsimulated/floor/carpet/purple/standard/narrow
 	icon = 'icons/turf/carpet.dmi'
 	icon_state = "purple6"
 
 	ne
-		dir = 5
+		dir = NORTHEAST
 	se
-		dir = 6
+		dir = SOUTHEAST
 	nw
-		dir = 9
+		dir = NORTHWEST
 	sw
-		dir = 10
+		dir = SOUTHWEST
 	T_north
-		dir = 1
+		dir = NORTH
 	T_south
-		dir = 2
+		dir = SOUTH
 	T_east
-		dir = 4
+		dir = EAST
 	T_west
-		dir = 8
+		dir = WEST
 	north
 		icon_state = "purple4"
-		dir = 1
+		dir = NORTH
 	south
 		icon_state = "purple4"
-		dir = 2
+		dir = SOUTH
 	east
 		icon_state = "purple4"
-		dir = 4
+		dir = EAST
 	west
 		icon_state = "purple4"
-		dir = 8
+		dir = WEST
 	solo
 		icon_state = "purple1"
-		dir = 4
+		dir = EAST
 	northsouth
 		icon_state = "purple1"
-		dir = 6
+		dir = SOUTHEAST
 	eastwest
 		icon_state = "purple1"
-		dir = 10
+		dir = SOUTHWEST
 
 /turf/unsimulated/floor/carpet/purple/standard/junction
 	icon = 'icons/turf/carpet.dmi'
 	icon_state = "purple5"
 
 	sw_e
-		dir = 1
+		dir = NORTH
 	ne_w
-		dir = 2
+		dir = SOUTH
 	nw_s
-		dir = 4
+		dir = EAST
 	se_n
-		dir = 8
+		dir = WEST
 	sw_n
-		dir = 5
+		dir = NORTHEAST
 	nw_e
-		dir = 6
+		dir = SOUTHEAST
 	ne_s
-		dir = 9
+		dir = NORTHWEST
 	se_w
-		dir = 10
+		dir = SOUTHWEST
 
 //fancy subvariant///////////////////////
 
@@ -340,123 +301,123 @@
 	icon_state = "fpurple2"
 
 	north
-		dir = 1
+		dir = NORTH
 	south
-		dir = 2
+		dir = SOUTH
 	east
-		dir = 4
+		dir = EAST
 	west
-		dir = 8
+		dir = WEST
 	ne
-		dir = 5
+		dir = NORTHEAST
 	se
-		dir = 6
+		dir = SOUTHEAST
 	nw
-		dir = 9
+		dir = NORTHWEST
 	sw
-		dir = 10
+		dir = SOUTHWEST
 
 /turf/unsimulated/floor/carpet/purple/fancy/innercorner
 	icon = 'icons/turf/carpet.dmi'
 	icon_state = "fpurple3"
 
 	ne
-		dir = 5
+		dir = NORTHEAST
 	se
-		dir = 6
+		dir = SOUTHEAST
 	nw
-		dir = 9
+		dir = NORTHWEST
 	sw
-		dir = 10
+		dir = SOUTHWEST
 	north
-		dir = 1
+		dir = NORTH
 	south
-		dir = 2
+		dir = SOUTH
 	east
-		dir = 4
+		dir = EAST
 	west
-		dir = 8
+		dir = WEST
 	ne_triple
 		icon_state = "fpurple4"
-		dir = 5
+		dir = NORTHEAST
 	se_triple
 		icon_state = "fpurple4"
-		dir = 6
+		dir = SOUTHEAST
 	nw_triple
 		icon_state = "fpurple4"
-		dir = 9
+		dir = NORTHWEST
 	sw_triple
 		icon_state = "fpurple4"
-		dir = 10
+		dir = SOUTHWEST
 	ne_sw
 		icon_state = "fpurple1"
-		dir = 5
+		dir = NORTHEAST
 	nw_se
 		icon_state = "fpurple1"
-		dir = 9
+		dir = NORTHWEST
 	omni
 		icon_state = "fpurple1"
-		dir = 8
+		dir = WEST
 
 /turf/unsimulated/floor/carpet/purple/fancy/narrow
 	icon = 'icons/turf/carpet.dmi'
 	icon_state = "fpurple6"
 
 	ne
-		dir = 5
+		dir = NORTHEAST
 	se
-		dir = 6
+		dir = SOUTHEAST
 	nw
-		dir = 9
+		dir = NORTHWEST
 	sw
-		dir = 10
+		dir = SOUTHWEST
 	T_north
-		dir = 1
+		dir = NORTH
 	T_south
-		dir = 2
+		dir = SOUTH
 	T_east
-		dir = 4
+		dir = EAST
 	T_west
-		dir = 8
+		dir = WEST
 	north
 		icon_state = "fpurple4"
-		dir = 1
+		dir = NORTH
 	south
 		icon_state = "fpurple4"
-		dir = 2
+		dir = SOUTH
 	east
 		icon_state = "fpurple4"
-		dir = 4
+		dir = EAST
 	west
 		icon_state = "fpurple4"
-		dir = 8
+		dir = WEST
 	northsouth
 		icon_state = "fpurple1"
-		dir = 6
+		dir = SOUTHEAST
 	eastwest
 		icon_state = "fpurple1"
-		dir = 10
+		dir = SOUTHWEST
 
 /turf/unsimulated/floor/carpet/purple/fancy/junction
 	icon = 'icons/turf/carpet.dmi'
 	icon_state = "fpurple5"
 
 	sw_e
-		dir = 1
+		dir = NORTH
 	ne_w
-		dir = 2
+		dir = SOUTH
 	nw_s
-		dir = 4
+		dir = EAST
 	se_n
-		dir = 8
+		dir = WEST
 	sw_n
-		dir = 5
+		dir = NORTHEAST
 	nw_e
-		dir = 6
+		dir = SOUTHEAST
 	ne_s
-		dir = 9
+		dir = NORTHWEST
 	se_w
-		dir = 10
+		dir = SOUTHWEST
 
 /turf/unsimulated/wall/setpieces/Azarak/cavewall
 	name = "rock wall"
@@ -470,67 +431,82 @@
 	corners
 		icon_state = "cave_wall_corners"
 
-/obj/decal/fakeobjects/bedrolls
+/obj/fakeobject/bedrolls
 	name = "bedrolls"
 	desc = "TEMP"
 	icon = 'icons/misc/AzungarAdventure.dmi'
 	icon_state = "bedrolls"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 
-/obj/decal/fakeobjects/shrooms
+/obj/fakeobject/shrooms
 	name = "weird looking mushrooms"
 	desc = "What the hell are these..?"
 	icon = 'icons/misc/AzungarAdventure.dmi'
 	icon_state = "shrooms"
-	anchored = 1
+	anchored = ANCHORED
 
-/obj/decal/fakeobjects/smallrocks
+/obj/fakeobject/smallrocks
 	name = "small rocks"
 	desc = "Some small rocks."
 	icon = 'icons/misc/AzungarAdventure.dmi'
 	icon_state = "smallrocks"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 
-	attackby(obj/item/W as obj, mob/user as mob)
-		if (istype(W, /obj/item/mining_tool/power_pick))
+	attackby(obj/item/W, mob/user)
+		if ((istype(W, /obj/item/mining_tool) || istype(W, /obj/item/mining_tools)) && !isrestrictedz(src.z))
 			boutput(user, "You hit the [src] a few times with the [W]!")
-			src.visible_message("<span class='notice'><b>[src] crumbles into dust!</b></span>")
-			playsound(src.loc, 'sound/items/mining_pick.ogg', 90,1)
+			src.visible_message(SPAN_NOTICE("<b>[src] crumbles into dust!</b>"))
+			playsound(src.loc, 'sound/items/mining_pick.ogg', 70,1)
 			qdel(src)
 
-/obj/decal/fakeobjects/bigrocks
+	attack_hand(mob/user)
+		if(ishuman(user))
+			var/mob/living/carbon/human/human = user
+			if (istype(human.gloves, /obj/item/clothing/gloves/concussive))
+				var/obj/item/clothing/gloves/concussive/gauntlets = human.gloves
+				return src.Attackby(gauntlets.tool, user)
+		. = ..()
+
+/obj/fakeobject/bigrocks
 	name = "big rocks"
 	desc = "Those are some big rocks, they are probably from the ceiling..?"
 	icon = 'icons/misc/AzungarAdventure.dmi'
 	icon_state = "bigrocks"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 
-
-	attackby(obj/item/W as obj, mob/user as mob)
-		if (istype(W, /obj/item/mining_tool/power_pick))
+	attackby(obj/item/W, mob/user)
+		if ((istype(W, /obj/item/mining_tool) || istype(W, /obj/item/mining_tools)) && !isrestrictedz(src.z))
 			boutput(user, "You hit the [src] a few times with the [W]!")
-			src.visible_message("<span class='notice'><b>After a few hits [src] crumbles into smaller rocks.</b></span>")
-			playsound(src.loc, 'sound/items/mining_pick.ogg', 90,1)
-			new /obj/decal/fakeobjects/smallrocks(src.loc)
+			src.visible_message(SPAN_NOTICE("<b>After a few hits [src] crumbles into smaller rocks.</b>"))
+			playsound(src.loc, 'sound/items/mining_pick.ogg', 80,1)
+			new /obj/fakeobject/smallrocks(src.loc)
 			qdel(src)
 
-/obj/decal/fakeobjects/biggerrock
+	attack_hand(mob/user)
+		if(ishuman(user))
+			var/mob/living/carbon/human/human = user
+			if (istype(human.gloves, /obj/item/clothing/gloves/concussive))
+				var/obj/item/clothing/gloves/concussive/gauntlets = human.gloves
+				return src.Attackby(gauntlets.tool, user)
+		. = ..()
+
+/obj/fakeobject/biggerrock
 	name = "big rock"
 	desc = "Seriously big rocks."
 	icon = 'icons/obj/large/32x64.dmi'
 	icon_state = "bigrock"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 
-/obj/decal/fakeobjects/azarakrocks
+/obj/fakeobject/azarakrocks
 	name = "rock"
 	desc = "Some lil' rocks."
 	icon = 'icons/misc/AzungarAdventure.dmi'
 	icon_state = "rock1"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 
 	rock2
@@ -559,57 +535,57 @@
 		icon_state = "rock9"
 
 
-/obj/decal/fakeobjects/cultiststatue
+/obj/fakeobject/cultiststatue
 	name = "statue of a hooded figure"
 	desc = "TEMP"
 	icon = 'icons/obj/large/32x64.dmi'
 	icon_state = "cultiststatue"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 	layer = EFFECTS_LAYER_UNDER_3
 
-/obj/decal/fakeobjects/crossinverted
+/obj/fakeobject/crossinverted
 	name = "inverted cross"
 	desc = "TEMP"
 	icon = 'icons/obj/large/32x64.dmi'
 	icon_state = "cross"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 
-/obj/decal/fakeobjects/bookcase
+/obj/fakeobject/bookcase
 	name = "bookcase"
 	desc = "It's a bookcase. Full of books."
 	icon = 'icons/misc/AzungarAdventure.dmi'
 	icon_state = "bookcase"
-	anchored = 1
+	anchored = ANCHORED
 	density = 0
 	layer = DECAL_LAYER
 
-/obj/decal/fakeobjects/creepytv
+/obj/fakeobject/creepytv
 	name = "broken old television"
 	desc = "TEMP"
 	icon = 'icons/misc/AzungarAdventure.dmi'
 	icon_state = "creepytv"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 
-/obj/decal/fakeobjects/circle
+/obj/fakeobject/circle
 	name = "summoning circle"
 	desc = "TEMP"
 	icon = 'icons/effects/224x224.dmi'
 	icon_state = "circle"
-	anchored = 1
+	anchored = ANCHORED
 	density = 0
 	opacity= 0
 	layer = FLOOR_EQUIP_LAYER1
 
-/obj/decal/fakeobjects/Azarakcandleswall
+/obj/fakeobject/Azarakcandleswall
 	icon = 'icons/misc/AzungarAdventure.dmi'
 	icon_state = "candles"
 	name = "candles"
 	desc = "TEMP"
 	density = 0
-	anchored = 1
+	anchored = ANCHORED
 	opacity = 0
 	layer = FLOOR_EQUIP_LAYER1
 
@@ -624,13 +600,13 @@
 		light.attach(src)
 		light.enable()
 
-/obj/decal/fakeobjects/Azarakcandles
+/obj/fakeobject/Azarakcandles
 	icon = 'icons/obj/items/alchemy.dmi'
 	icon_state = "candle"
 	name = "candle"
 	desc = "TEMP"
 	density = 0
-	anchored = 1
+	anchored = ANCHORED
 	opacity = 0
 
 	var/datum/light/point/light
@@ -644,250 +620,13 @@
 		light.attach(src)
 		light.enable()
 
-/*
-/obj/decal/fakeobjects/Azarakaltar
-	name = "altar"
-	desc = "TEMP"
-	icon_state = "altar"
-	icon = 'icons/obj/large/64x96.dmi'
-	density = 1
-	anchored = 1
-
-	attackby(obj/item/W as obj, mob/user as mob, params)
-		if (istype(W, /obj/item/grab))
-			var/obj/item/grab/G = W
-			if (!G.affecting || G.affecting.buckled)
-				return
-			if (!G.state)
-				boutput(user, "<span class='alert'>You need a tighter grip!</span>")
-				return
-			G.affecting.set_loc(src.loc)
-			if (user.a_intent == "harm")
-				if (!G.affecting.hasStatus("weakened"))
-					G.affecting.changeStatus("weakened", 4 SECONDS)
-				src.visible_message("<span class='alert'><b>[G.assailant] slams [G.affecting] onto \the [src]!</b></span>")
-				playsound(src, "sound/impact_sounds/Generic_Hit_Heavy_1.ogg", 50, 1)
-				if (src.material)
-					src.material.triggerOnAttacked(src, G.assailant, G.affecting, src)
-			else
-				if (!G.affecting.hasStatus("weakened"))
-					G.affecting.changeStatus("weakened", 2 SECONDS)
-				src.visible_message("<span class='alert'>[G.assailant] puts [G.affecting] on \the [src].</span>")
-
-	place_on(obj/item/W as obj, mob/user as mob, params)
-		..()
-		if (. == 1) // successfully put thing on table, make a noise because we are a fancy special glass table
-			return 1
-
-/obj/cave_entrance
-	name = "cave entrance"
-	desc = "temp"
-	icon = 'icons/misc/AzungarAdventure.dmi'
-	icon_state = "cave_entrance"
-	anchored = 1
-	density = 0
-	var/id = null
-
-	New()
-		..()
-		if (!id)
-			id = "generic"
-
-		src.tag = "cave[id][src.icon_state == "cave_entrance" ? 0 : 1]"
-
-	attack_hand(mob/user as mob)
-		if (user.stat || user.getStatusDuration("weakened") || get_dist(user, src) > 1)
-			return
-
-		var/obj/cave_entrance/otherEntrance = locate("cave[id][src.icon_state == "cave_entrance"]")
-		if (!istype(otherEntrance))
-			return
-
-		user.visible_message("", "You climb [src.icon_state == "cave_entrance" ? "down" : "up"] the stairs to the [src.icon_state == "cave_entrance" ? "cave" : "surface"]. ")
-		user.set_loc(get_turf(otherEntrance))
-
-
-/MOVE THIS INTO REAGENTS-EXPLOSIVEFIRE.DM LATER//
-
-		//combustible/nitrogentriiodide/dry/hellshroom
-			//name = "Hellshroom Extract"
-			//id = "hellshroom"
-			//description = "An organic substance that is extremely volatile due to it being so dry. Rather fascinating."
-
-//MOVE THIS TO SEEDS.DM LATER//
-
-/obj/item/seed/alien/hellshroom
-	New()
-		..()
-		src.planttype = HY_get_species_from_path(/datum/plant/artifact/hellshroom, src)
-
-//MOVE THIS TO SNACKS.DM LATER//
-
-/obj/item/reagent_containers/food/snacks/hellshroom
-	name = "hellshroom"
-	desc = "TEMP"
-	icon = 'icons/misc/AzungarAdventure.dmi'
-	icon_state = "hellshroom_produce"
-	amount = 1
-	heal_amt = 0
-	initial_reagents = list("hellshroom_extract"=6)
-
-//MOVE THIS TO PLANTS_ALIEN.DM LATER//
-
-/datum/plant/artifact/hellshroom
-	name = "Hellshroom"
-	growthmode = "weed"
-	category = "Miscellaneous"
-	seedcolor = "#FF0000"
-	override_icon_state = "hellshroom"
-	crop = /obj/item/reagent_containers/food/snacks/hellshroom
-	starthealth = 10
-	nothirst = 1
-	starthealth = 20
-	growtime = 180
-	harvtime = 250
-	harvests = 10
-	endurance = 20
-	cropsize = 2
-	force_seed_on_harvest = 1
-	vending = 2
-	genome = 30
-	assoc_reagents = list("hellshroom_extract")
-
-//MOVE THIS TO MISC_WEAPONS.DM LATER//
-
-/obj/item/dagger/azarakknife
-	name = "sacrificial knife"
-	icon = 'icons/misc/AzungarAdventure.dmi'
-	icon_state = "sacknife"
-	inhand_image_icon = 'icons/misc/AzungarAdventure.dmi'
-	item_state = "sacknife"
-	flags = FPRINT | TABLEPASS | CONDUCT | ONBELT
-	tool_flags = TOOL_CUTTING
-	hit_type = DAMAGE_CUT
-	hitsound = 'sound/impact_sounds/Flesh_Cut_1.ogg'
-	force = 5.0
-	throwforce = 15.0
-	throw_range = 5
-	desc = "TEMP"
-	pickup_sfx = "sound/items/blade_pull.ogg"
-	stamina_damage = 15
-	stamina_cost = 15
-	stamina_crit_chance = 50
-
-//MOVE TO SMALL_ANIMALS.DM LATER//
-
-/obj/critter/bat/hellbat
-	name = "hellbat"
-	desc = "TEMP"
-	icon = 'icons/misc/AzungarAdventure.dmi'
-	icon_state = "hellbat"
-	health = 35
-	aggressive = 1
-	defensive = 1
-	wanderer = 1
-	atkcarbon = 1
-	atksilicon = 1
-	brutevuln = 0.7
-	opensdoors = OBJ_CRITTER_OPENS_DOORS_NONE
-	seekrange = 5
-	flying = 1
-	density = 1 // so lasers can hit them
-	angertext = "screeches at"
-
-	seek_target()
-		src.anchored = 0
-		for (var/mob/living/C in hearers(src.seekrange,src))
-			if (src.target)
-				src.task = "chasing"
-				break
-			if ((C.name == src.oldtarget_name) && (world.time < src.last_found + 100)) continue
-			if (iscarbon(C) && !src.atkcarbon) continue
-			if (issilicon(C) && !src.atksilicon) continue
-			if (C.health < 0) continue
-			if (C in src.friends) continue
-			if (C.name == src.attacker) src.attack = 1
-			if (iscarbon(C) && src.atkcarbon) src.attack = 1
-			if (issilicon(C) && src.atksilicon) src.attack = 1
-
-			if (src.attack)
-				src.target = C
-				src.oldtarget_name = C.name
-				src.visible_message("<span class='combat'><b>[src]</b> [src.angertext] [C.name]!</span>")
-				src.task = "chasing"
-				break
-			else
-				continue
-
-	ChaseAttack(mob/M)
-		src.visible_message("<span class='combat'><B>[src]</B> launches itself at [M]!</span>")
-		if (prob(30)) M.changeStatus("weakened", 2 SECONDS)
-
-	CritterAttack(mob/M)
-		src.attacking = 1
-		src.visible_message("<span class='combat'><B>[src]</B> bites and claws at [src.target]!</span>")
-		random_brute_damage(src.target, rand(3,5))
-		random_burn_damage(src.target, rand(2,3))
-		SPAWN_DBG(1 SECOND)
-			src.attacking = 0
-
-
-//MOVE TO HEART.DM LATER//
-
-/obj/item/organ/heart/eldritchadventure
-	name = "tainted heart"
-	desc = "TEMP"
-	icon = 'icons/misc/AzungarAdventure.dmi'
-	icon_state = "artifact_eldritchHeart"
-	edible = 0
-
-/mob/living/carbon/human/npc/cultist
-	name = "Crazed cultist"
-	real_name = "Crazed cultist"
-	ai_aggressive = 1
-	unobservable = 1
-
-	New()
-		..()
-		SPAWN_DBG(0)
-			bioHolder.mobAppearance.underwear = "briefs"
-			JobEquipSpawned("DO NOT USE THIS JOB")
-			update_clothing()
-			//src.equip_new_if_possible(/obj/item/clothing/shoes/dress_shoes, slot_shoes)
-			//src.equip_new_if_possible(/obj/item/clothing/under/suit/purple, slot_w_uniform)
-			//src.equip_new_if_possible(/obj/item/clothing/suit/cultistblack/cursed, slot_wear_suit)
-			//src.equip_new_if_possible(/obj/item/clothing/mask/eldritchskull {cant_drop = 1; cant_other_remove = 1; cant_self_remove = 1} , slot_wear_mask)
-			//src.equip_new_if_possible(/obj/item/dagger/azarakknife {cant_drop = 1; cant_other_remove = 1; cant_self_remove = 1} , slot_r_hand)
-
-			var/obj/item/organ/heart/eldritchadventure/H = new /obj/item/organ/heart/eldritchadventure
-			receive_organ(H, "heart", 0, 1)
-			return
-
-
-
-
-/datum/job/special/DONOTUSETHISJOB
-	name = "DO NOT USE THIS JOB"
-	limit = 0
-	wages = 0
-	slot_jump = /obj/item/clothing/under/suit/purple
-	slot_foot = /obj/item/clothing/shoes/dress_shoes
-	slot_rhan = null
-	slot_back = null
-	slot_card = null
-	slot_ears = null
-	slot_poc1 = null
-	slot_poc2 = null
-
-*/
-
 /obj/syndicateholoemitter
 	name = "Holo-emitter"
 	desc = "A compact holo emitter pre-loaded with a holographic image."
 	icon = 'icons/obj/janitor.dmi'
 	icon_state = "emitter-on"
-	flags = FPRINT | TABLEPASS
-	anchored = 2
+	flags = TABLEPASS
+	anchored = ANCHORED_ALWAYS
 
 /obj/juggleplaque/manta
 	name = "dedication plaque"
@@ -901,7 +640,7 @@
 	icon_state = "holoplanet"
 	alpha = 180
 	pixel_y = 16
-	anchored = 2
+	anchored = ANCHORED_ALWAYS
 	layer = EFFECTS_LAYER_BASE
 	var/datum/light/light
 	var/obj/holoparticles/holoparticles
@@ -911,11 +650,11 @@
 
 		light = new /datum/light/point
 		light.attach(src)
-		light.set_color(0.50, 0.60, 0.94)
+		light.set_color(0.5, 0.6, 0.94)
 		light.set_brightness(0.7)
 		light.enable()
 
-		SPAWN_DBG(1 DECI SECOND)
+		SPAWN(1 DECI SECOND)
 			animate(src, alpha=130, color="#DDDDDD", time=7, loop=-1)
 			animate(alpha=180, color="#FFFFFF", time=1)
 			animate(src, pixel_y=10, time=15, flags=ANIMATION_PARALLEL, easing=SINE_EASING, loop=-1)
@@ -927,7 +666,7 @@
 
 	disposing()
 		if(holoparticles)
-			holoparticles.invisibility = 101
+			holoparticles.invisibility = INVIS_ALWAYS
 			qdel(holoparticles)
 		..()
 
@@ -936,7 +675,7 @@
 	name = ""
 	icon = 'icons/obj/janitor.dmi'
 	icon_state = "holoparticles"
-	anchored = 1
+	anchored = ANCHORED
 	alpha= 230
 	pixel_y = 14
 	layer = EFFECTS_LAYER_BASE
@@ -948,58 +687,58 @@
 	icon_state = "dispenser_handcuffs"
 	var/amount = 3
 
-	attackby(obj/item/W as obj, mob/user as mob)
+	attackby(obj/item/W, mob/user)
 		if (istype(W, /obj/item/handcuffs))
 			user.u_equip(W)
 			qdel(W)
 			src.amount++
-			boutput(user, "<span class='notice'>You put a pair of handcuffs in the [src]. [amount] left in the dispenser.</span>")
+			boutput(user, SPAN_NOTICE("You put a pair of handcuffs in the [src]. [amount] left in the dispenser."))
 		return
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		add_fingerprint(user)
 		if (src.amount >= 1)
 			src.amount--
 			user.put_in_hand_or_drop(new/obj/item/handcuffs, user.hand)
-			boutput(user, "<span class='alert'>You take a pair of handcuffs from the [src]. [amount] left in the dispenser.</span>")
+			boutput(user, SPAN_ALERT("You take a pair of handcuffs from the [src]. [amount] left in the dispenser."))
 			if (src.amount <= 0)
 				src.icon_state = "dispenser_handcuffs"
 		else
-			boutput(user, "<span class='alert'>There's no handcuffs left in the [src]!</span>")
+			boutput(user, SPAN_ALERT("There's no handcuffs left in the [src]!"))
 
-/obj/decal/fakeobjects/mantacontainer
+/obj/fakeobject/mantacontainer
 	name = "container"
 	desc = "These huge containers are used to transport goods from one place to another."
 	icon = 'icons/obj/large/64x96.dmi'
 	icon_state = "manta"
-	anchored = 2
+	anchored = ANCHORED_ALWAYS
 	density = 1
 	bound_height = 32
 	bound_width = 96
 	layer = EFFECTS_LAYER_BASE
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if (can_reach(user,src))
-			boutput(user, "<span class='alert'>You attempt to open the container but its doors are sealed tight. It doesn't look like you'll be able to open it.</span>")
-			playsound(src.loc, "sound/machines/door_locked.ogg", 50, 1, -2)
+			boutput(user, SPAN_ALERT("You attempt to open the container but its doors are sealed tight. It doesn't look like you'll be able to open it."))
+			playsound(src.loc, 'sound/machines/door_locked.ogg', 50, 1, -2)
 
 	yellow
 		icon_state = "mantayellow"
 	blue
 		icon_state = "mantablue"
 
-/obj/decal/fakeobjects/mantacontainer/upwards
+/obj/fakeobject/mantacontainer/upwards
 		name = "container"
 		desc = "These huge containers are used to transport goods from one place to another."
 		icon = 'icons/obj/large/96x64.dmi'
 		icon_state = "manta"
-		anchored = 2
+		anchored = ANCHORED_ALWAYS
 		density = 1
 		bound_height = 96
 		bound_width = 64
 		layer = EFFECTS_LAYER_BASE
 
-/obj/decal/fakeobjects/mantacontainer/upwards/yellow
+/obj/fakeobject/mantacontainer/upwards/yellow
 	icon_state = "mantayellow"
 
 /obj/roulette_table_w //Big thanks to Haine for the sprite and parts of the code!
@@ -1007,7 +746,7 @@
 	desc = "A table with a built-in roulette wheel and a little ball. The numbers are evenly distributed between black and red, except for the zero which is green. Unlike most of tables you'd find in America, this one only has a single zero, lowering the house edge to about 2.7% on almost every bet. Truly generous."
 	icon = 'icons/obj/gambling.dmi'
 	icon_state = "roulette_w0"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 	var/running = 0
 	var/run_time = 40
@@ -1022,7 +761,7 @@
 	get_desc()
 		return last_result_text ? "<br>The ball is currently on [last_result_text]." : ""
 
-	proc/update_icon()
+	update_icon()
 		if (running == 0)
 			src.icon_state = "roulette_w0"
 		else if (running == 1)
@@ -1039,10 +778,10 @@
 		else
 			src.visible_message("[src] starts spinning!")
 		src.running = 1
-		update_icon()
+		UpdateIcon()
 		var/real_run_time = rand(src.run_time - 10, src.run_time + 10)
 		sleep(real_run_time - 10)
-		playsound(src.loc, "sound/items/coindrop.ogg", 30, 1)
+		playsound(src.loc, 'sound/items/coindrop.ogg', 30, 1)
 		sleep(1 SECOND)
 
 		src.last_result = rand(0,36)
@@ -1059,33 +798,33 @@
 			background_color = "#33aa33"
 
 		last_result_text = "<span style='padding: 0 0.5em; color: white; background-color: [background_color];'>[src.last_result]</span> [result_color]"
-		src.visible_message("<span class='success'>[src] lands on [last_result_text]!</span>")
+		src.visible_message(SPAN_SUCCESS("[src] lands on [last_result_text]!"))
 		src.running = 0
-		update_icon()
+		UpdateIcon()
 		sleep(1 SECONDS)
 		src.maptext_x = -1
 		src.maptext_y = 8
 		src.maptext = "<span class='xfont sh c vm' style='background: [background_color];'> [src.last_result] </span>"
-		SPAWN_DBG(4 SECONDS)
+		SPAWN(4 SECONDS)
 			src.maptext = ""
 
 
-/obj/decal/fakeobjects/turbinetest
+/obj/fakeobject/turbinetest
 		name = "TEMP"
 		desc = "TEMP"
 		icon = 'icons/obj/large/96x160.dmi'
 		icon_state = "turbine_main"
-		anchored = 2
+		anchored = ANCHORED_ALWAYS
 		density = 1
 		bound_height = 160
 		bound_width = 96
 
-/obj/decal/fakeobjects/nuclearcomputertest
+/obj/fakeobject/nuclearcomputertest
 		name = "TEMP"
 		desc = "TEMP"
 		icon = 'icons/obj/large/32x96.dmi'
 		icon_state = "nuclearcomputer"
-		anchored = 2
+		anchored = ANCHORED_ALWAYS
 		density = 1
 		bound_height = 96
 		bound_width = 32
@@ -1100,7 +839,7 @@
 
 	density = 0
 	opacity = 0
-	anchored = 1
+	anchored = ANCHORED
 
 	icon = 'icons/obj/items/weapons.dmi'
 	icon_state = "lawbook"
@@ -1127,14 +866,14 @@
 		if(hit_atom == usr)
 			if(prob(prob_clonk))
 				var/mob/living/carbon/human/user = usr
-				user.visible_message("<span class='alert'><B>[user] fumbles the catch and is clonked on the head!</B></span>")
+				user.visible_message(SPAN_ALERT("<B>[user] fumbles the catch and is clonked on the head!</B>"))
 				playsound(user.loc, 'sound/impact_sounds/Flesh_Break_1.ogg', 50, 1)
 				user.changeStatus("stunned", 5 SECONDS)
-				user.changeStatus("weakened", 3 SECONDS)
-				user.changeStatus("paralysis", 2 SECONDS)
+				user.changeStatus("knockdown", 3 SECONDS)
+				user.changeStatus("unconscious", 2 SECONDS)
 				user.force_laydown_standup()
 			else
-				src.attack_hand(usr)
+				src.Attackhand(usr)
 			return
 		else
 			if(ishuman(hit_atom))
@@ -1143,13 +882,13 @@
 				if(hos)
 					var/mob/living/carbon/human/H = hit_atom
 					H.changeStatus("stunned", 9 SECONDS)
-					H.changeStatus("weakened", 2 SECONDS)
+					H.changeStatus("knockdown", 2 SECONDS)
 					H.force_laydown_standup()
 					//H.paralysis++
 					playsound(H.loc, "swing_hit", 50, 1)
 					usr.say("I AM THE LAW!")
 				prob_clonk = min(prob_clonk + 5, 40)
-				SPAWN_DBG(2 SECONDS)
+				SPAWN(2 SECONDS)
 					prob_clonk = max(prob_clonk - 5, 0)
 
 		return ..(hit_atom)
@@ -1159,7 +898,7 @@
 	icon = 'icons/obj/stationobjs.dmi'
 	icon_state = "portal"
 	density = 1
-	anchored = 1
+	anchored = ANCHORED
 	var/recharging =0
 	var/id = "shuttle" //The main location of the teleporter
 	var/recharge = 20 //A short recharge time between teleports
@@ -1170,12 +909,12 @@
 
 	Bumped(mob/user as mob)
 		if(busy) return
-		if(get_dist(user, src) > 1 || user.z != src.z) return
+		if(BOUNDS_DIST(user, src) > 0 || user.z != src.z) return
 		src.add_dialog(user)
 		busy = 1
 		showswirl(user.loc)
-		playsound(src, 'sound/effects/teleport.ogg', 60, 1)
-		SPAWN_DBG(1 SECOND)
+		playsound(src, 'sound/effects/teleport.ogg', 60, TRUE)
+		SPAWN(1 SECOND)
 		teleport(user)
 		busy = 0
 
@@ -1189,7 +928,7 @@
 					src.recharging = 1
 					user.set_loc(S.loc)
 					showswirl(user.loc)
-					SPAWN_DBG(recharge)
+					SPAWN(recharge)
 						S.recharging = 0
 						src.recharging = 0
 				return
@@ -1213,7 +952,7 @@
 	angertext = "screeches at"
 
 	seek_target()
-		src.anchored = 0
+		src.anchored = UNANCHORED
 		for (var/mob/living/C in hearers(src.seekrange,src))
 			if (src.target)
 				src.task = "chasing"
@@ -1230,27 +969,30 @@
 			if (src.attack)
 				src.target = C
 				src.oldtarget_name = C.name
-				src.visible_message("<span class='combat'><b>[src]</b> [src.angertext] [C.name]!</span>")
+				src.visible_message(SPAN_COMBAT("<b>[src]</b> [src.angertext] [C.name]!"))
 				src.task = "chasing"
 				break
 			else
 				continue
 
 	ChaseAttack(mob/M)
-		src.visible_message("<span class='combat'><B>[src]</B> launches itself at [M]!</span>")
-		if (prob(30)) M.changeStatus("weakened", 2 SECONDS)
+		src.visible_message(SPAN_COMBAT("<B>[src]</B> launches itself at [M]!"))
+		if (prob(30)) M.changeStatus("knockdown", 2 SECONDS)
 
 	CritterAttack(mob/M)
 		src.attacking = 1
-		src.visible_message("<span class='combat'><B>[src]</B> bites and claws at [src.target]!</span>")
+		src.visible_message(SPAN_COMBAT("<B>[src]</B> bites and claws at [src.target]!"))
 		random_brute_damage(src.target, rand(3,5),1)
 		random_burn_damage(src.target, rand(2,3))
-		SPAWN_DBG(1 SECOND)
+		SPAWN(1 SECOND)
 			src.attacking = 0
 
 	CritterDeath()
 		..()
 		qdel(src)
+
+TYPEINFO(/obj/item/rpcargotele)
+	mats = 4
 
 /obj/item/rpcargotele
 	name = "special cargo transporter"
@@ -1258,23 +1000,21 @@
 	icon = 'icons/obj/items/mining.dmi'
 	icon_state = "syndicargotele"
 	w_class = W_CLASS_SMALL
-	flags = ONBELT
-	mats = 4
+	c_flags = ONBELT
 
 /obj/decoration/scenario/crate
 	name = "NT vital supplies crate"
-	anchored = 2
+	anchored = ANCHORED_ALWAYS
 	density = 1
 	desc = "A tightly locked metal crate."
 	icon = 'icons/obj/decoration.dmi'
 	icon_state = "ntcrate"
 
-	attackby(var/obj/item/I as obj, var/mob/user as mob)
+	attackby(var/obj/item/I, var/mob/user)
 		if (istype(I, /obj/item/rpcargotele))
 			actions.start(new /datum/action/bar/icon/scenariocrate(src, I, 300), user)
 
 /datum/action/bar/icon/scenariocrate
-	id = "scenariocrate"
 	interrupt_flags = INTERRUPT_MOVE | INTERRUPT_ACT | INTERRUPT_STUNNED | INTERRUPT_ACTION
 	duration = 300
 	icon = 'icons/obj/items/mining.dmi'
@@ -1296,7 +1036,7 @@
 
 	onUpdate()
 		..()
-		if (thecrate == null || the_tool == null || owner == null || get_dist(owner, thecrate) > 1)
+		if (thecrate == null || the_tool == null || owner == null || BOUNDS_DIST(owner, thecrate) > 0)
 			interrupt(INTERRUPT_ALWAYS)
 			return
 		var/mob/source = owner
@@ -1305,13 +1045,13 @@
 
 	onStart()
 		..()
-		playsound(thecrate, "sound/machines/click.ogg", 60, 1)
-		owner.visible_message("<span class='notice'>[owner] starts to calibrate the cargo teleporter in a suspicious manner.</span>")
+		playsound(thecrate, 'sound/machines/click.ogg', 60, TRUE)
+		owner.visible_message(SPAN_NOTICE("[owner] starts to calibrate the cargo teleporter in a suspicious manner."))
 	onEnd()
 		..()
-		owner.visible_message("<span class='alert'>[owner] has successfully teleported the NT vital supplies somewhere else!</span>")
+		owner.visible_message(SPAN_ALERT("[owner] has successfully teleported the NT vital supplies somewhere else!"))
 		showswirl(thecrate.loc)
 		qdel(thecrate)
 		message_admins("One of the NT supply crates has been succesfully teleported!")
-		boutput(owner, "<span class='notice'>You have successfully teleported one of the supply crates to the Syndicate.</span>")
-		playsound(thecrate, "sound/machines/click.ogg", 60, 1)
+		boutput(owner, SPAN_NOTICE("You have successfully teleported one of the supply crates to the Syndicate."))
+		playsound(thecrate, 'sound/machines/click.ogg', 60, TRUE)

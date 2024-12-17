@@ -9,7 +9,10 @@
 	can_throw = 0
 	blood_id = "plasma"
 
+	faction = list(FACTION_BOTANY)
+
 	death(var/gibbed)
+		. = ..()
 		src.visible_message("<b>[src]</b> ruptures and explodes!")
 		var/turf/T = get_turf(src.loc)
 		if(T)
@@ -19,5 +22,5 @@
 		qdel(src)
 
 	setup_healths()
-		add_hh_flesh(-1, 1, 1)
-		add_hh_flesh_burn(-1, 1, 1)
+		add_hh_flesh(1, 1)
+		add_hh_flesh_burn(1, 1)

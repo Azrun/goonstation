@@ -51,7 +51,7 @@
 				return 0 // It's not a Port-a-Sci, okay.
 
 		var/turf/our_loc = get_turf(src.master)
-		if(istype(test_mob, /mob/dead/aieye))
+		if(isAIeye(test_mob))
 			our_loc = get_turf(test_mob)
 		if (our_loc.loc:teleport_blocked == 2) return 0
 
@@ -102,7 +102,7 @@
 		. += "<h4>[src.machinery_name] Interlink</h4>"
 
 		if (!src.active) // Show us the list.
-			if (!src.machinerylist || (src.machinerylist && src.machinerylist.len == 0))
+			if (!src.machinerylist || (src.machinerylist && length(src.machinerylist) == 0))
 				. += "No linkable machinery found.<BR>"
 
 			else
@@ -186,9 +186,9 @@
 						P3.locked = 1
 
 					if (P3.occupant)
-						logTheThing("station", usr, P3.occupant, "[P3.locked ? "locks" : "unlocks"] [P3.name] with [constructTarget(P3.occupant,"station")] inside at [log_loc(P3)].")
+						logTheThing(LOG_STATION, usr, "[P3.locked ? "locks" : "unlocks"] [P3.name] with [constructTarget(P3.occupant,"station")] inside at [log_loc(P3)].")
 
-					PDA.display_alert("<span style=\"color:blue\">The [src.machinery_name] is now [P3.locked ? "locked" : "unlocked"].</span>")
+					PDA.display_alert(SPAN_NOTICE("The [src.machinery_name] is now [P3.locked ? "locked" : "unlocked"]."))
 
 				else return
 
@@ -197,8 +197,8 @@
 				var/turf/our_loc = get_turf(PDA)
 				if (isAIeye(usr))
 					our_loc = get_turf(usr)
-					if (!(our_loc.cameras && length(our_loc.cameras)))
-						boutput(usr, "<span class='alert'>This area is not within your range of influence.</span>")
+					if (!(our_loc.camera_coverage_emitters && length(our_loc.camera_coverage_emitters)))
+						boutput(usr, SPAN_ALERT("This area is not within your range of influence."))
 						return
 
 				// Z-level check bypass for Port-a-Sci.
@@ -208,15 +208,15 @@
 
 				switch (src.teleport_sanity_check(P4, usr, null, zlevel_check_bypass))
 					if (0)
-						PDA.display_alert("<span style=\"color:red\">Teleportation failed due to unknown interference!</span>")
+						PDA.display_alert(SPAN_ALERT("Teleportation failed due to unknown interference!"))
 					if (2)
-						PDA.display_alert("<span style=\"color:red\">The [src.machinery_name] is recharging!</span>")
+						PDA.display_alert(SPAN_ALERT("The [src.machinery_name] is recharging!"))
 					if (3)
-						PDA.display_alert("<span style=\"color:red\">Cannot teleport unlocked [src.machinery_name] with someone inside!</span>")
+						PDA.display_alert(SPAN_ALERT("Cannot teleport unlocked [src.machinery_name] with someone inside!"))
 					if (4)
-						PDA.display_alert("<span style=\"color:red\">Teleportation failed due to obstacle!</span>")
+						PDA.display_alert(SPAN_ALERT("Teleportation failed due to obstacle!"))
 					if (5)
-						PDA.display_alert("<span style=\"color:red\">Teleportation failed due to obstacle at home turf!</span>")
+						PDA.display_alert(SPAN_ALERT("Teleportation failed due to obstacle at home turf!"))
 
 					else
 						src.anti_spam = world.time
@@ -235,7 +235,9 @@
 							var/obj/storage/closet/port_a_sci/PS = P4
 							PS.on_teleport()
 
+						flick("[P4.icon_state]-tele", P4)
 						elecflash(P4)
+						logTheThing(LOG_STATION, usr, "teleports [P4] to [log_loc(our_loc)].")
 
 			if ("return")
 				var/obj/P5 = src.active
@@ -244,7 +246,7 @@
 					dest_loc = get_turf(P5:homeloc) // I have sinned, though the BAD OPERATOR might be unproblematic here.
 
 				if (!dest_loc || !isturf(dest_loc))
-					PDA.display_alert("<span style=\"color:red\">No home turf assigned to [src.machinery_name], can't teleport!</span>")
+					PDA.display_alert(SPAN_ALERT("No home turf assigned to [src.machinery_name], can't teleport!"))
 					return
 
 				// Z-level check bypass for Port-a-Sci.
@@ -254,15 +256,15 @@
 
 				switch (src.teleport_sanity_check(P5, usr, dest_loc, zlevel_check_bypass))
 					if (0)
-						PDA.display_alert("<span style=\"color:red\">Teleportation failed due to unknown interference!</span>")
+						PDA.display_alert(SPAN_ALERT("Teleportation failed due to unknown interference!"))
 					if (2)
-						PDA.display_alert("<span style=\"color:red\">The [src.machinery_name] is recharging!</span>")
+						PDA.display_alert(SPAN_ALERT("The [src.machinery_name] is recharging!"))
 					if (3)
-						PDA.display_alert("<span style=\"color:red\">Cannot teleport unlocked [src.machinery_name] with someone inside!</span>")
+						PDA.display_alert(SPAN_ALERT("Cannot teleport unlocked [src.machinery_name] with someone inside!"))
 					if (4)
-						PDA.display_alert("<span style=\"color:red\">Teleportation failed due to obstacle!</span>")
+						PDA.display_alert(SPAN_ALERT("Teleportation failed due to obstacle!"))
 					if (5)
-						PDA.display_alert("<span style=\"color:red\">Teleportation failed due to obstacle at home turf!</span>")
+						PDA.display_alert(SPAN_ALERT("Teleportation failed due to obstacle at home turf!"))
 
 					else
 						src.anti_spam = world.time
@@ -281,8 +283,9 @@
 						if (istype(P5, /obj/storage/closet/port_a_sci/))
 							var/obj/storage/closet/port_a_sci/PS2 = P5
 							PS2.on_teleport()
-
+						flick("[P5.icon_state]-tele", P5)
 						elecflash(P5)
+						logTheThing(LOG_STATION, usr, "teleports [P5] to its home turf [log_loc(dest_loc)].")
 
 		PDA.updateSelfDialog()
 		return
@@ -306,7 +309,7 @@
 		return
 
 /datum/computer/file/pda_program/portable_machinery_control/portamedbay
-	name = "P-Medbay Remote" // Damn forced line breaks.
+	name = "Port-a-Medbay Remote" // Damn forced line breaks.
 	our_machinery = /obj/machinery/sleeper/port_a_medbay
 	machinery_name = "Port-a-Medbay"
 	size = 4
@@ -324,7 +327,7 @@
 		return
 
 /datum/computer/file/pda_program/portable_machinery_control/portananomed
-	name = "NanoMed Remote" // Damn forced line breaks.
+	name = "Port-a-NanoMed Remote" // Damn forced line breaks.
 	our_machinery = /obj/machinery/vending/port_a_nanomed/
 	machinery_name = "Port-a-NanoMed"
 	size = 4

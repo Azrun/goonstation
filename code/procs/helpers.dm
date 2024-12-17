@@ -25,12 +25,6 @@
 	return test == uppertext(test)
 
 /**
-  * Shows the calling client admins.txt
-  */
-/proc/showadminlist()
-	usr.client.Export("##action=browse_file","config/admins.txt")
-
-/**
   * Returns the line matrix from a start atom to an end atom, used in creating line objects
   */
 /proc/getLineMatrix(var/atom/start, var/atom/end)
@@ -81,26 +75,29 @@
 
 	return B
 
-var/global/obj/flashDummy
+var/global/obj/fuckyou/flashDummy
+
+// This runtimes due to abstract instantiation every time an arcflash occurs and I don't feel like fixing it so here's a magic concrete child
+/obj/fuckyou
 
 /proc/getFlashDummy()
 	if (!flashDummy)
-		flashDummy = new /obj(null)
+		flashDummy = new /obj/fuckyou(null)
 		flashDummy.set_density(0)
-		flashDummy.opacity = 0
-		flashDummy.anchored = 1
+		flashDummy.set_opacity(0)
+		flashDummy.anchored = ANCHORED
 		flashDummy.mouse_opacity = 0
 	return flashDummy
 
 /proc/arcFlashTurf(var/atom/from, var/turf/target, var/wattage, var/volume = 30)
 	var/obj/O = getFlashDummy()
 	O.set_loc(target)
-	playsound(target, "sound/effects/elec_bigzap.ogg", volume, 1)
+	playsound(target, 'sound/effects/elec_bigzap.ogg', volume, 1)
 
 	var/list/affected = DrawLine(from, O, /obj/line_obj/elec ,'icons/obj/projectiles.dmi',"WholeLghtn",1,1,"HalfStartLghtn","HalfEndLghtn",OBJ_LAYER,1,PreloadedIcon='icons/effects/LghtLine.dmi')
 
 	for(var/obj/Q in affected)
-		SPAWN_DBG(0.6 SECONDS) pool(Q)
+		SPAWN(0.6 SECONDS) qdel(Q)
 
 	for(var/mob/living/M in get_turf(target))
 		M.shock(from, wattage, "chest", 1, 1)
@@ -120,23 +117,34 @@ var/global/obj/flashDummy
 	elecflash(target,power = elecflashpower)
 	O.set_loc(null)
 
-/proc/arcFlash(var/atom/from, var/atom/target, var/wattage)
+/proc/arcFlash(var/atom/from, var/atom/target, var/wattage, stun_coeff = 1)
 	var/target_r = target
 	if (isturf(target))
 		var/obj/O = getFlashDummy()
 		O.set_loc(target)
 		target_r = O
+	if(wattage && isliving(target)) //Grilles can reroute arcflashes
+		for(var/obj/mesh/grille/L in range(target,1)) // check for nearby grilles
+			var/arcprob = L.material?.getProperty("electrical") >= 6 ? 60 : 30
+			if(!L.ruined && L.anchored)
+				if (prob(arcprob) && L.get_connection()) // hopefully half the default is low enough
+					target = L
+					target_r = L
+					continue
 
-	playsound(target, "sound/effects/elec_bigzap.ogg", 30, 1)
+	playsound(target, 'sound/effects/elec_bigzap.ogg', 30, TRUE)
 
 	var/list/affected = DrawLine(from, target_r, /obj/line_obj/elec ,'icons/obj/projectiles.dmi',"WholeLghtn",1,1,"HalfStartLghtn","HalfEndLghtn",OBJ_LAYER,1,PreloadedIcon='icons/effects/LghtLine.dmi')
 
 	for(var/obj/O in affected)
-		SPAWN_DBG(0.6 SECONDS) pool(O)
+		SPAWN(0.6 SECONDS) qdel(O)
 
 	if(wattage && isliving(target)) //Probably unsafe.
-		target:shock(from, wattage, "chest", 1, 1)
-
+		target:shock(from, wattage, "chest", stun_coeff, 1)
+	if (isobj(target))
+		if(wattage && istype(target, /obj/mesh/grille))
+			var/obj/mesh/grille/G = target
+			G.on_arcflash(wattage)
 	var/elecflashpower = 0
 	if (wattage > 12000)
 		elecflashpower = 6
@@ -170,11 +178,13 @@ proc/castRay(var/atom/A, var/Angle, var/Distance) //Adapted from some forum stuf
 			if(!(T in crossed)) crossed.Add(T)
 	return crossed
 
-/**
-	* Returns the angle between two given atoms
-	*/
-proc/get_angle(atom/a, atom/b)
-    .= arctan(b.y - a.y, b.x - a.x)
+/// Returns the angle between two given atoms
+/proc/get_angle(atom/a, atom/b)
+	var/turf/a_turf = get_turf(a)
+	var/turf/b_turf = get_turf(b)
+	if (isnull(a_turf) || isnull(b_turf))
+		return null
+	. = arctan(b_turf.y - a_turf.y, b_turf.x - a_turf.x)
 
 /turf/var/movable_area_next_type = null
 /turf/var/movable_area_prev_type = null
@@ -242,13 +252,23 @@ proc/get_angle(atom/a, atom/b)
 		return 1
 
 /proc/is_blocked_turf(var/turf/T)
-	// drsingh for cannot read null.density
-	if (!T) return 0
-	if(T.density) return 1
+	. = FALSE
+	if (!T)
+		return FALSE
+	if (T.density)
+		return TRUE
 	for(var/atom/A in T)
-		if(A?.density)//&&A.anchored
-			return 1
-	return 0
+		if(A?.density) // && A.anchored
+			return TRUE
+
+//is_blocked_turf for flock
+/proc/flock_is_blocked_turf(var/turf/T)
+	if (!T) return FALSE
+	if(T.density) return TRUE
+	for(var/atom/A in T)
+		if(A?.density && !isflockmob(A))//ignores flockdrones/flockbits
+			return TRUE
+	return FALSE
 
 /proc/get_edge_cheap(var/atom/A, var/direction)
 	. = A.loc
@@ -307,33 +327,16 @@ proc/get_angle(atom/a, atom/b)
 		index = findtext(t, "\t")
 	return t // fuk.
 
-/proc/sanitize_noencode(var/t)
-	var/index = findtext(t, "\n")
-	while(index)
-		t = copytext(t, 1, index) + "#" + copytext(t, index+1)
-		index = findtext(t, "\n")
-
-	index = findtext(t, "\t")
-	while(index)
-		t = copytext(t, 1, index) + "#" + copytext(t, index+1)
-		index = findtext(t, "\t")
-	return t
-
-/proc/strip_html(var/t,var/limit=MAX_MESSAGE_LEN, var/no_fucking_autoparse = 0)
+/proc/strip_html(var/t,var/limit=MAX_MESSAGE_LEN, var/no_fucking_autoparse = 0, strip_newlines=TRUE)
 	t = html_decode(copytext(t,1,limit))
 	if (no_fucking_autoparse == 1)
 		var/list/bad_characters = list("_", "'", "\"", "<", ">", ";", "[", "]", "{", "}", "|", "\\", "/")
 		for(var/c in bad_characters)
 			t = replacetext(t, c, "")
-	var/index = findtext(t, "<")
-	while(index)
-		t = copytext(t, 1, index) + copytext(t, index+1)
-		index = findtext(t, "<")
-	index = findtext(t, ">")
-	while(index)
-		t = copytext(t, 1, index) + copytext(t, index+1)
-		index = findtext(t, ">")
-	. = sanitize(t)
+
+	. = html_encode(t)
+	if (strip_newlines)
+		. = sanitize(.)
 
 /proc/strip_html_tags(var/t,var/limit=MAX_MESSAGE_LEN)
 	. = html_decode(copytext(t,1,limit))
@@ -342,75 +345,47 @@ proc/get_angle(atom/a, atom/b)
 
 /proc/adminscrub(var/t,var/limit=MAX_MESSAGE_LEN)
 	t = html_decode(copytext(t,1,limit))
-	var/index = findtext(t, "<")
-	while(index)
-		t = copytext(t, 1, index) + copytext(t, index+1)
-		index = findtext(t, "<")
-	index = findtext(t, ">")
-	while(index)
-		t = copytext(t, 1, index) + copytext(t, index+1)
-		index = findtext(t, ">")
+
+	// html_encode(t) will convert < and > to &lt; and &gt;
+	// which will allow them to be used (safely) in messages
+
+	// var/index = findtext(t, "<")
+	// while(index)
+	// 	t = copytext(t, 1, index) + "&lt;" + copytext(t, index+1)
+	// 	index = findtext(t, "<")
+	// index = findtext(t, ">")
+	// while(index)
+	// 	t = copytext(t, 1, index) + "&gt;" + copytext(t, index+1)
+	// 	index = findtext(t, ">")
 	. = html_encode(t)
+
+///Cleans up data passed in from network packets for display so it doesn't mess with formatting
+/proc/tidy_net_data(var/t)
+	. = isnum(t) ? t : strip_html(t)
 
 /proc/map_numbers(var/x, var/in_min, var/in_max, var/out_min, var/out_max)
 	. = ((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
 
-/proc/add_zero(t, u)
-	t = "[t]"
-	while (length(t) < u)
-		t = "0[t]"
-	. = t
+/// Adds zeroes to the beginning of a string until it reaches the desired length
+/proc/add_zero(text, desired_length)
+	. = "[text]" // We stringify this because the input might be a number
+	if ((desired_length - length(.)) <= 0)
+		return .
+	return (num2text(0, desired_length - length(.), 10) + .)
 
-/proc/add_lspace(t, u)
-	// why????? because if you pass this a number,
-	// then -- surprise -- length(t) is ZERO. because it's not text.
-	// so step one is to just. do that.
-	// *scream *scream *scream *scream *scream *scream *scream *scream *scream
-	// *scream *scream *scream *scream *scream *scream *scream *scream *scream
-	// *scream *scream *scream *scream *scream *scream *scream *scream *scream
-	t = "[t]"
-	while(length(t) < u)
-		t = " [t]"
-	. = t
+/// Adds `char` ahead of `text` until it reaches `length` characters total
+/proc/pad_leading(text, length, char = " ")
+	. = "[text]" // We stringify this because the input might be a number
+	var/count = length - length_char(.)
+	var/list/chars_to_add[max(count + 1, 0)]
+	return jointext(chars_to_add, char) + .
 
-/proc/add_tspace(t, u)
-	t = "[t]"
-	while(length(t) < u)
-		t = "[t] "
-	. = t
-
-/proc/sortList(var/list/L)
-	if(L.len < 2)
-		return L
-	var/middle = L.len / 2 + 1 // Copy is first,second-1
-	. = mergeLists(sortList(L.Copy(0,middle)), sortList(L.Copy(middle))) //second parameter null = to end of list
-
-/proc/sortNames(var/list/L)
-	var/list/Q = new()
-	for(var/atom/x in L)
-		Q[x.name] = x
-	. = sortList(Q)
-
-/proc/mergeLists(var/list/L, var/list/R)
-	var/Li=1
-	var/Ri=1
-	. = list()
-	while(Li <= L.len && Ri <= R.len)
-		if(sorttext(L[Li], R[Ri]) < 1)
-			var/key = R[Ri]
-			var/ass = !isnum(key) ? R[key] : null //Associative lists. (also hurf durf)
-			. += R[Ri++]
-			if(ass) .[key] = ass
-		else
-			var/key = L[Li]
-			var/ass = !isnum(key) ? L[key] : null //Associative lists. (also hurf durf)
-			. += L[Li++]
-			if(ass) .[key] = ass
-
-	if(Li <= L.len)
-		. += L.Copy(Li, 0)
-	else
-		. += R.Copy(Ri, 0)
+/// Adds `char` after `text` until it reaches `length` characters total
+/proc/pad_trailing(text, length, char = " ")
+	. = "[text]" // We stringify this because the input might be a number
+	var/count = length - length_char(.)
+	var/list/chars_to_add[max(count + 1, 0)]
+	return . + jointext(chars_to_add, char)
 
 /proc/dd_file2list(file_path, separator, can_escape=0)
 	if(separator == null)
@@ -419,7 +394,7 @@ proc/get_angle(atom/a, atom/b)
 		. = file_path
 	else
 		. = file(file_path)
-	. = file2text(.)
+	. = trimtext(file2text(.))
 	if(can_escape)
 		. = replacetext(., "\\[separator]", "") // To be complete we should also replace \\ with \ etc. but who cares
 	. = splittext(., separator)
@@ -463,29 +438,6 @@ proc/get_angle(atom/a, atom/b)
 
 	return list(prefix, message)
 
-/**
-	* Given a list, returns a text string representation of the list's contents.
-	*/
-/proc/english_list(var/list/input, nothing_text = "nothing", and_text = " and ", comma_text = ", ", final_comma_text = "," )
-	var/total = length(input)
-	if (!total)
-		return "[nothing_text]"
-	else if (total == 1)
-		return "[input[1]]"
-	else if (total == 2)
-		return "[input[1]][and_text][input[2]]"
-	else
-		var/output = ""
-		var/index = 1
-		while (index < total)
-			if (index == total - 1)
-				comma_text = final_comma_text
-
-			output += "[input[index]][comma_text]"
-			index++
-
-		return "[output][and_text][input[index]]"
-
 /proc/dd_centertext(message, length)
 	. = length(message)
 	if(. == length)
@@ -499,7 +451,7 @@ proc/get_angle(atom/a, atom/b)
 		else if(delta % 2)
 			. = " " + message
 		delta--
-		var/spaces = add_lspace("",delta/2-1)
+		var/spaces = pad_leading("",delta/2-1)
 		. = spaces + . + spaces
 
 /proc/dd_limittext(message, length)
@@ -510,16 +462,16 @@ proc/get_angle(atom/a, atom/b)
 		.= copytext(message, 1, length + 1)
 
 /**
-	* Returns the given degree converted to a text string in the form of a direction
-	*/
-/proc/angle2text(var/degree)
+ * Returns the given degree converted to a text string in the form of a direction
+ */
+/proc/angle2text(degree)
 	. = dir2text(angle2dir(degree))
 
-/proc/text_input(var/Message, var/Title, var/Default, var/length=MAX_MESSAGE_LEN)
-	. = sanitize(input(Message, Title, Default) as text, length)
+/proc/text_input(Message, Title, var/Default, var/length=MAX_MESSAGE_LEN)
+	. = sanitize(tgui_input_text(usr, Message, Title, Default), length)
 
 /proc/scrubbed_input(var/user, var/Message, var/Title, var/Default, var/length=MAX_MESSAGE_LEN)
-	. = strip_html(input(user, Message, Title, Default) as null|text, length)
+	. = strip_html(tgui_input_text(user, Message, Title, Default), length)
 
 /proc/LinkBlocked(turf/A, turf/B)
 	if(A == null || B == null) return 1
@@ -562,6 +514,8 @@ proc/get_angle(atom/a, atom/b)
 			return TRUE
 
 /proc/getline(atom/M,atom/N)//Ultra-Fast Bresenham Line-Drawing Algorithm
+	M = get_turf(M)
+	N = get_turf(N)
 	var/px=M.x		//starting x
 	var/py=M.y
 	. = list(locate(px,py,M.z))
@@ -657,15 +611,15 @@ proc/get_angle(atom/a, atom/b)
 			. += T
 
 /**
-	* Returns true if the given key is a guest key
-	*/
+ * Returns true if the given key is a guest key
+ */
 /proc/IsGuestKey(key)
-	. = copytext(key, 1, 7) == "Guest-"
+	. = lowertext(copytext(key, 1, 7)) == "guest-"
 
 
 /**
-	* Returns f, ensured that it's a valid frequency
-	*/
+ * Returns f, ensured that it's a valid frequency
+ */
 /proc/sanitize_frequency(var/f)
 	. = round(f)
 	. = clamp(., R_FREQ_MINIMUM, R_FREQ_MAXIMUM) // 144.1 -148.9
@@ -680,7 +634,7 @@ proc/get_angle(atom/a, atom/b)
 	for_by_tcl(M, /mob/living/silicon/ai)
 		. += M
 		LAGCHECK(LAG_REALTIME)
-	for(var/mob/dead/aieye/M in mobs)
+	for(var/mob/living/intangible/aieye/M in mobs)
 		. += M
 		LAGCHECK(LAG_REALTIME)
 	for(var/mob/living/silicon/robot/M in mobs)
@@ -699,7 +653,7 @@ proc/get_angle(atom/a, atom/b)
 		if(C.client)
 			. += C
 		LAGCHECK(LAG_REALTIME)
-	for(var/mob/wraith/M in mobs)
+	for(var/mob/living/intangible/wraith/M in mobs)
 		. += M
 		LAGCHECK(LAG_REALTIME)
 	for(var/mob/living/intangible/blob_overmind/M in mobs)
@@ -714,26 +668,24 @@ proc/get_angle(atom/a, atom/b)
 	for(var/mob/new_player/M in mobs)
 		. += M
 		LAGCHECK(LAG_REALTIME)
-	for(var/mob/living/carbon/wall/M in mobs)
-		. += M
-		LAGCHECK(LAG_REALTIME)
 	for(var/mob/living/silicon/ghostdrone/M in mobs)
 		. += M
 		LAGCHECK(LAG_REALTIME)
 	for(var/mob/zoldorf/M in mobs)
 		. += M
 		LAGCHECK(LAG_REALTIME)
-	for(var/mob/living/seanceghost/M in mobs)
+	for(var/mob/living/intangible/seanceghost/M in mobs)
 		. += M
 		LAGCHECK(LAG_REALTIME)
 
 //Include details shows traitor status etc
 //Admins replaces the src ref for links with a placeholder for message_admins
 //Mentor just changes the private message link
-/proc/key_name(var/whom, var/include_details = 1, var/admins = 1, var/mentor = 0, var/custom_href=null)
+/proc/key_name(var/whom, var/include_details = 1, var/admins = 1, var/mentor = 0, var/custom_href=null, mob/user=null, additional_url_data = null)
 	var/mob/the_mob = null
 	var/client/the_client = null
 	var/the_key = ""
+	var/last_ckey = null
 
 	if (isnull(whom))
 		return "*null*"
@@ -745,6 +697,7 @@ proc/get_angle(atom/a, atom/b)
 		the_mob = whom
 		the_client = the_mob.client
 		the_key = html_encode(the_mob.key)
+		last_ckey = the_mob.last_ckey
 	else if (istype(whom, /datum))
 		if (ismind(whom))
 			var/datum/mind/the_mind = whom
@@ -776,12 +729,15 @@ proc/get_angle(atom/a, atom/b)
 	var/text = ""
 
 	if (!the_key)
-		text += "*no client*"
+		if(last_ckey)
+			text += "*last ckey: [last_ckey]*"
+		else
+			text += "*no client*"
 	else
 		if (!isnull(the_mob))
-			if(custom_href) text += "<a href=\"[custom_href]\">"
-			else if(mentor) text += "<a href=\"byond://?action=mentor_msg&target=[the_mob.ckey]\">"
-			else text += "<a href=\"byond://?action=priv_msg&target=[the_mob.ckey]\">"
+			if(custom_href) text += "<a href=\"[custom_href][additional_url_data]\">"
+			else if(mentor) text += "<a href=\"byond://?action=mentor_msg&target=[the_mob.ckey][additional_url_data]\">"
+			else text += "<a href=\"byond://?action=priv_msg&target=[the_mob.ckey][additional_url_data]\">"
 
 		if (the_client)
 			if (the_client.holder && the_client.stealth && !include_details)
@@ -806,7 +762,7 @@ proc/get_angle(atom/a, atom/b)
 				text += html_encode(the_mob.name)
 			text += " "
 			if (the_client && !the_client.holder) //only show this stuff for non-admins because admins do a lot of shit while dead and it is unnecessary to show it
-				if (checktraitor(the_mob))
+				if (the_mob.mind?.is_antagonist())
 					text += "\[<font color='red'>T</font>\] "
 				if (isdead(the_mob))
 					text += "\[DEAD\] "
@@ -815,7 +771,9 @@ proc/get_angle(atom/a, atom/b)
 			if (admins)
 				linkSrc = "%admin_ref%"
 			else
-				linkSrc = "\ref[usr.client.holder]"
+				if (isnull(user))
+					user = usr
+				linkSrc = "\ref[user.client.holder]"
 			text += "<a href='byond://?src=[linkSrc]&action=adminplayeropts&targetckey=[the_mob.ckey]' class='popt'><i class='icon-info-sign'></i></a>"
 
 	return text
@@ -873,19 +831,22 @@ proc/get_angle(atom/a, atom/b)
 // used for mass driver
 /proc/get_edge_target_turf(var/atom/A, var/direction)
 
+	if (isnull(A))
+		stack_trace("get_edge_target_turf called with null reference atom.")
+
 	var/turf/target = locate(A.x, A.y, A.z)
-	if (!A || !target)
+	if (!target)
 		return 0
 		//since NORTHEAST == NORTH & EAST, etc, doing it this way allows for diagonal mass drivers in the future
 		//and isn't really any more complicated
 
 		// Note diagonal directions won't usually be accurate
 	if(direction & NORTH)
-		target = locate(target.x, world.maxy-1, target.z)
+		target = locate(target.x, world.maxy, target.z)
 	if(direction & SOUTH)
 		target = locate(target.x, 1, target.z)
 	if(direction & EAST)
-		target = locate(world.maxx-1, target.y, target.z)
+		target = locate(world.maxx, target.y, target.z)
 	if(direction & WEST)
 		target = locate(1, target.y, target.z)
 
@@ -896,6 +857,9 @@ proc/get_angle(atom/a, atom/b)
 // note range is non-pythagorean
 // used for disposal system
 /proc/get_ranged_target_turf(var/atom/A, var/direction, var/range)
+
+	if (isnull(A))
+		stack_trace("get_ranged_target_turf called with null reference atom.")
 
 	var/x = A.x
 	var/y = A.y
@@ -914,8 +878,11 @@ proc/get_angle(atom/a, atom/b)
 // returns turf relative to A offset in dx and dy tiles
 // bound to map limits
 /proc/get_offset_target_turf(var/atom/A, var/dx, var/dy)
-	var/x = min(world.maxx, max(1, A.x + dx))
-	var/y = min(world.maxy, max(1, A.y + dy))
+
+	if (isnull(A))
+		stack_trace("get_offset_target_turf called with null reference atom.")
+	var/x = clamp(A.x + dx, 1, world.maxx)
+	var/y = clamp(A.y + dy, 1, world.maxy)
 	return locate(x,y,A.z)
 
 
@@ -955,7 +922,7 @@ proc/get_adjacent_floor(atom/W, mob/user, px, py)
 
 
 // extends pick() to associated lists
-/proc/alist_pick(var/list/L)
+/proc/alist_pick(list/L)
 	if(!L || !length(L))
 		return null
 	return L[pick(L)]
@@ -1017,75 +984,68 @@ proc/get_adjacent_floor(atom/W, mob/user, px, py)
 // you couldnt have gone for "msg" or something that makes 10 times more sense?!?
 // In summary: aaaaaaaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 // <3 Fire
-/proc/stars(n, pr)
+// I'm preserving the above comment block, let it be known this proc used to use the variables "n", "pr", "te", "t", "p." I have fixed them. You're welcome.
+// <3 FlamingLily
+/proc/stars(phrase, probability = 25)
+	if(length(phrase) == 0)
+		return
+	var/list/chars = splittext_char(html_decode(phrase), "")
+	for(var/i in 1 to length(chars))
+		if(chars[i] == " " || !prob(probability))
+			continue
+		chars[i] = "*"
+	return sanitize(jointext(chars, ""))
 
-	if (pr == null)
-		pr = 25
-	if (pr <= 0)
-		return null
-	else
-		if (pr >= 100)
-			return n
-	var/te = n
-	var/t = ""
-	n = length(n)
-	var/p = null
-	p = 1
-	while(p <= n)
-		if ((copytext(te, p, p + 1) == " " || prob(pr)))
-			t = text("[][]", t, copytext(te, p, p + 1))
-		else
-			t = text("[]*", t)
-		p++
-	return t
-
-/proc/stutter(n)
-	var/te = html_decode(n)
-	var/t = ""
-	n = length(n)
-	var/p = null
-	p = 1
-	while(p <= n)
-		var/n_letter = copytext(te, p, p + 1)
+/proc/stutter(text)
+	text = html_decode(text)
+	var/output = ""
+	var/length = length(text)
+	var/pos = null
+	pos = 1
+	while(pos <= length)
+		var/n_letter = copytext(text, pos, pos + 1)
+		if (text2num(n_letter))
+			output += n_letter
+			pos++
+			continue
 		if (prob(80))
 			if (prob(10))
-				n_letter = text("[n_letter][n_letter][n_letter][n_letter]")
+				n_letter = "[n_letter][n_letter][n_letter][n_letter]"
 			else
 				if (prob(20))
-					n_letter = text("[n_letter][n_letter][n_letter]")
+					n_letter = "[n_letter][n_letter][n_letter]"
 				else
 					if (prob(5))
-						n_letter = null
+						n_letter = n_letter
 					else
-						n_letter = text("[n_letter][n_letter]")
-		t = text("[t][n_letter]")
-		p++
-	return copytext(sanitize(t),1,MAX_MESSAGE_LEN)
+						n_letter = "[n_letter][n_letter]"
+		output = "[output][n_letter]"
+		pos++
+	return copytext(sanitize(output), 1, MAX_MESSAGE_LEN)
 
-/proc/shake_camera(mob/M, duration, strength=1, delay=0.2)
-	SPAWN_DBG(1 DECI SECOND)
-		if(!M || !M.client || M.shakecamera)
-			return
-		M.shakecamera = 1
-		var/client/client = M.client
+/proc/shake_camera(mob/M, duration, strength=1, delay=0.4)
+	if(!M || !M.client)
+		return
+	var/client/client = M.client
+	var/initial_x = client.pixel_x
+	var/initial_y = client.pixel_y
+	for(var/i=0, i<duration, i++)
+		var/magnitude = randfloat(0, strength)
+		var/angle = randfloat(0, 360)
+		var/target_x = magnitude * cos(angle) + initial_x
+		var/target_y = magnitude * sin(angle) + initial_y
+		var/offset_x = target_x - client.pixel_x
+		var/offset_y = target_y - client.pixel_y
+		animate(client, pixel_x = offset_x, pixel_y = offset_y, easing = LINEAR_EASING, time = delay, flags = ANIMATION_RELATIVE | (i != 0 ? ANIMATION_CONTINUE : ANIMATION_PARALLEL))
+	var/offset_x = initial_x - client.pixel_x
+	var/offset_y = initial_y - client.pixel_y
+	animate(pixel_x = offset_x, pixel_y = offset_y, easing = LINEAR_EASING, time = delay, flags = ANIMATION_RELATIVE)
 
-		for(var/i=0, i<duration, i++)
-			var/off_x = (rand(0, strength) * (prob(50) ? -1:1))
-			var/off_y = (rand(0, strength) * (prob(50) ? -1:1))
-			animate(client, pixel_x = off_x, pixel_y = off_y, easing = LINEAR_EASING, time = 1, flags = ANIMATION_RELATIVE)
-			animate(pixel_x = off_x*-1, pixel_y = off_y*-1, easing = LINEAR_EASING, time = 1, flags = ANIMATION_RELATIVE)
-			sleep(delay)
+/proc/recoil_camera(mob/M, dir, strength=1, spread=3)
+	if(!M || !M.client || !M.client.recoil_controller)
+		return
+	M.client.recoil_controller.recoil_camera(dir,strength,spread)
 
-		if (client)
-			client.pixel_x = 0
-			client.pixel_y = 0
-			M.shakecamera = 0
-
-/proc/findname(msg)
-	for(var/mob/M in mobs)
-		if (M.real_name == text("[msg]"))
-			return 1
-	return 0
 
 /proc/get_cardinal_step_away(atom/start, atom/finish) //returns the position of a step from start away from finish, in one of the cardinal directions
 	//returns only NORTH, SOUTH, EAST, or WEST
@@ -1169,14 +1129,14 @@ proc/get_adjacent_floor(atom/W, mob/user, px, py)
 // Marquesas: added an extra parameter to fix issue with changeling.
 // Unfortunately, it has to be this extra parameter, otherwise the spawn(0) in the mob say will
 // cause the mob's name to revert from the one it acquired for mimic voice.
-/atom/proc/hear_talk(mob/M as mob, text, real_name)
+/atom/proc/hear_talk(mob/M as mob, text, real_name, lang_id)
 	if (src.open_to_sound)
 		for(var/obj/O in src)
-			O.hear_talk(M,text,real_name)
+			O.hear_talk(M,text,real_name, lang_id)
 
 /**
-  * Returns true if given value is a hex value
-  */
+ * Returns true if given value is a hex value
+ */
 /proc/is_hex(hex)
 	if (!( istext(hex) ))
 		return FALSE
@@ -1189,7 +1149,7 @@ proc/get_adjacent_floor(atom/W, mob/user, px, py)
 	var/list/name_temp = splittext(playerName, " ")
 	if (!name_temp.len)
 		playerName = "Unknown"
-	else if (name_temp.len == 1)
+	else if (length(name_temp) == 1)
 		playerName = name_temp[1]
 	else //Ex: John Smith becomes JSmith
 		playerName = copytext( ( copytext(name_temp[1],1, 2) + name_temp[name_temp.len] ), 1, 16)
@@ -1201,7 +1161,7 @@ proc/get_adjacent_floor(atom/W, mob/user, px, py)
 		return "0 "
 
 	var/suffix = ""
-	var/power = round( log(10, value) / 3)
+	var/power = round( log(10, abs(value)) / 3)
 	switch (power)
 		if (-8)
 			suffix = "y"
@@ -1241,19 +1201,43 @@ proc/get_adjacent_floor(atom/W, mob/user, px, py)
 
 /proc/obj_loc_chain(var/atom/movable/whose)
 	. = list()
-	if (isturf(whose) || isarea(whose) || isturf(whose.loc))
+	if (isnull(whose) || isnull(whose.loc) || isturf(whose) || isarea(whose) || isturf(whose.loc))
 		return
 	var/atom/movable/M = whose
 	while (ismob(M.loc) || isobj(M.loc))
 		. += M.loc
 		M = M.loc
 
+proc/outermost_movable(atom/movable/target)
+	RETURN_TYPE(/atom/movable)
+	if (!ismovable(target))
+		return null
+	var/atom/movable/M = target
+	while (ismovable(M.loc))
+		M = M.loc
+	. = M
+
 /proc/all_hearers(var/range,var/centre)
 	. = list()
 	for(var/atom/A as anything in (view(range,centre) | hearers(range, centre))) //Why was this view(). Oh no, the invisible man hears naught 'cause the sound can't find his ears.
 		if (ismob(A))
-			. += A
+			if(isskeleton(A))
+				var/mob/living/carbon/human/H = A
+				if (H.organHolder.head?.head_type == HEAD_SKELETON) // do they have their head
+					. += A
+			else if(!isAIeye(A)) // AI camera eyes can't hear
+				. += A
 		if (isobj(A) || ismob(A))
+			if (istype(A, /obj/item/organ/head))	//Skeletons can hear from their heads!
+				var/obj/item/organ/head/found_head = A
+				if (found_head.head_type == HEAD_SKELETON && found_head.linked_human != null)
+					var/mob/linked_mob = found_head.linked_human
+					. += linked_mob
+			else if (isobj(A)) // is it holding a head
+				for(var/obj/item/organ/head/head in A)
+					if (head.head_type == HEAD_SKELETON && head.linked_human != null)
+						var/mob/linked_mob = head.linked_human
+						. += linked_mob
 			for(var/mob/M in A.contents)
 				var/can_hear = 0 //this check prevents observers from hearing their target's messages twice
 
@@ -1270,8 +1254,16 @@ proc/get_adjacent_floor(atom/W, mob/user, px, py)
 		for(var/mob/M as anything in by_cat[TR_CAT_OMNIPRESENT_MOBS])
 			if(get_step(M, 0)?.z == get_step(centre, 0)?.z)
 				. |= M
+	var/turf/T = get_turf(centre)
+	if(T?.vistarget)
+		// this turf is being shown elsewhere through a visual mirror, make sure they get to hear too
+		. |= all_hearers(range, T.vistarget)
+	for (var/turf/listener as anything in T?.listening_turfs)
+		. |= all_hearers(range, listener)
 
-
+	for(var/atom/movable/screen/viewport_handler/viewport_handler in T?.vis_locs)
+		if(viewport_handler.listens)
+			. |= viewport_handler.viewer.mob
 
 /proc/all_viewers(var/range,var/centre)
 	. = list()
@@ -1288,7 +1280,7 @@ proc/get_adjacent_floor(atom/W, mob/user, px, py)
 
 /proc/all_range(var/range,var/centre) //above two are blocked by opaque objects
 	. = list()
-	for (var/atom/A as anything in range(range,centre))
+	for (var/atom/A in range(range,centre))
 		if (ismob(A))
 			. += A
 		else if (isobj(A))
@@ -1302,20 +1294,22 @@ proc/get_adjacent_floor(atom/W, mob/user, px, py)
 			. += M
 
 /proc/weightedprob(choices[], weights[])
-	if(!choices || !weights) return null
-
+	if(!choices || !weights)
+		return null
 	//Build a range of weights
 	var/max_num = 0
-	for(var/X in weights) if(isnum(X)) max_num += X
-
+	for(var/X in weights)
+		if(isnum(X))
+			max_num += X
 	//Now roll in the range.
-	var/weighted_num = rand(1,max_num)
+	var/weighted_num = rand(1, max_num)
 
-	var/running_total, i
+	var/running_total
 
 	//Loop through all possible choices
-	for(i = 1; i <= choices.len; i++)
-		if(i > weights.len) return null
+	for(var/i in 1 to length(choices))
+		if(i > length(weights))
+			return null
 
 		running_total += weights[i]
 
@@ -1324,12 +1318,13 @@ proc/get_adjacent_floor(atom/W, mob/user, px, py)
 		if(weighted_num <= running_total)
 			return choices[i]
 
-/* Get the highest ancestor of this object in the tree that is an immediate child of
-   a given ancestor.
-   Usage:
-   var/datum/fart/sassy/F = new
-   get_top_parent(F, /datum) //returns a path to /datum/fart
-   */
+/**
+ * Get the highest ancestor of this object in the tree that is an immediate child of a given ancestor.
+ *
+ * Usage:
+ * var/datum/fart/sassy/F = new
+ * get_top_parent(F, /datum) //returns a path to /datum/fart
+ */
 /proc/get_top_ancestor(var/datum/object, var/ancestor_of_ancestor=/datum)
 	if(!object || !ancestor_of_ancestor)
 		CRASH("Null value parameters in get top ancestor.")
@@ -1345,105 +1340,48 @@ proc/get_adjacent_floor(atom/W, mob/user, px, py)
 	var/stringtarget = copytext(stringtype, 1, parentend ? parentend : 0)
 	. = text2path(stringtarget)
 
-//Returns a list of minds that are some type of antagonist role
-//This may be a stop gap until a better solution can be figured out
-/proc/get_all_enemies()
-	if(ticker?.mode && current_state >= GAME_STATE_PLAYING)
-		var/datum/mind/enemies[] = new()
-		var/datum/mind/someEnemies[] = new()
-
-		//We gotta loop through the modes because someone thought it was a good idea to create new lists for all of them
-		if (istype(ticker.mode, /datum/game_mode/revolution))
-			someEnemies = ticker.mode:head_revolutionaries
-			for(var/datum/mind/M in someEnemies)
-				if (M.current)
-					enemies += M
-			someEnemies = ticker.mode:revolutionaries
-			for(var/datum/mind/M in someEnemies)
-				if (M.current)
-					enemies += M
-			someEnemies = ticker.mode:get_all_heads()
-			for(var/datum/mind/M in someEnemies)
-				if (M.current)
-					enemies += M
-		else if (istype(ticker.mode, /datum/game_mode/nuclear))
-			someEnemies = ticker.mode:syndicates
-			for(var/datum/mind/M in someEnemies)
-				if (M.current)
-					enemies += M
-		else if (istype(ticker.mode, /datum/game_mode/spy))
-			someEnemies = ticker.mode:spies
-			for(var/datum/mind/M in someEnemies)
-				if (M.current)
-					enemies += M
-			someEnemies = ticker.mode:leaders
-			for(var/datum/mind/M in someEnemies)
-				if (M.current)
-					enemies += M
-		else if (istype(ticker.mode, /datum/game_mode/gang))
-			someEnemies = ticker.mode:leaders
-			for(var/datum/mind/M in someEnemies)
-				if (M.current)
-					enemies += M
-					for(var/datum/mind/G in M.gang.members) //This may be fucked. Dunno how these are stored.
-						enemies += G
-
-		//Lists we grab regardless of game type
-		//Traitors list is populated during traitor or mixed rounds, however it is created along with the game_mode datum unlike the rest of the lists
-		someEnemies = ticker.mode.traitors
-		for(var/datum/mind/M in someEnemies)
-			if (M.current)
-				enemies += M
-
-		//Sometimes admins assign traitors, this contains those dudes
-		someEnemies = ticker.mode.Agimmicks
-		for(var/datum/mind/M in someEnemies)
-			if (M.current)
-				enemies += M
-
-		return enemies
-
-	else
-		return 0
-
 /proc/GetRedPart(hex)
-    hex = uppertext(hex)
-    var/hi = text2ascii(hex, 2)
-    var/lo = text2ascii(hex, 3)
-    return ( ((hi >= 65 ? hi-55 : hi-48)<<4) | (lo >= 65 ? lo-55 : lo-48) )
+	hex = uppertext(hex)
+	var/hi = text2ascii(hex, 2)
+	var/lo = text2ascii(hex, 3)
+	return ( ((hi >= 65 ? hi-55 : hi-48)<<4) | (lo >= 65 ? lo-55 : lo-48) )
 
 /proc/GetGreenPart(hex)
-    hex = uppertext(hex)
-    var/hi = text2ascii(hex, 4)
-    var/lo = text2ascii(hex, 5)
-    return ( ((hi >= 65 ? hi-55 : hi-48)<<4) | (lo >= 65 ? lo-55 : lo-48) )
+	hex = uppertext(hex)
+	var/hi = text2ascii(hex, 4)
+	var/lo = text2ascii(hex, 5)
+	return ( ((hi >= 65 ? hi-55 : hi-48)<<4) | (lo >= 65 ? lo-55 : lo-48) )
 
 /proc/GetBluePart(hex)
-    hex = uppertext(hex)
-    var/hi = text2ascii(hex, 6)
-    var/lo = text2ascii(hex, 7)
-    return ( ((hi >= 65 ? hi-55 : hi-48)<<4) | (lo >= 65 ? lo-55 : lo-48) )
+	hex = uppertext(hex)
+	var/hi = text2ascii(hex, 6)
+	var/lo = text2ascii(hex, 7)
+	return ( ((hi >= 65 ? hi-55 : hi-48)<<4) | (lo >= 65 ? lo-55 : lo-48) )
 
 /proc/GetColors(hex)
-    hex = uppertext(hex)
-    var/hi1 = text2ascii(hex, 2)
-    var/lo1 = text2ascii(hex, 3)
-    var/hi2 = text2ascii(hex, 4)
-    var/lo2 = text2ascii(hex, 5)
-    var/hi3 = text2ascii(hex, 6)
-    var/lo3 = text2ascii(hex, 7)
-    return list(((hi1>= 65 ? hi1-55 : hi1-48)<<4) | (lo1 >= 65 ? lo1-55 : lo1-48),
-        ((hi2 >= 65 ? hi2-55 : hi2-48)<<4) | (lo2 >= 65 ? lo2-55 : lo2-48),
-        ((hi3 >= 65 ? hi3-55 : hi3-48)<<4) | (lo3 >= 65 ? lo3-55 : lo3-48))
+	hex = uppertext(hex)
+	var/hi1 = text2ascii(hex, 2)
+	var/lo1 = text2ascii(hex, 3)
+	var/hi2 = text2ascii(hex, 4)
+	var/lo2 = text2ascii(hex, 5)
+	var/hi3 = text2ascii(hex, 6)
+	var/lo3 = text2ascii(hex, 7)
+	return list(((hi1>= 65 ? hi1-55 : hi1-48)<<4) | (lo1 >= 65 ? lo1-55 : lo1-48),
+		((hi2 >= 65 ? hi2-55 : hi2-48)<<4) | (lo2 >= 65 ? lo2-55 : lo2-48),
+		((hi3 >= 65 ? hi3-55 : hi3-48)<<4) | (lo3 >= 65 ? lo3-55 : lo3-48))
 
 //Shoves a jump to link or whatever in the thing :effort:
-/proc/showCoords(x, y, z, plaintext, holder)
+/proc/showCoords(x, y, z, plaintext, holder, ghostjump)
 	var text
+	if(isrestrictedz(z) && ghostjump)
+		ghostjump = FALSE
+		plaintext = TRUE
 	if (plaintext)
 		text += "[x], [y], [z]"
+	else if(ghostjump)
+		text += "<a href='byond://winset?command=.ghostjump [x] [y] [z]' title='Jump to Coords'>[x],[y],[z]</a>"
 	else
 		text += "<a href='?src=[holder ? "\ref[holder]" : "%admin_ref%"];action=jumptocoords;target=[x],[y],[z]' title='Jump to Coords'>[x],[y],[z]</a>"
-
 	return text
 
 // hi I'm haine -throws more crap onto the pile-
@@ -1498,7 +1436,7 @@ proc/RarityClassRoll(var/scalemax = 100, var/mod = 0, var/list/category_boundari
 		return 0
 	if (!isnum(mod))
 		return 0
-	if (category_boundaries.len <= 0)
+	if (length(category_boundaries) <= 0)
 		return 0
 
 	var/picker = rand(1,scalemax)
@@ -1518,7 +1456,7 @@ proc/RarityClassRoll(var/scalemax = 100, var/mod = 0, var/list/category_boundari
 	if (!A || !isnum(size) || size <= 0)
 		return list()
 
-	var/list/turfs = list()
+	. = list()
 	var/turf/center = get_turf(A)
 
 	var/corner_range = round(size * 1.5)
@@ -1529,13 +1467,11 @@ proc/RarityClassRoll(var/scalemax = 100, var/mod = 0, var/list/category_boundari
 		current_range++
 		total_distance = 0
 		for (var/turf/T in range(size,center))
-			if (get_dist(T,center) == current_range)
+			if (GET_DIST(T,center) == current_range)
 				total_distance = abs(center.x - T.x) + abs(center.y - T.y) + (current_range / 2)
 				if (total_distance > corner_range)
 					continue
-				turfs += T
-
-	return turfs
+				. += T
 
 /proc/get_fraction_of_percentage_and_whole(var/perc,var/whole)
 	if (!isnum(perc) || !isnum(whole) || perc == 0 || whole == 0)
@@ -1556,7 +1492,7 @@ proc/RarityClassRoll(var/scalemax = 100, var/mod = 0, var/list/category_boundari
 	if (!isnum(armor) || !isnum(damage) || damage <= 0)
 		return 0
 	// [13:22] <volundr> it would be ( (100 - armorpercentage) / 100 ) * damageamount
-	armor = max(0,min(armor,100))
+	armor = clamp(armor, 0, 100)
 	. = ((100 - armor) / 100) * damage
 
 /proc/get_filtered_atoms_in_touch_range(var/atom/center,var/filter)
@@ -1623,6 +1559,28 @@ proc/RarityClassRoll(var/scalemax = 100, var/mod = 0, var/list/category_boundari
 	var/the_time = "[final_minutes][get_english_num(final_hour)] o'clock"
 	return the_time
 
+/// Returns time input as mm:ss
+proc/formatTimeText(var/timeValue as num)
+	var/seconds = round((timeValue / 10) % 60)
+	var/minutes = round(((timeValue / 10) - seconds) / 60)
+	if (minutes < 10)
+		minutes = "0[minutes]"
+	if (seconds < 10)
+		seconds = "0[seconds]"
+	return "[minutes]:[seconds]"
+
+/// Returns shift time as a string in hh:mm format. Call with TRUE to get time in hh:mm:ss format.
+/proc/formattedShiftTime(var/doSeconds)
+	var/elapsedSeconds = round(ticker.round_elapsed_ticks/10, 1)
+	var/elapsedMinutes = round(elapsedSeconds / 60)
+	var/elapsedHours = round(elapsedSeconds / 3600)
+	var/t = ""
+	if (!doSeconds)
+		t = "[add_zero(elapsedHours, 2)]:[add_zero(elapsedMinutes % 60, 2)]"
+	else
+		t = "[add_zero(elapsedHours, 2)]:[add_zero(elapsedMinutes % 60, 2)]:[add_zero(elapsedSeconds % 60, 2)]"
+	return t
+
 /proc/antag_token_list() //List of all players redeeming antagonist tokens
 	var/list/token_list = list()
 	for(var/mob/new_player/player in mobs)
@@ -1647,7 +1605,7 @@ var/list/english_num = list("0" = "zero", "1" = "one", "2" = "two", "3" = "three
 	if (!num || !length(english_num))
 		return
 
-	DEBUG_MESSAGE("<b>get_english_num recieves num \"[num]\"</b>")
+	DEBUG_MESSAGE("<b>get_english_num receives num \"[num]\"</b>")
 
 	if (istext(num))
 		num = text2num(num)
@@ -1706,8 +1664,8 @@ var/list/english_num = list("0" = "zero", "1" = "one", "2" = "two", "3" = "three
 	if (!istype(A) || !istype(B))
 		return
 	if (A.anchored || B.anchored)
-		A.anchored = 1
-		B.anchored = 1
+		A.anchored = ANCHORED
+		B.anchored = ANCHORED
 
 	if (!islist(A.attached_objs))
 		A.attached_objs = list()
@@ -1780,14 +1738,27 @@ proc/countJob(rank)
 		return
 	src.letter_overlay(letter, lcolor, text2dir(dir))
 
+/// Returns a list of eligible dead players that COULD choose to respawn or whatever
+/proc/eligible_dead_player_list(var/allow_dead_antags = 0, var/require_client = FALSE, var/for_antag = TRUE, allow_dnr = FALSE)
+	. = list()
+	for (var/datum/mind/M in ticker.minds)
+		if (M.current && M.current.client)
+			var/client/C = M.current.client
+			if (dead_player_list_helper(M.current, allow_dead_antags, require_client, for_antag, allow_dnr=allow_dnr) != 1)
+				continue
+			if (C.holder && !C.holder.ghost_respawns && !C.player_mode || !M.show_respawn_prompts)
+				continue
+			. += M
+
 /// Returns a list of eligible dead players to be respawned as an antagonist or whatever (Convair880).
 /// Text messages: 1: alert | 2: alert (chatbox) | 3: alert acknowledged (chatbox) | 4: no longer eligible (chatbox) | 5: waited too long (chatbox)
-/proc/dead_player_list(var/return_minds = 0, var/confirmation_spawn = 0, var/list/text_messages = list(), var/allow_dead_antags = 0, var/require_client = FALSE)
+/// for_antag indicates that we are polling for an antag role and so should exclude antag-banned players
+/proc/dead_player_list(var/return_minds = 0, var/confirmation_spawn = 0, var/list/text_messages = list(), var/allow_dead_antags = 0,
+		var/require_client = FALSE, var/do_popup = TRUE, var/for_antag = TRUE, allow_dnr = FALSE)
 	var/list/candidates = list()
-
 	// Confirmation delay specified, so prompt eligible dead mobs and wait for response.
 	if (confirmation_spawn > 0)
-		var/ghost_timestamp = world.time
+		var/ghost_timestamp = TIME
 
 		// Preliminary work.
 		var/text_alert = "Would you like to be respawned? Your name will be added to the list of eligible candidates and may be selected at random by the game."
@@ -1797,53 +1768,63 @@ proc/countJob(rank)
 		var/text_chat_toolate = "You have waited too long to respond to the offer."
 
 		if (text_messages.len)
-			if (text_messages.len >= 1) text_alert = text_messages[1]
-			if (text_messages.len >= 2) text_chat_alert = text_messages[2]
-			if (text_messages.len >= 3) text_chat_added = text_messages[3]
-			if (text_messages.len >= 4) text_chat_failed = text_messages[4]
-			if (text_messages.len >= 5) text_chat_toolate = text_messages[5]
+			if (length(text_messages) >= 1) text_alert = text_messages[1]
+			if (length(text_messages) >= 2) text_chat_alert = text_messages[2]
+			if (length(text_messages) >= 3) text_chat_added = text_messages[3]
+			if (length(text_messages) >= 4) text_chat_failed = text_messages[4]
+			if (length(text_messages) >= 5) text_chat_toolate = text_messages[5]
 
 		text_alert = strip_html(text_alert, MAX_MESSAGE_LEN, 1)
-		text_chat_alert = "<span class='notice'><h3>[strip_html(text_chat_alert, MAX_MESSAGE_LEN)]</h3></span>"
-		text_chat_added = "<span class='notice'><h3>[strip_html(text_chat_added, MAX_MESSAGE_LEN)]</h3></span>"
-		text_chat_failed = "<span class='alert'><b>[strip_html(text_chat_failed, MAX_MESSAGE_LEN)]</b></span>"
-		text_chat_toolate = "<span class='alert'><b>[strip_html(text_chat_toolate, MAX_MESSAGE_LEN)]</b></span>"
+		text_chat_alert = SPAN_NOTICE("<h3>[strip_html(text_chat_alert, MAX_MESSAGE_LEN)]</h3>")
+		text_chat_added = SPAN_NOTICE("<h3>[strip_html(text_chat_added, MAX_MESSAGE_LEN)]</h3>")
+		text_chat_failed = SPAN_ALERT("<b>[strip_html(text_chat_failed, MAX_MESSAGE_LEN)]</b>")
+		text_chat_toolate = SPAN_ALERT("<b>[strip_html(text_chat_toolate, MAX_MESSAGE_LEN)]</b>")
 
 		// Run prompts. Minds are preferable to mob references because of the confirmation delay.
 		for (var/datum/mind/M in ticker.minds)
 			if (M.current && M.current.client)
-				if (dead_player_list_helper(M.current, allow_dead_antags, require_client) != 1)
+				var/client/C = M.current.client
+				if (dead_player_list_helper(M.current, allow_dead_antags, require_client, for_antag, allow_dnr=allow_dnr) != 1)
 					continue
-
-				SPAWN_DBG(0) // Don't lock up the entire proc.
-					M.current << csound("sound/misc/lawnotify.ogg")
+				if (C.holder && !C.holder.ghost_respawns && !C.player_mode || !M.show_respawn_prompts)
+					continue
+				if (!do_popup)
+					candidates |= M
+					continue
+				SPAWN(0) // Don't lock up the entire proc.
+					M.current.playsound_local(M.current, 'sound/misc/lawnotify.ogg', 50, flags=SOUND_IGNORE_SPACE | SOUND_IGNORE_DEAF)
 					boutput(M.current, text_chat_alert)
-
-					if (alert(M.current, text_alert, "Respawn", "Yes", "No") == "Yes")
-						if (ghost_timestamp && world.time > ghost_timestamp + confirmation_spawn)
+					var/list/ghost_button_prompts = list("Yes", "No", "Stop these")
+					var/response = tgui_alert(M.current, text_alert, "Respawn", ghost_button_prompts, (ghost_timestamp + confirmation_spawn - TIME), autofocus = FALSE)
+					if (response == "Yes")
+						if (ghost_timestamp && (TIME > ghost_timestamp + confirmation_spawn))
 							if (M.current) boutput(M.current, text_chat_toolate)
 							return
-						if (dead_player_list_helper(M.current, allow_dead_antags, require_client) != 1)
+						if (dead_player_list_helper(M.current, allow_dead_antags, require_client, for_antag, allow_dnr=allow_dnr) != 1)
 							if (M.current) boutput(M.current, text_chat_failed)
 							return
 
 						if (M.current && !(M in candidates))
 							boutput(M.current, text_chat_added)
 							candidates.Add(M)
+					else if (response == "Stop these")
+						M.show_respawn_prompts = FALSE
+						return
 					else
 						return
 
-		while (ghost_timestamp && world.time < ghost_timestamp + confirmation_spawn)
-			sleep (300)
+		if (do_popup)
+			sleep(confirmation_spawn)
 
 		// Filter list again.
 		if (candidates.len)
 			for (var/datum/mind/M2 in candidates)
-				if (!M2.current || !ismob(M2.current) || dead_player_list_helper(M2.current, allow_dead_antags, require_client) != 1)
+				if (!M2.current || !ismob(M2.current) || dead_player_list_helper(M2.current, allow_dead_antags, require_client, for_antag, allow_dnr=allow_dnr) != 1)
 					candidates.Remove(M2)
 					continue
 
 			if (candidates.len)
+				candidates = prioritize_dead_players(candidates)
 				if (return_minds == 1)
 					return candidates
 				else
@@ -1863,30 +1844,56 @@ proc/countJob(rank)
 	candidates = list()
 
 	for (var/mob/O in mobs)
-		if (dead_player_list_helper(O, allow_dead_antags, require_client) != 1)
+		if (dead_player_list_helper(O, allow_dead_antags, require_client, for_antag, allow_dnr=allow_dnr) != 1)
 			continue
 		if (!(O in candidates))
-			candidates.Add(O)
-
+			candidates.Add(O.mind)
+	candidates = prioritize_dead_players(candidates)
 	if (return_minds == 1)
-		var/list/datum/mind/minds = list()
-		for (var/mob/M2 in candidates)
-			if (M2.mind && !(M2.mind in minds))
-				minds.Add(M2.mind)
+		return candidates
+	else
+		var/list/mob/mobs = list()
+		for (var/datum/mind/M3 in candidates)
+			if (M3.current && ismob(M3.current))
+				if (!(M3.current in mobs))
+					mobs.Add(M3.current)
+		return mobs
 
-		return minds
+///Returns a randomized list of minds with players who joined as observer at the back
+/proc/prioritize_dead_players(list/datum/mind/minds)
+	var/list/observers = list()
+	for (var/datum/mind/mind in minds)
+		if (istype(mind.current, /mob/dead/observer))
+			var/mob/dead/observer/ghost = mind.current
+			if (ghost.observe_round)
+				minds -= mind
+				observers += mind
+	shuffle_list(minds)
+	shuffle_list(observers)
+	return minds + observers
 
-	return candidates
+///Logs a player respawning as something from a respawn event, noting if they joined the round as an observer or not
+///Note: should be called BEFORE they are transferred to the new body
+/proc/log_respawn_event(datum/mind/mind, respawning_as, source)
+	var/is_round_observer = FALSE
+	if (istype(mind.current, /mob/dead/observer))
+		var/mob/dead/observer/ghost = mind.current
+		is_round_observer = ghost.observe_round
+	logTheThing(LOG_ADMIN, mind.current, " was chosen to respawn as a random event [respawning_as][is_round_observer ? " after joining as an observer" : ""]. Source: [source ? "[source]" : "random"]")
 
 // So there aren't multiple instances of C&P code (Convair880).
-/proc/dead_player_list_helper(var/mob/G, var/allow_dead_antags = 0, var/require_client = FALSE)
-	if (!G?.mind || G.mind.dnr)
+/proc/dead_player_list_helper(var/mob/G, var/allow_dead_antags = 0, var/require_client = FALSE, var/for_antag = TRUE, allow_dnr = FALSE)
+	if (!G?.mind || !allow_dnr && G.mind.get_player()?.dnr)
 		return 0
-	if (!isobserver(G) && !(isliving(G) && isdead(G))) // if (NOT /mob/dead) AND NOT (/mob/living AND dead)
+	// if (!isobserver(G) && !(isliving(G) && isdead(G))) // if (NOT /mob/dead) AND NOT (/mob/living AND dead)
+	// 	return 0
+	// If (alive) and (not in the afterlife, or in the afterlife but in hell) and (not a VR ghost)
+	// (basically, allow people who are alive in the afterlife or in VR to get respawn popups)
+	if (!isdead(G) && !(istype(get_area(G), /area/afterlife) && !istype(get_area(G), /area/afterlife/hell)) && !isVRghost(G))
 		return 0
 	if (istype(G, /mob/new_player) || G.respawning)
 		return 0
-	if (jobban_isbanned(G, "Syndicate"))
+	if (for_antag && jobban_isbanned(G, "Syndicate"))
 		return 0
 	if (jobban_isbanned(G, "Special Respawn"))
 		return 0
@@ -1901,8 +1908,10 @@ proc/countJob(rank)
 
 		if (istype(G, /mob/dead/target_observer))
 			var/mob/dead/target_observer/TO = G
-			if (TO.my_ghost && istype(TO.my_ghost, /mob/dead/observer))
-				the_ghost = TO.my_ghost
+			if (!TO.is_respawnable)
+				return 0
+			if (TO.ghost && istype(TO.ghost, /mob/dead/observer))
+				the_ghost = TO.ghost
 
 		if (!the_ghost || !isobserver(the_ghost) || !isdead(the_ghost))
 			return 0
@@ -1912,120 +1921,34 @@ proc/countJob(rank)
 
 	return 1
 
-/proc/check_target_immunity(var/atom/target, var/ignore_everything_but_nodamage = 0, var/atom/source = 0)
-	var/is_immune = 0
+/proc/check_target_immunity(var/atom/target, var/ignore_everything_but_nodamage = FALSE, var/atom/source = 0)
+	. = FALSE
 
-	var/area/a = get_area( target )
-	if( a?.sanctuary )
-		return 1
+	var/area/a = get_area(target)
+	if(a?.sanctuary)
+		return TRUE
 
 	if (isliving(target))
 		var/mob/living/L = target
-
 		if (!isdead(L))
-			if (ignore_everything_but_nodamage == 1)
+			if (ignore_everything_but_nodamage)
 				if (L.nodamage)
-					is_immune = 1
+					. = TRUE
 			else
 				if (L.nodamage || L.spellshield)
-					is_immune = 1
-
-		if (source && istype(source,/obj/projectile) && ishuman(target))
+					. = TRUE
+		if (source && istype(source, /obj/projectile) && ishuman(target))
 			var/mob/living/carbon/human/H = target
 			if(H.stance == "dodge") //matrix dodge flip
-				is_immune = 1
-
-	//if (is_immune == 1)
-	//	DEBUG_MESSAGE("[L] is immune to damage, aborting.")
-
-	return is_immune
-
-// Their antag status is revoked on death/implant removal/expiration, but we still want them to show up in the game over stats (Convair880).
-/proc/remove_mindslave_status(var/mob/M, var/slave_type ="", var/removal_type ="")
-	if (!M || !M.mind || !slave_type || !removal_type)
-		return
-
-	// Find our master's mob reference (if any).
-	var/mob/mymaster = whois_ckey_to_mob_reference(M.mind.master)
-
-	switch (slave_type)
-		if ("mslave")
-			switch (removal_type)
-				if ("expired")
-					logTheThing("combat", M, mymaster, "'s mindslave implant (implanted by [mymaster ? "[constructTarget(mymaster,"combat")]" : "*NOKEYFOUND*"]) has worn off.")
-				if ("surgery")
-					logTheThing("combat", M, mymaster, "'s mindslave implant (implanted by [mymaster ? "[constructTarget(mymaster,"combat")]" : "*NOKEYFOUND*"]) was removed surgically.")
-				if ("override")
-					logTheThing("combat", M, mymaster, "'s mindslave implant (implanted by [mymaster ? "[constructTarget(mymaster,"combat")]" : "*NOKEYFOUND*"]) was overridden by a different implant.")
-				if ("death")
-					logTheThing("combat", M, mymaster, "(implanted by [mymaster ? "[constructTarget(mymaster,"combat")]" : "*NOKEYFOUND*"]) has died, removing mindslave status.")
-				else
-					logTheThing("combat", M, mymaster, "'s mindslave implant (implanted by [mymaster ? "[constructTarget(mymaster,"combat")]" : "*NOKEYFOUND*"]) has vanished mysteriously.")
-
-			remove_antag(M, null, 1, 0)
-			if (M.mind && ticker.mode && !(M.mind in ticker.mode.former_antagonists))
-				if (!M.mind.former_antagonist_roles.Find("mindslave"))
-					M.mind.former_antagonist_roles.Add("mindslave")
-				ticker.mode.former_antagonists += M.mind
-
-		if ("vthrall")
-			switch (removal_type)
-				if ("death")
-					logTheThing("combat", M, mymaster, "(enthralled by [mymaster ? "[constructTarget(mymaster,"combat")]" : "*NOKEYFOUND*"]) has died, removing vampire thrall status.")
-				else
-					logTheThing("combat", M, mymaster, "(enthralled by [mymaster ? "[constructTarget(mymaster,"combat")]" : "*NOKEYFOUND*"]) has been freed mysteriously, removing vampire thrall status.")
-
-			remove_antag(M, null, 1, 0)
-			if (M.mind && ticker.mode && !(M.mind in ticker.mode.former_antagonists))
-				if (!M.mind.former_antagonist_roles.Find("vampthrall"))
-					M.mind.former_antagonist_roles.Add("vampthrall")
-				ticker.mode.former_antagonists += M.mind
-
-		// This is only used for spy slaves and mindslaved antagonists at the moment.
-		if ("otherslave")
-			switch (removal_type)
-				if ("expired")
-					logTheThing("combat", M, mymaster, "'s mindslave implant (implanted by [mymaster ? "[constructTarget(mymaster,"combat")]" : "*NOKEYFOUND*"]) has worn off.")
-				if ("surgery")
-					logTheThing("combat", M, mymaster, "'s mindslave implant (implanted by [mymaster ? "[constructTarget(mymaster,"combat")]" : "*NOKEYFOUND*"]) was removed surgically.")
-				if ("override")
-					logTheThing("combat", M, mymaster, "'s mindslave implant (implanted by [mymaster ? "[constructTarget(mymaster,"combat")]" : "*NOKEYFOUND*"]) was overridden by a different implant.")
-				if ("death")
-					logTheThing("combat", M, mymaster, "(enslaved by [mymaster ? "[constructTarget(mymaster,"combat")]" : "*NOKEYFOUND*"]) has died, removing mindslave status.")
-				else
-					logTheThing("combat", M, mymaster, "(enslaved by [mymaster ? "[constructTarget(mymaster,"combat")]" : "*NOKEYFOUND*"]) has been freed mysteriously, removing mindslave status.")
-
-			// Fix for mindslaved traitors etc losing their antagonist status.
-			if (M.mind && (M.mind.special_role == "spyslave"))
-				remove_antag(M, null, 1, 0)
-			else
-				M.mind.master = null
-			if (M.mind && ticker.mode && !(M.mind in ticker.mode.former_antagonists))
-				if (!M.mind.former_antagonist_roles.Find("mindslave"))
-					M.mind.former_antagonist_roles.Add("mindslave")
-				ticker.mode.former_antagonists += M.mind
-
-		else
-			logTheThing("debug", M, null, "<b>Convair880</b>: [M] isn't a mindslave or vampire thrall, can't remove mindslave status.")
-			return
-
-	if (removal_type == "death")
-		boutput(M, "<h2><span class='alert'>Since you have died, you are no longer a mindslave! Do not obey your former master's orders even if you've been brought back to life somehow.</span></h2>")
-		SHOW_MINDSLAVE_DEATH_TIPS(M)
-	else if (removal_type == "override")
-		boutput(M, "<h2><span class='alert'>Your mindslave implant has been overridden by a new one, cancelling out your former allegiances!</span></h2>")
-		SHOW_MINDSLAVE_OVERRIDE_TIPS(M)
-	else
-		boutput(M, "<h2><span class='alert'>Your mind is your own again! You no longer feel the need to obey your former master's orders.</span></h2>")
-		SHOW_MINDSLAVE_EXPIRED_TIPS(M)
-
-	return
+				if (!ON_COOLDOWN(H, "matrix_sound_effect", 1 SECOND))
+					H.playsound_local(H, 'sound/effects/graffiti_hit.ogg', 40, pitch = 0.8)
+				. = TRUE
 
 /**
-  * Looks up a player based on a string. Searches a shit load of things ~whoa~. Returns a list of mob refs.
-  */
+ * Looks up a player based on a string. Searches a shit load of things ~whoa~. Returns a list of mob refs.
+ */
 /proc/whois(target, limit = null, admin)
-	target = trim(ckey(target))
+	target = trimtext(ckey(target))
 	if (!target)
 		return null
 	. = list()
@@ -2052,7 +1975,7 @@ proc/countJob(rank)
 /**
   * A universal ckey -> mob reference lookup proc, adapted from whois() (Convair880).
   */
-/proc/whois_ckey_to_mob_reference(target as text, exact=1)
+/proc/ckey_to_mob(target as text, exact=1)
 	if(isnull(target))
 		return
 	target = ckey(target)
@@ -2068,8 +1991,26 @@ proc/countJob(rank)
 				return C.mob
 
 /**
-  * Finds whoever's dead.
-	*/
+  * Given a ckey finds a mob with that ckey even if they are not in the game.
+  */
+/proc/ckey_to_mob_maybe_disconnected(target as text, exact=1)
+	if(isnull(target))
+		return
+	target = ckey(target)
+	for(var/mob/M in mobs)
+		if(M.ckey == target)
+			return M
+	if(!exact)
+		for(var/mob/M in mobs) // prefix match second
+			if(copytext(M.ckey, 1, length(target) + 1) == target)
+				return M
+		for(var/mob/M in mobs) // substring match third
+			if (findtext(M.ckey, target))
+				return M
+
+/**
+ * Finds whoever's dead.
+ */
 /proc/whodead()
 	. = list()
 	for (var/mob/M in mobs)
@@ -2087,38 +2028,36 @@ proc/countJob(rank)
 		. += pick(hex_chars)
 
 //A global cooldown on this so it doesnt destroy the external server
-var/global/nextDectalkDelay = 5 //seconds
+var/global/nextDectalkDelay = 1 //seconds
 var/global/lastDectalkUse = 0
-/proc/dectalk(msg)
+///dectalk SAYS its default volume is 5 but it seems to actually be more like 100
+/proc/dectalk(msg, volume = 80)
 	if (!msg) return 0
-	if (world.timeofday > (lastDectalkUse + (nextDectalkDelay * 10)))
-		lastDectalkUse = world.timeofday
+	if (TIME > (lastDectalkUse + (nextDectalkDelay * 10)))
+		lastDectalkUse = TIME
 		msg = copytext(msg, 1, 2000)
-
-		// Fetch via HTTP from goonhub
-		var/datum/http_request/request = new()
-		request.prepare(RUSTG_HTTP_METHOD_GET, "http://spacebee.goonhub.com/api/tts?dectalk=[url_encode(msg)]&api_key=[url_encode(ircbot.apikey)]", "", "")
-		request.begin_async()
-		UNTIL(request.is_complete())
-		var/datum/http_response/response = request.into_response()
-
-		if (response.errored || !response.body)
-			logTheThing("debug", null, null, "<b>dectalk:</b> Failed to contact goonhub. msg : [msg]")
+		msg = "\[:volume set [volume]\][msg]"
+		var/datum/apiModel/DectalkPlayResource/playDectalkResource
+		try
+			var/datum/apiRoute/dectalk/play/playDectalk = new
+			playDectalk.buildBody(msg, roundId)
+			playDectalkResource = apiHandler.queryAPI(playDectalk)
+		catch (var/exception/e)
+			var/datum/apiModel/Error/error = e.name
+			logTheThing(LOG_DEBUG, null, "<b>dectalk:</b> Failed to play dectalk for msg: '[msg]' because: [error.message]")
 			return
 
-		return list("audio" = response.body, "message" = msg)
+		return list("audio" = playDectalkResource.audio, "message" = msg)
 	else
 		return list("cooldown" = 1)
 
-proc/copy_datum_vars(var/atom/from, var/atom/target)
+proc/copy_datum_vars(var/atom/from, var/atom/target, list/blacklist)
 	if (!target || !from) return
 	for(var/V in from.vars)
 		if (!issaved(from.vars[V]))
 			continue
 
-		if(V == "type") continue
-		if(V == "parent_type") continue
-		if(V == "vars") continue
+		if(V == "type" || V == "parent_type" || V == "vars" || (V in blacklist)) continue
 		target.vars[V] = from.vars[V]
 
 /**
@@ -2140,29 +2079,17 @@ proc/copy_datum_vars(var/atom/from, var/atom/target)
 	if (name)
 		return name
 
-var/list/uppercase_letters = list("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z")
-var/list/lowercase_letters = list("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z")
-
-var/global/list/allowed_restricted_z_areas
-
 // Helper for blob, wraiths and whoever else might need them (Convair880).
 /proc/restricted_z_allowed(var/mob/M, var/T)
 	. = FALSE
-	if(!allowed_restricted_z_areas)
-		allowed_restricted_z_areas = concrete_typesof(/area/shuttle/escape) + concrete_typesof(/area/shuttle_transit_space) + concrete_typesof(/area/football/field)
 
-	if (M && isblob(M))
+	if (isblob(M))
 		var/mob/living/intangible/blob_overmind/B = M
 		if (B.tutorial)
 			return TRUE
 
-	var/area/A
-	if (T && istype(T, /area))
-		A = T
-	else if (T && isturf(T))
-		A = get_area(T)
-
-	if (A && istype(A) && (A.type in allowed_restricted_z_areas))
+	var/area/A = get_area(T)
+	if (A?.allowed_restricted_z)
 		return TRUE
 
 /**
@@ -2190,7 +2117,7 @@ var/global/list/allowed_restricted_z_areas
 	for (var/S in smash)
 		if (S == "window" || S == "r_window")
 			for (var/obj/window/W in view(CT, range))
-				if (prob(get_dist(W, CT) * 6))
+				if (prob(GET_DIST(W, CT) * 6))
 					continue
 				//W.health = 0
 				//W.smash()
@@ -2206,9 +2133,11 @@ var/global/list/allowed_restricted_z_areas
 
 		if (S == "glassware")
 			for (var/obj/item/reagent_containers/glass/G in view(CT, range))
-				G.smash()
+				if(G.can_recycle)
+					G.shatter_chemically()
 			for (var/obj/item/reagent_containers/food/drinks/drinkingglass/G2 in range(CT, range))
-				G2.smash()
+				if(G2.can_recycle)
+					G2.shatter_chemically()
 
 	return 1
 
@@ -2244,11 +2173,11 @@ var/global/list/allowed_restricted_z_areas
   * Given user, will proompt user to select skin color from list (or custom) and returns skin tone after blending
   */
 /proc/get_standard_skintone(var/mob/user)
-	var/new_tone = input(user, "Please select skin color.", "Character Generation")  as null|anything in standard_skintones + list("Custom...")
+	var/new_tone = tgui_input_list(user, "Please select skin color.", "Character Generation", standard_skintones + "Custom...")
 	if (new_tone == "Custom...")
-		var/tone = input(user, "Please select skin tone level: 1-220 (1=albino, 35=caucasian, 150=black, 220='very' black)", "Skin tone picker") as null|num
-		if (!isnull(tone))
-			tone = 35 - min(max(tone, 1), 220) // range is 34 to -194
+		var/tone = tgui_input_number(user, "Please select skin tone level: 1-220 (1=albino, 35=caucasian, 150=black, 220='very' black)", "Skin tone picker", 1, 220, 1)
+		if (tone)
+			tone = 35 - clamp(round(text2num(tone)), 1, 220) // range is 34 to -194
 			//new_tone = rgb(220 + tone, 220 + tone, 220 + tone)
 			new_tone = blend_skintone(tone,tone,tone)
 		else
@@ -2287,30 +2216,14 @@ var/global/list/allowed_restricted_z_areas
 		if (M.mind.special_role)
 			var/special = uppertext(copytext(M.mind.special_role, 1, 2)) + copytext(M.mind.special_role, 2)
 			if (!strip)
-				special = "<span class='alert'>[special]</span>"
+				special = SPAN_ALERT("[special]")
 
-			role += " \[[special]]"
+			role += " \[[special]\]"
 
 	else
 		role += M.job
 
 	return role
-
-var/regex/nameRegex = regex("\\xFF.","g")
-/proc/strip_special(var/text)
-	return nameRegex.Replace( "[text]", "" )
-
-
-/**
-  * Removes the special data inserted via use of \improper etc in strings
-  */
-/proc/stripTextMacros(text)
-	if (findtext(text, "\improper"))
-		text = replacetext(text, "\improper", "")
-	if (findtext(text, "\proper"))
-		text = replacetext(text, "\proper", "")
-
-	return text
 
 /**
   * Returns true if given mob/client/mind is an admin
@@ -2330,72 +2243,82 @@ var/regex/nameRegex = regex("\\xFF.","g")
 
 	return FALSE
 
-/**
-  * Returns span with a color gradient between two given colors of given message
-  */
-proc/gradientText(var/color1, var/color2, message)
-  var/color1hex = hex2num(copytext(color1, 2))
-  var/color2hex = hex2num(copytext(color2, 2))
-  var/r1 = (color1hex >> 16) & 0xFF
-  var/g1 = (color1hex >> 8) & 0xFF
-  var/b1 = color1hex & 0xFF
-  var/dr = ((color2hex >> 16) & 0xFF)- r1
-  var/dg = ((color2hex >> 8) & 0xFF) - g1
-  var/db = (color2hex & 0xFF) - b1
-  var/list/result = new/list()
-  var/n = rand(0,10)/10.0 // what a shitty name for a variable
-  var/dir = prob(50) ? -1 : 1
-  for(var/i=1, i<=length(message), i += 3)
-    n += dir * 0.2
-    if(prob(20))
-      dir = dir/abs(dir) * -1
-    if(n < 0)
-      n = 0
-      dir = 1
-    if(n > 1)
-      n = 1
-      dir = -1
-    var/col = rgb(r1 + dr*n, g1 + dg*n, b1 + db*n)
-    var/chars = copytext(message, i, i+3)
-    result += "<span style='color:[col]'>[chars]</span>"
-  . = result.Join()
+/// Repeat a gradient between two colors across text.
+/// Note: This is inaccurate because its a linear transformation, but human eyes do not perceive color this way.
+/proc/gradientText(color_1, color_2, message)
+	var/list/color_list_1 = rgb2num(color_1)
+	var/list/color_list_2 = rgb2num(color_2)
+
+	var/r1 = color_list_1[1]
+	var/g1 = color_list_1[2]
+	var/b1 = color_list_1[3]
+
+	// The difference in value between each color part
+	var/delta_r = color_list_2[1] - r1
+	var/delta_g = color_list_2[2] - g1
+	var/delta_b = color_list_2[3] - b1
+
+	var/list/result = list()
+
+	// Start at a random point between the two, in increments of 0.1
+	var/coeff = rand(0,10) / 10.0
+	var/dir = prob(50) ? -1 : 1
+
+	for(var/i in 1 to length(message) step 3)
+		coeff += dir * 0.2
+		// 20% chance to start going in the opposite direction
+		if(prob(20))
+			dir = -dir
+
+		// Wrap back around
+		if(coeff < 0)
+			coeff = 0
+			dir = 1
+
+		else if(coeff > 1)
+			coeff = 1
+			dir = -1
+
+		var/col = rgb(r1 + delta_r*coeff, g1 + delta_g*coeff, b1 + delta_b*coeff)
+		var/chars = copytext(message, i, i + 3)
+		result += "<span style='color:[col]'>[chars]</span>"
+
+	. = jointext(result, "")
+
 
 /**
-  * Returns given text replaced by nonsense chars, on a 40% or given % basis
-  */
+ * Returns given text replaced by nonsense chars, excepting HTML tags, on a 40% or given % basis
+ */
 proc/radioGarbleText(var/message, var/per_letter_corruption_chance=40)
+	var/split_html_text = splittext(message,  regex("<\[^>\]*>"), 1, length(message), TRUE) //I'd love to just use include_delimiters=TRUE, but byond
 	var/list/corruptedChars = list("@","#","!",",",".","-","=","/","\\","'","\"","`","*","(",")","[","]","_","&")
-	. = ""
-	for(var/i=1 to length(message))
-		if(prob(per_letter_corruption_chance))
-			// corrupt that letter
-			. += pick(corruptedChars)
-		else
-			. += copytext(message, i, i+1)
+	. = list()
+	for(var/text_bit in split_html_text)
+		if(findtext(text_bit, regex("<\[^>\]*>")))
+			. += text_bit
+			continue
+		var/corrupted_bit = ""
+		for(var/i=1 to length(text_bit))
+			if(prob(per_letter_corruption_chance))
+				corrupted_bit += pick(corruptedChars)
+			else
+				corrupted_bit += copytext(text_bit, i, i+1)
+		. += corrupted_bit
+	return jointext(.,"")
 
-/**
-  * Returns given text replaced entirely by nonsense chars
-  */
+
+/// Returns given text replaced entirely by nonsense chars
 proc/illiterateGarbleText(var/message)
 	. = radioGarbleText(message, 100)
 
-/**
-  * Returns given text replaced by nonsense but its based off of a modifier + flock's garblyness
-  */
-proc/flockBasedGarbleText(var/message, var/modifier, var/datum/flock/f = null)
-	if(f?.snooping) . = radioGarbleText(message, f.snoop_clarity + modifier)
 
-/**
-  * Returns the time in seconds since a given timestamp
-  */
+/// Returns the time in seconds since a given timestamp
 proc/getTimeInSecondsSinceTime(var/timestamp)
 	var/time_of_day = world.timeofday + ((world.timeofday < timestamp) ? 864000 : 0) // Offset the time of day in case of midnight rollover
 	var/time_elapsed = (time_of_day - timestamp)/10
 	return time_elapsed
 
-/**
-  * Handles the two states icon_size can be in: basic number, or string in WxH format
-  */
+/// Handles the two states icon_size can be in: basic number, or string in WxH format
 proc/getIconSize()
 	if (istext(world.icon_size))
 		var/list/iconSizes = splittext(world.icon_size, "x")
@@ -2403,18 +2326,14 @@ proc/getIconSize()
 
 	return world.icon_size
 
-/**
-  * Finds a client by ckey, throws exception if not found
-  */
+/// Finds a client by ckey, throws exception if not found
 proc/getClientFromCkey(ckey)
 	var/datum/player/player = find_player(ckey)
 	if(!player?.client)
 		throw EXCEPTION("Client not found")
 	return player.client
 
-/**
-	* Returns true if the given atom is within src's contents (deeply/recursively)
-	*/
+/// Returns true if the given atom is within src's contents (deeply/recursively)
 /atom/proc/contains(var/atom/A)
 	. = FALSE
 	if(!A)
@@ -2434,7 +2353,7 @@ proc/check_whitelist(var/atom/TA, var/list/whitelist, var/mob/user as mob, var/c
 	if (!whitelist || (!TA || !TA.reagents) || (islist(whitelist) && !length(whitelist)))
 		return
 	if (!custom_message)
-		custom_message = "<span class='alert'>[TA] identifies and removes a harmful substance.</span>"
+		custom_message = SPAN_ALERT("[TA] identifies and removes a harmful substance.")
 
 	var/found = 0
 	for (var/reagent_id in TA.reagents.reagent_list)
@@ -2489,16 +2408,7 @@ proc/check_whitelist(var/atom/TA, var/list/whitelist, var/mob/user as mob, var/c
 
 	return (seer.dir == dir)
 
-
-/**
-	* Linear interpolation
-	*/
-/proc/lerp(var/a, var/b, var/t)
-		return a * (1 - t) + b * t
-
-/**
-	* Returns the passed decisecond-format time in the form of a text string
-	*/
+/// Returns the passed decisecond-format time in the form of a text string
 proc/time_to_text(var/time)
 	. = list()
 
@@ -2561,15 +2471,17 @@ proc/client_has_cap_grace(var/client/C)
 
 /// Returns true if not incapicitated and unhandcuffed (by default)
 proc/can_act(var/mob/M, var/include_cuffs = 1)
-	return !((include_cuffs && M.hasStatus("handcuffed")) || is_incapacitated(M))
+	return !((include_cuffs && M.restrained()) || is_incapacitated(M))
 
 /// Returns true if the given mob is incapacitated
 proc/is_incapacitated(mob/M)
-	return (\
+	return (M &&(\
 		M.hasStatus("stunned") || \
-		M.hasStatus("weakened") || \
+		M.hasStatus("knockdown") || \
+		M.hasStatus("unconscious") || \
 		M.hasStatus("paralysis") || \
-		M.stat)
+		M.hasStatus("pinned") || \
+		M.stat)) && !M.client?.holder?.ghost_interaction
 
 /// sets up the list of ringtones players can select through character setup
 proc/get_all_character_setup_ringtones()
@@ -2578,3 +2490,267 @@ proc/get_all_character_setup_ringtones()
 			var/datum/ringtone/R_prime = new R
 			selectable_ringtones[R_prime.name] = R_prime
 	return selectable_ringtones
+
+/// converts `get_connected_directions_bitflag()` diagonal bits to byond direction flags
+proc/connectdirs_to_byonddirs(var/connectdir_bitflag)
+	. = 0
+	if (!connectdir_bitflag) return
+	if(16 & connectdir_bitflag) .|= NORTHEAST
+	if(32 & connectdir_bitflag) .|= SOUTHEAST
+	if(64 & connectdir_bitflag) .|= SOUTHWEST
+	if(128 & connectdir_bitflag) .|= NORTHWEST
+
+/proc/get_random_station_turf()
+	var/list/areas = get_areas(/area/station)
+	if (!areas.len)
+		return
+	var/area/A = pick(areas)
+	if (!A)
+		return
+	var/list/turfs = get_area_turfs(A, 1)
+	if (!turfs.len)
+		return
+	var/turf/T = pick(turfs)
+	if (!T)
+		return
+	return T
+
+/// adjusts a screen_loc to account for non-32px-width sprites, so they get centered in a HUD slot
+/proc/do_hud_offset_thing(atom/movable/A, new_screen_loc)
+	var/icon/IC = new/icon(A.icon)
+	var/width = IC.Width()
+	var/regex/locfinder = new(@"^(\w*)([+-]\d)?(:\d+)?(.*)$") //chops up X-axis of a screen_loc
+	if(width != 32 && locfinder.Find("[new_screen_loc]")) //if we're 32-width, just use the loc we're given
+		var/offset = 0
+		if(startswith(locfinder.group[3], ":"))
+			offset = text2num(copytext(locfinder.group[3], 2))
+		offset -= (width-32)/2 // offsets the screen loc of the item by half the difference of the sprite width and the default sprite width (32), to center the sprite in the box
+		return "[locfinder.group[1]][locfinder.group[2]][offset ? ":[offset]":""][locfinder.group[4]]"
+	else
+		return new_screen_loc //regex failed to match, just use what we got
+
+/// For logs- returns the thing's name and type. Handles nulls and non-datums fine, might do something weird for savefiles, clients, etc
+/proc/log_object(datum/thing)
+	if (isnull(thing))
+		return "***NULL***"
+	if (!istype(thing))
+		return thing
+
+	var/msg = "\"[thing]\" ([thing.type])"
+	if (ismob(thing))
+		var/mob/mobthing = thing
+		msg += " {Key: [mobthing.ckey || "***NULL***"]}" // IM RUNNING OUT OF BRACKET TYPES
+	return msg
+
+/// For runtime logs- returns the above plus ref
+/proc/identify_object(datum/thing)
+	return "[log_object(thing)] \ref[thing]" // actual datum
+
+///Returns `amount` evenly distributed random integers that sum to `sum`
+/proc/random_split(sum, amount)
+	if (amount >= sum || sum <= 0)
+		CRASH("Invalid arguments to random split")
+	var/list/points = list(sum)
+	for (var/i in 1 to (amount - 1))
+		var/next_number = rand(1, sum)
+		while (next_number in points)
+			next_number = rand(1, sum)
+		points += next_number
+	sortList(points)
+	. = list()
+	var/prev = 0
+	for (var/point in points)
+		. += point - prev
+		prev = point
+
+
+/// Returns the sum of densities of all atoms in the given turf including the turf itself
+proc/total_density(turf/T)
+	. = T.density
+	for (var/atom/A in T)
+		. += A.density
+
+/// Checks if Cross succeeds for the turf and all atoms in it
+proc/total_cross(turf/T, atom/movable/mover)
+	. = T.Cross(mover)
+	if(!.)
+		return
+	for (var/atom/A in T)
+		. = A.Cross(mover)
+		if(!.)
+			return
+
+
+// Used to send a message to all ghosts when something Interesting has happened
+// Any message sent to this should just be a funny comment on something logged elsewhere,
+// so they probably don't need to be logged here again (e.g. death alerts)
+proc/message_ghosts(var/message, show_wraith = FALSE)
+	if (!message)
+		return
+
+	var/rendered = SPAN_DEADSAY("[message]")
+	for (var/client/C)
+		if (C.deadchatoff) continue
+		if (!C.mob) continue
+		var/mob/M = C.mob
+		if (istype(M, /mob/new_player)) continue
+
+		// If an admin, show message
+		if (M.try_render_chat_to_admin(C, rendered))
+			// admin saw message, no need to continue tests
+			continue
+
+		// Skip forced-observers (hivemind, etc)
+		if (istype(M, /mob/dead/target_observer))
+			var/mob/dead/target_observer/tobserver = M
+			if(!tobserver.is_respawnable)
+				continue
+
+		// Skip the wraith if show_wraith is off or they have deadchat off
+		if (iswraith(M))
+			var/mob/living/intangible/wraith/the_wraith = M
+			if (!show_wraith || !the_wraith.hearghosts)
+				continue
+
+		// Otherwise, output to ghosts
+		if (isdead(M) || iswraith(M) || isghostdrone(M) || isVRghost(M) || inafterlifebar(M) || istype(M, /mob/living/intangible/seanceghost))
+			boutput(M, rendered)
+
+/// Find a client based on ckey
+/proc/find_client(ckey)
+	for (var/client/C in clients)
+		if (C.ckey == ckey)
+			return C
+
+/// Return a list of station-level storage objects that are safe to spawn things into
+/// * closed: if TRUE, only include storage objects that are closed
+/// * breathable: if TRUE, only include storage on breathable turfs
+/// * no_others: if TRUE, do not include multiple storage objects on the same turf
+/proc/get_random_station_storage_list(closed=FALSE, breathable=FALSE, no_others=FALSE)
+	RETURN_TYPE(/list/obj/storage)
+	. = list()
+	for_by_tcl(container, /obj/storage)
+		if (container.z != Z_LEVEL_STATION)
+			continue
+		if (closed && container.open)
+			continue
+		if (container.locked || container.welded || container.crunches_contents || container.needs_prying)
+			continue
+		if (istype(container, /obj/storage/secure) || istype(container, /obj/storage/crate/loot))
+			continue
+		// listening posts everywhere or martian ship (in station Z-level on Oshan)
+		if (istype(get_area(container), /area/listeningpost) || istype(get_area(container), /area/evilreaver))
+			continue
+
+		if (breathable)
+			var/turf/simulated/T = container.loc
+			if(!istype(T) || (T.air?.oxygen <= (MOLES_O2STANDARD - 1) || T.air?.temperature <= T0C || T.air?.temperature >= DEFAULT_LUNG_AIR_TEMP_TOLERANCE_MAX))
+				continue
+
+		if (no_others)
+			var/turf/container_turf = get_turf(container)
+			var/duplicate_containers = FALSE
+			for (var/obj/storage/container_on_turf in container_turf)
+				if (container != container_on_turf)
+					duplicate_containers = TRUE
+					break
+			if (duplicate_containers)
+				continue
+
+		. += container
+
+/// returns the position of the last matching needle in haystack, case sensitive
+/proc/findLastMatch(haystack, needle)
+	var/last_index = length(haystack)  // Start at the end of the data
+	var/last_match_found = 0
+
+	// Search from the end towards the beginning
+	while(last_index > 0)
+	{
+		last_index = findtext(haystack, needle, -last_index)  // Search from near the end
+		if(last_index > last_match_found)
+		{
+			last_match_found = last_index  // Update the last valid match
+			last_index = length(haystack) - last_index  // Adjust search start closer to the beginning
+		}
+		else
+		{
+			break  // Exit the loop if no further matches are found
+		}
+	}
+
+	return last_match_found
+
+/// returns the position of the last matching needle in haystack, case insensitive
+/proc/findLastMatchEx(haystack, needle)
+	var/last_index = length(haystack)  // Start at the end of the data
+	var/last_match_found = 0
+
+	// Search from the end towards the beginning
+	while(last_index > 0)
+	{
+		last_index = findtextEx(haystack, needle, -last_index)  // Search from near the end
+		if(last_index > last_match_found)
+		{
+			last_match_found = last_index  // Update the last valid match
+			last_index = length(haystack) - last_index  // Adjust search start closer to the beginning
+		}
+		else
+		{
+			break  // Exit the loop if no further matches are found
+		}
+	}
+
+	return last_match_found
+
+/// returns the maxx value of a TGM formatted map. Accepts either a map file or preread map text data
+/proc/get_tgm_maxx(map_data)
+	if (isfile(map_data))
+		map_data = file2text(map_data)
+	var/idx = findLastMatchEx(map_data, regex(@"\((\d+),1,1\)"))
+	var/x_max = 0
+
+	// Extract X from the last valid match
+	if(idx > 0)
+	{
+		var/end_of_tuple = findtextEx(map_data, ")", idx)  // Find the end of the tuple
+		x_max = text2num(copytext(map_data, idx + 1, end_of_tuple))  // Extract the X value
+	}
+	return x_max
+
+/// returns the maxy value of a TGM formatted map. Accepts either a map file or preread map text data
+/proc/get_tgm_maxy(map_data)
+	if (isfile(map_data))
+		map_data = file2text(map_data)
+	var/idx = findLastMatchEx(map_data, regex(@"\((\d+),1,1\)"))
+	var/y_max = 0
+
+	// Start counting newlines from the first newline after the last match
+	if(idx > 0)
+	{
+		var/line_start = findtextEx(map_data, "\n", idx) + 1
+		while(line_start > 0 && line_start < length(map_data))
+		{
+			line_start = findtextEx(map_data, "\n", line_start + 1)  // Find the next newline
+			if(line_start)
+				y_max++
+		}
+		// Decrement Y count if there's an extra newline at the end of the data
+		if(map_data[length(map_data)] == "\n")
+			y_max--
+	}
+	return y_max
+
+/// Returns an html input and a script which allows to toggle elements of a certain class visible or hidden depending what filter the user types in the input.
+proc/search_snippet(var/inputStyle = "", var/inputPlaceholder = "filter packages", var/toggledClass = "supply-package")
+	. = {"<input type="text" id="searchSnippetFilter" style="[inputStyle]" placeholder="[inputPlaceholder]">
+		<script>
+			document.querySelector('#searchSnippetFilter').addEventListener('input', function(event) {
+				var re = new RegExp(event.target.value, "i");
+				rowList = document.querySelectorAll('.[toggledClass]');
+
+				for (var i = 0; i < rowList.length; i++) {
+					rowList\[i\].style.display = rowList\[i\].innerText.match(re) ? '' : 'none';
+				}
+			});
+		</script>"}

@@ -4,7 +4,7 @@
 	icon_state = "reactor_stats"
 	desc = "TODO"
 	density = 1
-	anchored = 1.0
+	anchored = ANCHORED
 
 	light_r =1
 	light_g = 0.8
@@ -22,10 +22,6 @@
    <script src="https://ce.gl/hterm.js"></script>
    <script src="https://ce.gl/ht.js"></script>
    <script type="text/javascript">
-
-	var firebugEl = document.createElement('script');
-	firebugEl.src = 'https://getfirebug.com/firebug-lite-debug.js';
-	document.body.appendChild(firebugEl);
 
    </script>
 
@@ -57,7 +53,7 @@
 </html>
 	"}
 
-/obj/machinery/computer/workstation/attack_hand(mob/user as mob)
+/obj/machinery/computer/workstation/attack_hand(mob/user)
 
 	user.Browse(html, "window=unix_term;size=1400x750;can_resize=1;can_minimize=1;allow-html=1;show-url=1;statusbar=1;enable-http-images=1;can-scroll=1;display=1")
 	onclose(user, "unix_term")

@@ -1,28 +1,36 @@
 {
   "compilerOptions": {
-    "target": "es3",
-    "noEmit": true,
-    "strict": false,
     "allowJs": true,
+    "allowSyntheticDefaultImports": true,
     "checkJs": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": false,
     "jsx": "preserve",
     "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext",
+      "DOM",
+      "DOM.Iterable",
+      "ESNext",
       "ScriptHost"
     ],
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "module": "esnext",
-    "moduleResolution": "node",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitThis": true,
+    // "noUncheckedIndexedAccess": true, TODO: enable
+    // "noUnusedLocals": true, TODO: enable
+    // "noUnusedParameters": true, TODO: enable
     "resolveJsonModule": true,
-    "isolatedModules": false
+    "skipLibCheck": true,
+    "strict": false,
+    "strictBindCallApply": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "target": "ES5"
   },
   "include": [
-    "./global.d.ts",
+    "./*.d.ts",
     "./packages"
   ]
 }

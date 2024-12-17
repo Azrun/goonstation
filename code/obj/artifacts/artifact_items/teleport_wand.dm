@@ -2,8 +2,7 @@
 	name = "artifact teleport wand"
 	artifact = 1
 	associated_datum = /datum/artifact/telewand
-	flags =  FPRINT | CONDUCT | EXTRADELAY
-	module_research_no_diminish = 1
+	flags =  CONDUCT | EXTRADELAY
 
 	// this is necessary so that this returns null
 	// else afterattack will not be called when out of range
@@ -20,7 +19,26 @@
 		var/turf/U = (istype(target, /atom/movable) ? target.loc : target)
 		//var/turf/T = get_turf(target)
 		if (A.activated)
-			if (A.can_teleport_here(U))
+			if (A.can_teleport_here(U,user))
+				if(ishuman(user))
+					var/mob/living/carbon/human/H = user
+					if(H.shoes?.magnetic && istype(H.shoes, /obj/item/clothing/shoes/magnetic))
+						var/obj/item/clothing/shoes/magnetic/stay_behind = H.shoes
+
+						boutput(user, SPAN_ALERT("<b>The magnetic attractor on [stay_behind] overloads!</b>"))
+						playsound(H, pick('sound/impact_sounds/Flesh_Stab_1.ogg','sound/impact_sounds/Metal_Clang_1.ogg','sound/impact_sounds/Slimy_Splat_1.ogg','sound/impact_sounds/Flesh_Tear_2.ogg','sound/impact_sounds/Slimy_Hit_3.ogg'), 30)
+						H.u_equip(stay_behind)
+						stay_behind.set_loc(H.loc)
+						stay_behind.dropped(H)
+						stay_behind.layer = initial(stay_behind.layer)
+
+						H.sever_limb("l_leg")
+						H.sever_limb("r_leg")
+						random_brute_damage(H, rand(15, 45))
+						take_bleeding_damage(H, null, 10, DAMAGE_CRUSH)
+
+						SPAWN(3 SECONDS) // womp womp
+							stay_behind.deactivate()
 				A.effect_click_tile(src,user,U)
 			else
 				boutput(user, "<b>[src]</b> [A.error_phrase]")
@@ -28,6 +46,7 @@
 /datum/artifact/telewand
 	associated_object = /obj/item/artifact/teleport_wand
 	type_name = "Teleportation Wand"
+	type_size = ARTIFACT_SIZE_MEDIUM
 	rarity_weight = 200
 	validtypes = list("wizard","eldritch","precursor")
 	react_xray = list(10,75,90,11,"ANOMALOUS")
@@ -39,8 +58,6 @@
 	var/recharge_phrase = ""
 	var/error_phrase = ""
 	examine_hint = "It seems to have a handle you're supposed to hold it by."
-	module_research = list("energy" = 15, "engineering" = 3, "science" = 8)
-	module_research_insight = 4
 
 	New()
 		..()
@@ -61,27 +78,30 @@
 			return
 
 		on_cooldown = 1
-		SPAWN_DBG(cooldown_delay)
+		SPAWN(cooldown_delay)
 			if (O.loc == user)
 				boutput(user, "<b>[O]</b> [recharge_phrase]")
 			on_cooldown = 0
 
+		logTheThing(LOG_COMBAT, user, "was teleported by Telewand artifact [O] from [log_loc(user)] to [log_loc(T)].")
 		user.set_loc(T)
 
 		var/turf/start_loc = get_turf(user)
-		playsound(start_loc, wand_sound, 50, 1, -1)
+		playsound(start_loc, wand_sound, 50, TRUE, -1)
 		particleMaster.SpawnSystem(new /datum/particleSystem/tele_wand(T,particle_sprite,particle_color))
 		O.ArtifactFaultUsed(user)
 		return
 
-	proc/can_teleport_here(var/turf/T)
+	proc/can_teleport_here(var/turf/T,mob/user)
+		if(istype(user.loc,/obj/dummy/spell_invis/))
+			return FALSE
 		if(isrestrictedz(T.z))
-			return 0
+			return FALSE
 		if (!istype(T,/turf/simulated/floor/))
-			return 0
+			return FALSE
 		if (T.density)
-			return 0
+			return FALSE
 		for(var/atom/X in T.contents)
 			if (X.density)
-				return 0
-		return 1
+				return FALSE
+		return TRUE

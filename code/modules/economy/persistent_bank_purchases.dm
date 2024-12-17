@@ -1,11 +1,13 @@
 
 var/global/list/persistent_bank_purchaseables =	list(\
 	new /datum/bank_purchaseable/human_item/reset,\
+	new /datum/bank_purchaseable/candy_heart,\
 	new /datum/bank_purchaseable/human_item/crayon,\
 	new /datum/bank_purchaseable/human_item/paint_rainbow,\
 	new /datum/bank_purchaseable/human_item/crayon_box,\
 	new /datum/bank_purchaseable/human_item/paint_plaid,\
 	new /datum/bank_purchaseable/human_item/stickers,\
+	new /datum/bank_purchaseable/human_item/handkerchief,\
 	new /datum/bank_purchaseable/human_item/bee_egg,\
 	new /datum/bank_purchaseable/human_item/harmonica,\
 	new /datum/bank_purchaseable/human_item/airhorn,\
@@ -14,12 +16,14 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	new /datum/bank_purchaseable/human_item/trumpet,\
 	new /datum/bank_purchaseable/human_item/fiddle,\
 	new /datum/bank_purchaseable/human_item/gold_zippo,\
+	new /datum/bank_purchaseable/human_item/drinking_flask,\
 	new /datum/bank_purchaseable/human_item/toy_sword,\
 	new /datum/bank_purchaseable/human_item/sound_synth,\
 	new /datum/bank_purchaseable/human_item/record,\
 	new /datum/bank_purchaseable/human_item/sparkler_box,\
 	new /datum/bank_purchaseable/human_item/dabbing_license,\
 	new /datum/bank_purchaseable/human_item/chem_hint,\
+	new /datum/bank_purchaseable/human_item/pixel_pass,\
 
 	new /datum/bank_purchaseable/altjumpsuit,\
 	new /datum/bank_purchaseable/altclown,\
@@ -32,13 +36,11 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	new /datum/bank_purchaseable/bp_itabag,\
 
 	new /datum/bank_purchaseable/limbless,\
-	new /datum/bank_purchaseable/legless,\
-	new /datum/bank_purchaseable/corpse,\
 	new /datum/bank_purchaseable/space_diner,\
-	new /datum/bank_purchaseable/mail_order,\
 	new /datum/bank_purchaseable/missile_arrival,\
 	new /datum/bank_purchaseable/lunchbox,\
 
+	new /datum/bank_purchaseable/bird_respawn,\
 	new /datum/bank_purchaseable/critter_respawn,\
 	new /datum/bank_purchaseable/golden_ghost,\
 
@@ -49,6 +51,10 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	new /datum/bank_purchaseable/moustache,\
 	new /datum/bank_purchaseable/gold_that,\
 	new /datum/bank_purchaseable/dancin_shoes,\
+	new /datum/bank_purchaseable/frog,\
+	new /datum/bank_purchaseable/dye_beret,\
+	new /datum/bank_purchaseable/dye_cardigan,\
+
 
 	new /datum/bank_purchaseable/alohamaton,\
 	new /datum/bank_purchaseable/ai_hat)
@@ -59,6 +65,10 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	var/cost = 0
 	var/atom/path = null //Object to spawn. If null, spawn nothing
 	var/carries_over = 1
+	var/icon = 'icons/obj/items/items.dmi'
+	var/icon_state = "spacebux"
+	var/icon_dir = 0
+	var/icon_frame = 1
 
 	var/list/required_levels = list() //Associated List of JOB:REQUIRED LEVEL ("Clown"=999) etc. Optional jobxp requirements for this.
 
@@ -75,18 +85,18 @@ var/global/list/persistent_bank_purchaseables =	list(\
 			I.name = "[H.real_name][pick_string("trinkets.txt", "modifiers")] [I.name]"
 			I.quality = rand(5,80)
 			var/equipped = 0
-			if (istype(H.back, /obj/item/storage) && H.equip_if_possible(I, H.slot_in_backpack))
+			if (H.back?.storage && H.equip_if_possible(I, SLOT_IN_BACKPACK))
 				equipped = 1
-			else if (istype(H.belt, /obj/item/storage) && H.equip_if_possible(I, H.slot_in_belt))
+			else if (H.belt?.storage && H.equip_if_possible(I, SLOT_IN_BELT))
 				equipped = 1
 			if (!equipped)
-				if (!H.l_store && H.equip_if_possible(I, H.slot_l_store))
+				if (!H.l_store && H.equip_if_possible(I, SLOT_L_STORE))
 					equipped = 1
-				else if (!H.r_store && H.equip_if_possible(I, H.slot_r_store))
+				else if (!H.r_store && H.equip_if_possible(I, SLOT_R_STORE))
 					equipped = 1
-				else if (!H.l_hand && H.equip_if_possible(I, H.slot_l_hand))
+				else if (!H.l_hand && H.equip_if_possible(I, SLOT_L_HAND))
 					equipped = 1
-				else if (!H.r_hand && H.equip_if_possible(I, H.slot_r_hand))
+				else if (!H.r_hand && H.equip_if_possible(I, SLOT_R_HAND))
 					equipped = 1
 
 				if (!equipped)
@@ -120,11 +130,9 @@ var/global/list/persistent_bank_purchaseables =	list(\
 
 		if(isAI(M))
 			var/mob/living/silicon/ai/AI = M
-			if (ispath(path, /obj/item/clothing))
-				if(ispath(path,/obj/item/clothing/head))
-					AI.set_hat(new path(AI))
-					equip_success = 1
-
+			path = null
+			AI.bought_hat = TRUE
+			return
 
 
 		//The AI can't really wear items...
@@ -162,157 +170,206 @@ var/global/list/persistent_bank_purchaseables =	list(\
 			name = "Clear Purchase"
 			cost = 0
 			path = null
+
 		crayon
 			name = "Crayon"
 			cost = 50
 			path = /obj/item/pen/crayon/random
+			icon = 'icons/obj/writing.dmi'
+			icon_state = "crayon"
 
 		paint_rainbow
 			name = "Rainbow Paint Can"
 			cost = 1500
 			path = /obj/item/paint_can/rainbow
+			icon = 'icons/misc/old_or_unused.dmi'
+			icon_state = "paint"
 
 		paint_plaid
 			name = "Plaid Paint Can"
 			cost = 3000
 			path = /obj/item/paint_can/rainbow/plaid
+			icon = 'icons/misc/old_or_unused.dmi'
+			icon_state = "paint"
 
 		crayon_box
 			name = "Crayon Creator"
 			cost = 2500
 			path = /obj/item/item_box/crayon
+			icon = 'icons/obj/items/storage.dmi'
+			icon_state = "item_box"
 
 		stickers
 			name = "Sticker Box"
 			cost = 300
-			path = /obj/item/item_box/assorted/stickers/stickers_limited
+			path = /obj/item/item_box/assorted/stickers
+			icon = 'icons/obj/items/storage.dmi'
+			icon_state = "sticker_box_assorted"
+
+		handkerchief
+			name = "Handkerchief"
+			cost = 1000
+			path = null
+			icon = 'icons/obj/items/cloths.dmi'
+			icon_state = "hanky_pink"
+
+			Create(mob/living/M)
+				// equivalent to /obj/item/cloth/handkerchief/random, but that deletes itself in new(), so this is used
+				path = pick(concrete_typesof(/obj/item/cloth/handkerchief/colored))
+				..()
 
 		bee_egg
 			name = "Bee Egg"
 			cost = 550
 			path = /obj/item/reagent_containers/food/snacks/ingredient/egg/bee
+			icon = 'icons/misc/bee.dmi'
+			icon_state = "petbee_egg"
 
 		harmonica
 			name = "Harmonica"
 			cost = 150
 			path = /obj/item/instrument/harmonica
+			icon = 'icons/obj/instruments.dmi'
+			icon_state = "harmonica"
 
 		airhorn
 			name = "Air Horn"
 			cost = 800
 			path = /obj/item/instrument/bikehorn/airhorn
+			icon = 'icons/obj/instruments.dmi'
+			icon_state = "airhorn"
 
 		dramatichorn
 			name = "Dramatic Horn"
 			cost = 400
 			path = /obj/item/instrument/bikehorn/dramatic
+			icon = 'icons/obj/instruments.dmi'
+			icon_state = "bike_horn"
 
 		saxophone
 			name = "Saxophone"
 			cost = 600
 			path = /obj/item/instrument/saxophone
+			icon = 'icons/obj/instruments.dmi'
+			icon_state = "sax"
 
 		trumpet
 			name = "Trumpet"
 			cost = 700
 			path = /obj/item/instrument/trumpet
+			icon = 'icons/obj/instruments.dmi'
+			icon_state = "trumpet"
 
 		fiddle
 			name = "Fiddle"
 			cost = 700
 			path = /obj/item/instrument/fiddle
+			icon = 'icons/obj/instruments.dmi'
+			icon_state = "fiddle"
 
 		gold_zippo
 			name = "Gold Zippo"
 			cost = 500
 			path = /obj/item/device/light/zippo/gold
+			icon = 'icons/obj/items/cigarettes.dmi'
+			icon_state = "gold_zippo"
+
+		drinking_flask
+			name = "Drinking Flask"
+			cost = 400
+			path = /obj/item/reagent_containers/food/drinks/flask
+			icon = 'icons/obj/foodNdrink/bottle.dmi'
+			icon_state = "flask"
 
 		toy_sword
 			name = "Toy Sword"
 			cost = 900
 			path = /obj/item/toy/sword
+			icon = 'icons/obj/items/weapons.dmi'
+			icon_state = "sword1-"
 
 		sound_synth
 			name = "Sound Synthesizer"
 			cost = 14000
 			path = /obj/item/noisemaker
+			icon = 'icons/obj/instruments.dmi'
+			icon_state = "bike_horn"
 
 		record
 			name = "Record"
 			cost = 2000
 			path = /obj/item/record/spacebux
+			icon = 'icons/obj/radiostation.dmi'
+			icon_state = "record_red"
 
 		sparkler_box
 			name = "Sparkler Box"
 			cost = 1000
 			path = /obj/item/storage/sparkler_box
+			icon = 'icons/obj/items/sparklers.dmi'
+			icon_state = "sparkler_box-close"
 
 		dabbing_license
 			name = "Dabbing License"
 			cost = 4200
 			path = /obj/item/card/id/dabbing_license
-
-		battlepass
-			name = "Battle Pass"
-			cost = 1000
-			path = /obj/item/battlepass
-
-			Create(var/mob/living/M)
-				..(M)
-				if(M?.mind)
-					battle_pass_holders.Add(M.mind)
-				return 1
+			icon = 'icons/obj/items/card.dmi'
+			icon_state = "id_dab"
 
 		chem_hint
 			name = "Secret chem hint"
 			cost = 3500
 			path = /obj/item/chem_hint
 			carries_over = 0
+			icon = 'icons/obj/dojo.dmi'
+			icon_state = "scroll"
 
-
+		pixel_pass
+			name = "Pixel Pass"
+			cost = 2500
+			path = /obj/item/pixel_pass
+			icon_state = "pixel_pass"
 
 	altjumpsuit
 		name = "Alternate Jumpsuit"
 		cost = 1500
+		icon = 'icons/obj/clothing/uniforms/item_js_rank.dmi'
+		icon_state = "assistant-alt"
 
 		Create(var/mob/living/M)
 			var/succ = 0
 			if (ishuman(M))
 				var/mob/living/carbon/human/H = M
-				/*if (H.head && istype(H.head, /obj/item/clothing/head))
-					var/path = text2path("[H.head.type]/april_fools")
-					if (ispath(path))
-						M.u_equip(H.head)
-						qdel(H.head)
-						var/obj/item/clothing/head/hatt = new path
-						H.force_equip(hatt)
-						succ = 1*/
 
-
-				if (H.w_uniform && istype(H.w_uniform, /obj/item/clothing/under/rank))
-					var/obj/origin = text2path("[H.w_uniform.type]/april_fools")
+				if (H.w_uniform && istype(H.w_uniform, /obj/item/clothing/under))
+					var/obj/item/clothing/under/origin = text2path("[H.w_uniform.type]/april_fools")
 					if (ispath(origin))
-						H.w_uniform.icon_state = "[H.w_uniform.icon_state]-alt"
-						H.w_uniform.item_state = "[H.w_uniform.item_state]-alt"
+						H.w_uniform.icon = origin.icon
+						H.w_uniform.icon_state = origin.icon_state
+						H.w_uniform.item_state = origin.item_state
 						H.w_uniform.desc = initial(origin.desc)
 						succ = 1
 
 				if (H.wear_suit && istype(H.wear_suit, /obj/item/clothing/suit))
-					var/obj/origin = text2path("[H.wear_suit.type]/april_fools")
+					var/obj/item/clothing/suit/origin = text2path("[H.wear_suit.type]/april_fools")
 					if (ispath(origin))
-						H.wear_suit.icon_state = "[H.wear_suit.icon_state]-alt"
-						H.wear_suit.item_state = "[H.wear_suit.item_state]-alt"
+						H.wear_suit.icon_state = origin.icon_state
+						H.wear_suit.item_state = origin.item_state
 						H.wear_suit.desc = initial(origin.desc)
 						if (istype(H.wear_suit, /obj/item/clothing/suit/labcoat))
-							H.wear_suit:coat_style = "[H.wear_suit:coat_style]-alt"
+							H.wear_suit.coat_style = origin.coat_style
 						succ = 1
 
 				if (H.head && istype(H.head, /obj/item/clothing/head))
-					var/obj/origin = text2path("[H.head.type]/april_fools")
+					var/obj/item/clothing/head/origin = text2path("[H.head.type]/april_fools")
 					if (ispath(origin))
-						H.head.icon_state = "[H.head.icon_state]-alt"
-						H.head.item_state = "[H.head.item_state]-alt"
+						H.head.icon_state = origin.icon_state
+						H.head.item_state = origin.item_state
 						H.head.desc = initial(origin.desc)
+						if (istype(H.head, /obj/item/clothing/head/helmet/space/engineer))
+							var/obj/item/clothing/head/helmet/space/engineer/helmet_with_flashlight = H.head
+							var/obj/item/clothing/head/helmet/space/engineer/orig = origin
+							helmet_with_flashlight.base_icon_state = orig.base_icon_state
 						succ = 1
 
 			return succ
@@ -320,6 +377,8 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	altclown
 		name = "Alternate Clown Outfit"
 		cost = 200
+		icon = 'icons/obj/clothing/uniforms/item_js_gimmick.dmi'
+		icon_state = "pinkclown"
 
 		Create(var/mob/living/M)
 			if (ishuman(M))
@@ -328,13 +387,15 @@ var/global/list/persistent_bank_purchaseables =	list(\
 					if (H.mind.assigned_role == "Clown")
 						var/type = pick("purple","pink","yellow")
 						H.w_uniform.icon = 'icons/obj/clothing/uniforms/item_js_gimmick.dmi'
-						H.w_uniform.wear_image_icon = 'icons/mob/jumpsuits/worn_js_gimmick.dmi'
+						H.w_uniform.wear_image_icon = 'icons/mob/clothing/jumpsuits/worn_js_gimmick.dmi'
 						H.w_uniform.icon_state = "[type]clown"
 						H.w_uniform.item_state = "[type]clown"
 						H.w_uniform.name = "[type] clown suit"
-						H.wear_mask.icon_state = "[type]clown"
-						H.wear_mask.item_state = "[type]clown"
-						H.wear_mask.name = "[type] clown mask"
+						var/obj/item/clothing/mask/clown_hat/the_mask = H.wear_mask
+						the_mask.icon_state = "[type]clown"
+						the_mask.base_icon_state = "[type]clown"
+						the_mask.item_state = "[type]clown"
+						the_mask.name = "[type] clown mask"
 						H.shoes.icon_state = "[type]clown"
 						H.shoes.item_state = "[type]clown"
 						H.shoes.name = "[type] clown shoes"
@@ -356,11 +417,13 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	limbless
 		name = "No Limbs"
 		cost = 10000
+		icon = 'icons/obj/foodNdrink/food_ingredient.dmi'
+		icon_state = "nugget0"
 
 		Create(var/mob/living/M)
 			if (ishuman(M))
 				var/mob/living/carbon/human/H = M
-				SPAWN_DBG(6 SECONDS)
+				SPAWN(6 SECONDS)
 					if (H.limbs)
 						if (H.limbs.l_arm)
 							H.limbs.l_arm.delete()
@@ -370,40 +433,15 @@ var/global/list/persistent_bank_purchaseables =	list(\
 							H.limbs.l_leg.delete()
 						if (H.limbs.r_leg)
 							H.limbs.r_leg.delete()
-						boutput( H, "<span class='notice'><b>Your limbs magically disappear! Oh, no!</b></span>" )
+						boutput( H, SPAN_NOTICE("<b>Your limbs magically disappear! Oh, no!</b>") )
 				return 1
 			return 0
-
-	legless
-		name = "No Legs"
-		cost = 5000
-
-		Create(var/mob/living/M)
-			if (ishuman(M))
-				var/mob/living/carbon/human/H = M
-				SPAWN_DBG(6 SECONDS)
-					if (H.limbs)
-						if (H.limbs.l_leg)
-							H.limbs.l_leg.delete()
-						if (H.limbs.r_leg)
-							H.limbs.r_leg.delete()
-						boutput( H, "<span class='notice'><b>You haven't got a leg to stand on!</b></span>" )
-				return 1
-			return 0
-
-	corpse
-		name = "Corpse"
-		cost = 15000
-		carries_over = 0
-
-		Create(var/mob/living/M)
-			M.death(FALSE)
-			boutput(M, "<span class='notice'><b>You magically keel over and die! Oh, no!</b></span>")
-			return 1
 
 	space_diner
 		name = "Space Diner Patron"
 		cost = 5000
+		icon = 'icons/obj/furniture/chairs.dmi'
+		icon_state = "bar-stool"
 
 		Create(var/mob/living/M)
 			var/list/start
@@ -419,43 +457,59 @@ var/global/list/persistent_bank_purchaseables =	list(\
 				M.set_loc(start)
 			return 1
 
-	mail_order
-		name = "Mail Order"
-		cost = 5000
+	frog
+		name = "Adopt a Frog"
+		cost = 6000
+		icon = 'icons/misc/critter.dmi'
+		icon_state = "frog"
+		icon_dir = SOUTH
 
 		Create(var/mob/living/M)
-			var/obj/storage/S
-			if (istype(M.loc, /obj/storage)) // also for stowaways; we really should have a system for integrating this stuff
-				S = M.loc
-			else
-				S = new /obj/storage/crate/packing()
-				M.set_loc(S)
-			shippingmarket.receive_crate(S)
+			var/mob/living/critter/small_animal/frog/froggo = new(M.loc)
+			SPAWN(1 SECOND)
+				froggo.real_name = input(M.client, "Name your frog:", "Name your frog!", "frog")
+				phrase_log.log_phrase("name-frog", froggo.real_name, TRUE)
+				logTheThing(LOG_STATION, M, "named their adopted frog [froggo.real_name]")
+				froggo.name = froggo.real_name
 			return 1
 
 	missile_arrival
 		name = "Missile Arrival"
 		cost = 20000
+		path = /obj/item/tank/emergency_oxygen  // oh boy they'll need this if they are unlucky
+		icon = 'icons/obj/large/32x64.dmi'
+		icon_state = "arrival_missile"
+		icon_dir = SOUTH
 
 		Create(var/mob/living/M)
-			if(istype(M.back, /obj/item/storage))
-				var/obj/item/storage/backpack = M.back
-				new /obj/item/tank/emergency_oxygen(backpack) // oh boy they'll need this if they are unlucky
-				backpack.hud.update(M)
 			var/mob/living/carbon/human/H = M
 			if(istype(H))
 				H.equip_new_if_possible(/obj/item/clothing/mask/breath, SLOT_WEAR_MASK)
-			SPAWN_DBG(0)
+			SPAWN(0)
 				if(istype(M.loc, /obj/storage))
 					launch_with_missile(M.loc)
 				else
 					launch_with_missile(M)
-			return 1
+			..()
+			return TRUE
 
 	critter_respawn
 		name = "Alt Ghost Critter"
 		cost = 1000
+		icon = 'icons/mob/critter/robotic/boogie.dmi'
+		icon_state = "boogie"
 		var/list/respawn_critter_types = list(/mob/living/critter/small_animal/boogiebot/weak, /mob/living/critter/small_animal/figure/weak)
+
+		Create(var/mob/M)
+			return 1
+
+	bird_respawn
+		name = "Lil Bird Ghost Critter"
+		cost = 1000
+		icon = 'icons/misc/critter.dmi'
+		icon_state = "sparrow"
+		icon_dir = SOUTH
+		var/list/respawn_critter_types = list(/mob/living/critter/small_animal/sparrow/weak, /mob/living/critter/small_animal/sparrow/robin/weak)
 
 		Create(var/mob/M)
 			return 1
@@ -463,6 +517,9 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	golden_ghost
 		name = "Golden Ghost"
 		cost = 1500
+		icon = 'icons/mob/mob.dmi'
+		icon_state = "ghost"
+		icon_dir = SOUTH
 
 		Create(var/mob/M)
 			return 1
@@ -470,6 +527,8 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	bp_fjallraven
 		name = "Rucksack"
 		cost = 1400
+		icon_state = "bp_fjallraven_red"
+		icon = 'icons/obj/items/storage.dmi'
 
 		Create(var/mob/living/M)
 			if (ishuman(M))
@@ -485,6 +544,8 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	bp_randoseru
 		name = "Randoseru"
 		cost = 1500
+		icon_state = "bp_randoseru"
+		icon = 'icons/obj/items/storage.dmi'
 
 		Create(var/mob/living/M)
 			if (ishuman(M))
@@ -499,6 +560,8 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	bp_anello
 		name = "Travel Backpack"
 		cost = 1600
+		icon_state = "bp_anello"
+		icon = 'icons/obj/items/storage.dmi'
 
 		Create(var/mob/living/M)
 			if (ishuman(M))
@@ -513,6 +576,8 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	nt_backpack
 		name = "NT Backpack"
 		cost = 600
+		icon_state = "NTbackpack"
+		icon = 'icons/obj/items/storage.dmi'
 
 		Create(var/mob/living/M)
 			if (ishuman(M))
@@ -527,6 +592,8 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	bp_studded
 		name = "Studded Backpack"
 		cost = 1500
+		icon_state = "bp_studded"
+		icon = 'icons/obj/items/storage.dmi'
 
 		Create(var/mob/living/M)
 			if (ishuman(M))
@@ -541,6 +608,8 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	bp_itabag
 		name = "Itabag"
 		cost = 1600
+		icon_state = "bp_itabag_pink"
+		icon = 'icons/obj/items/storage.dmi'
 
 		Create(var/mob/living/M)
 			if (ishuman(M))
@@ -557,6 +626,8 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	bp_brown
 		name = "Brown Backpack"
 		cost = 500
+		icon_state = "backpackbr"
+		icon = 'icons/obj/items/storage.dmi'
 
 		Create(var/mob/living/M)
 			if (ishuman(M))
@@ -571,15 +642,44 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	lunchbox
 		name = "Lunchbox"
 		cost = 600
+		icon = 'icons/obj/items/storage.dmi'
+		icon_state = "lunchbox_purple"
 
 		Create(var/mob/living/M)
 			if (ishuman(M))
 				var/mob/living/carbon/human/H = M
 				var/obj/item/storage/lunchbox/L = pick(childrentypesof(/obj/item/storage/lunchbox))
-				if ((!H.l_hand && H.equip_if_possible(new L(H), H.slot_l_hand)) || (!H.r_hand && H.equip_if_possible(new L(H), H.slot_r_hand)) || (istype(H.back, /obj/item/storage) && H.equip_if_possible(new L(H), H.slot_in_backpack)))
+				if ((!H.l_hand && H.equip_if_possible(new L(H), SLOT_L_HAND)) || (!H.r_hand && H.equip_if_possible(new L(H), SLOT_R_HAND)) || (H.back?.storage && H.equip_if_possible(new L(H), SLOT_IN_BACKPACK)))
 					return 1
 			return 0
 
+	candy_heart
+		name = "Send Candy Heart"
+		cost = 2500
+		icon = 'icons/obj/foodNdrink/food_candy.dmi'
+		icon_state = "heart-1"
+
+		Create(var/mob/M)
+			SPAWN(rand(3 SECONDS, 15 SECONDS)) // stagger in case multiple purchases
+				var/datum/db_record/R = pick(data_core.general.records)
+				var/obj/storage/S = new /obj/storage/crate/packing
+				S.name = "special delivery ([R["name"]])"
+				var/obj/item/I = new /obj/item/reagent_containers/food/snacks/candy/candyheart(S)
+				I.name = "candy heart (to: [R["name"]] from: [M])"
+				if(transception_array) //hand off delivery to array's management systems
+					transception_array.direct_queue += S
+				else
+					for(var/i in 1 to 3)
+						shippingmarket.receive_crate(S)
+						sleep(randfloat(10 SECONDS, 20 SECONDS))
+						if(istype(get_area(S), /area/station))
+							return
+					var/list/turf/last_chance_turfs = get_area_turfs(/area/station/quartermaster/office, 1)
+					if(length(last_chance_turfs))
+						S.set_loc(pick(last_chance_turfs))
+					else
+						S.set_loc(get_random_station_turf())
+			return TRUE
 
 	/////////////////////////////////////
 	//CLOTHING (FITS HUMAN AND CYBORGS)//
@@ -589,36 +689,64 @@ var/global/list/persistent_bank_purchaseables =	list(\
 		name = "Fruit Hat"
 		cost = 150
 		path = /obj/item/clothing/head/fruithat
+		icon = 'icons/obj/clothing/item_hats.dmi'
+		icon_state = "fruithat"
 
 	hoodie
 		name = "Hoodie"
 		cost = 1500
 		path = /obj/item/clothing/suit/hoodie/random
+		icon = 'icons/obj/clothing/overcoats/hoods/hoodies.dmi'
+		icon_state = "hoodie"
 
 	pride_o_matic
 		name = "Pride-O-Matic Jumpsuit"
 		cost = 1200
 		path = /obj/item/clothing/under/pride/special
+		icon = 'icons/obj/clothing/uniforms/item_js_pride.dmi'
+		icon_state = "gay"
 
 	fake_waldo
 		name = "Stripe Outfit"
 		cost = 1400
 		path = /obj/item/clothing/under/gimmick/fake_waldo
+		icon = 'icons/obj/clothing/uniforms/item_js_gimmick.dmi'
+		icon_state = "waldont1"
 
 	moustache
 		name = "Discount Fake Moustache"
 		cost = 500
 		path = /obj/item/clothing/mask/moustache/safe
+		icon = 'icons/obj/clothing/item_masks.dmi'
+		icon_state = "moustache"
 
 	gold_that
 		name = "Golden Top Hat"
 		cost = 900
 		path = /obj/item/clothing/head/that/gold
+		icon = 'icons/obj/clothing/item_hats.dmi'
+		icon_state = "gtophat"
 
 	dancin_shoes
 		name = "Dancin Shoes"
 		cost = 2000
 		path = /obj/item/clothing/shoes/heels/dancin
+		icon = 'icons/obj/clothing/item_shoes.dmi'
+		icon_state = "wheels"
+
+	dye_cardigan
+		name = "Dyeable Cardigan"
+		cost = 1200
+		path = /obj/item/clothing/suit/knitsweater/cardigan/dyeable
+		icon = 'icons/obj/clothing/overcoats/item_suit.dmi'
+		icon_state = "cardigan"
+
+	dye_beret
+		name = "Dyeable Beret"
+		cost = 1200
+		path = /obj/item/clothing/head/beret/dyeable
+		icon = 'icons/obj/clothing/item_hats.dmi'
+		icon_state = "dye_beret"
 
 	////////////////////////
 	//CYBORG PURCHASEABLES//
@@ -627,6 +755,9 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	alohamaton
 		name = "Alohamaton Skin"
 		cost = 4000
+		icon = 'icons/mob/robots.dmi'
+		icon_state = "alohamaton"
+		icon_dir = SOUTH
 
 		Create(var/mob/living/M)
 			if (isrobot(M))
@@ -643,12 +774,14 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	malfAI
 		name = "Malf AI Skin (placeholder)"
 		cost = 2000
+		icon = 'icons/mob/ai.dmi'
+		icon_state = "ai"
 
 		Create(var/mob/living/M)
 			if (isAI(M))
 				var/mob/living/silicon/ai/A = M
-				A.custom_emotions = ai_emotions | list("ROGUE(reward)" = "ai-red")
-				A.faceEmotion = "ai-red"
+				A.custom_emotions = ai_emotions | list("ROGUE(reward)" = "ai_red")
+				A.faceEmotion = "ai_red"
 				A.set_color("#EE0000")
 				return 1
 			return 0
@@ -656,11 +789,12 @@ var/global/list/persistent_bank_purchaseables =	list(\
 	ai_hat
 		name = "AI hat"
 		cost = 1000
+		icon = 'icons/obj/clothing/item_hats.dmi'
+		icon_state = "frog_hat"
 
 		Create(var/mob/living/M)
 			if (isAI(M))
 				var/mob/living/silicon/ai/A = M
-				var/picked = pick(childrentypesof(/obj/item/clothing/head))
-				A.set_hat(new picked())
+				A.bought_hat = TRUE
 				return 1
 			return 0

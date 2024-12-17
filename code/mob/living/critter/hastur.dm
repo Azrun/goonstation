@@ -5,7 +5,7 @@ var/HasturPresent = 0
 	real_name = "????"
 	desc = "He who must not be named..."
 	density = 1
-	anchored = 1
+	anchored = ANCHORED
 	icon = 'icons/misc/hastur.dmi'
 	icon_state = "hastur"
 	hand_count = 4
@@ -13,9 +13,9 @@ var/HasturPresent = 0
 	can_grab = 1
 	can_disarm = 1
 	can_help = 1
-	see_invisible = 21
-	stat = 2
-	stepsound = "sound/misc/hastur/tentacle_walk.ogg"
+	see_invisible = INVIS_ADVENTURE
+	stat = STAT_DEAD
+	stepsound = 'sound/misc/hastur/tentacle_walk.ogg'
 	speechverb_say = "states"
 	speechverb_exclaim = "declares"
 	speechverb_ask = "inquires"
@@ -35,13 +35,13 @@ var/HasturPresent = 0
 		changeIcon()
 		src.nodamage = 1
 		HasturPresent = 1
-		radio_brains += src
+		radio_brains[src] = 2
 		abilityHolder.addAbility(/datum/targetable/hastur/devour)
 		abilityHolder.addAbility(/datum/targetable/hastur/insanityaura)
 		abilityHolder.addAbility(/datum/targetable/hastur/masswhisper)
 		abilityHolder.addAbility(/datum/targetable/hastur/ancientinvisibility)
 
-	Bump(atom/O)
+	bump(atom/O)
 		. = ..()
 		changeIcon(0)
 		return .
@@ -110,27 +110,30 @@ var/HasturPresent = 0
 		HH.can_range_attack = 1
 
 	setup_healths()
-		add_hh_flesh(-35, 6500, 0.5)
-		add_hh_flesh_burn(-35, 6500, 0.5)
+		add_hh_flesh(6500, 0.5)
+		add_hh_flesh_burn(6500, 0.5)
 		add_health_holder(/datum/healthHolder/toxin)
 
 	death(var/gibbed)
+		. = ..()
 		HasturPresent = 0
 
 	specific_emotes(var/act, var/param = null, var/voluntary = 0)
 		switch (act)
 			if ("scream")
 				if (src.emote_check(voluntary, 50))
-					playsound(src, "sound/misc/hastur/growl.ogg" , 60, 1, channel=VOLUME_CHANNEL_EMOTE)
+					playsound(src, 'sound/misc/hastur/growl.ogg' , 60, 1, channel=VOLUME_CHANNEL_EMOTE)
 					return "<b>Something growls menacingly under [src]'s robe!</b>"
 		return null
 
 	on_pet(mob/user)
 		random_brute_damage(user, rand(5,10))
-		boutput(user,"<font color=red><b>Sharp tentacle slaps [user] away as they attempt to pet [src]!</b></font>")
+		boutput(user,SPAN_ALERT("<b>Sharp tentacle slaps [user] away as [he_or_she(user)] attempt to pet [src]!</b>"))
 
 
 //DEVOUR ABILITY// - Pretty much just a changeling re-do
+/datum/targetable/hastur
+	interrupt_action_bars = FALSE
 
 /datum/targetable/hastur/devour
 	name = "Devour"
@@ -152,17 +155,17 @@ var/HasturPresent = 0
 			return 1
 
 		if (M == target)
-			boutput(M, __red("You can't devour yourself."))
+			boutput(M, SPAN_ALERT("You can't devour yourself."))
 			return 1
 
-		if (get_dist(M, target) > src.max_range)
-			boutput(M, __red("[target] is too far away."))
+		if (GET_DIST(M, target) > src.max_range)
+			boutput(M, SPAN_ALERT("[target] is too far away."))
 			return 1
-
-		M.visible_message(pick("<span class='alert'><B>[M] reveals their true form for a moment and -COMPLETELY- devours [target]!</B></span>","<span class='alert'><B>Huge mouth emerges underneath [M]'s robes and DEVOURS [target]!</B></span>","<span class='alert'><B>[M] growls angrily as they reveal their true form, completely devouring [target]!</B></span>"))
+		. = ..()
+		M.visible_message(pick(SPAN_ALERT("<B>[M] reveals their true form for a moment and -COMPLETELY- devours [target]!</B>"),SPAN_ALERT("<B>Huge mouth emerges underneath [M]'s robes and DEVOURS [target]!</B>"),SPAN_ALERT("<B>[M] growls angrily as they reveal their true form, completely devouring [target]!</B>")))
 		playsound(M.loc, pick('sound/misc/hastur/devour1.ogg','sound/misc/hastur/devour2.ogg','sound/misc/hastur/devour3.ogg','sound/misc/hastur/devour4.ogg'), 90,1)
 		flick("hastur-devour", M)
-		SPAWN_DBG(7 DECI SECONDS)
+		SPAWN(7 DECI SECONDS)
 			target.gib()
 			target.icon_state = "lost"
 			target.name = "Soulless [target.real_name]"
@@ -179,12 +182,13 @@ var/HasturPresent = 0
 	cooldown = 500
 
 	cast()
+		. = ..()
 		for(var/mob/living/M in orange(300))
 			M.addOverlayComposition(/datum/overlayComposition/insanity)
 			M.updateOverlaysClient(M.client)
 			boutput(M, pick("<font color=purple><b>The reality around you fades out..</b></font>","<font color=purple><b>Suddenly your mind feels extremely frail and vulnerable..</b></font>","<font color=purple><b>Your sanity starts to fail you...</b></font>"))
-			playsound(M, "sound/ambience/spooky/Void_Song.ogg", 50, 1)
-			SPAWN_DBG(62 SECONDS)
+			playsound(M, 'sound/ambience/spooky/Void_Song.ogg', 50, TRUE)
+			SPAWN(62 SECONDS)
 				M.removeOverlayComposition(/datum/overlayComposition/insanity)
 				M.updateOverlaysClient(M.client)
 
@@ -201,14 +205,15 @@ var/HasturPresent = 0
 	cooldown = 2
 
 	cast()
+		. = ..()
 		var/msg = input("Message:", text("What would you like to whisper to everyone?")) as null|text
-		msg = voidSpeak(trim(copytext(sanitize(msg), 1, 255)))
+		msg = voidSpeak(trimtext(copytext(sanitize(msg), 1, 255)))
 		if (!msg)
 			return
 
 		if (usr.client && usr.client.holder)
 			boutput(world, "<font color=purple><b>An otherwordly voice whispers into your ears... [msg]</b></font>")
-			//msg = voidSpeak(trim(copytext(sanitize(msg), 1, 255)))
+			//msg = voidSpeak(trimtext(copytext(sanitize(msg), 1, 255)))
 			//boutput(usr, "<b>You whisper to everyone:</b> [message]")
 
 
@@ -225,20 +230,21 @@ var/HasturPresent = 0
 
 	cast()
 		var/mob/living/critter/hastur/H = src.holder.owner
+		. = ..()
 		if (stage == 1)
 			H.set_density(1)
-			REMOVE_MOB_PROPERTY(H, PROP_INVISIBILITY, src)
+			REMOVE_ATOM_PROPERTY(H, PROP_MOB_INVISIBILITY, src)
 			H.alpha = 255
-			H.stepsound = "sound/misc/hastur/tentacle_walk.ogg"
-			H.visible_message(pick("<span class='alert'>A horrible apparition fades into view!</span>", "<span class='alert'>A pool of shadow forms and manifests into shape!</span>"), pick("<span class='alert'>Void manifests around you, giving you your physical form back.</span>", "<span class='alert'>Energies of the void allow you to manifest back in a physical form.</span>"))
+			H.stepsound = 'sound/misc/hastur/tentacle_walk.ogg'
+			H.visible_message(pick(SPAN_ALERT("A horrible apparition fades into view!"), SPAN_ALERT("A pool of shadow forms and manifests into shape!")), pick(SPAN_ALERT("Void manifests around you, giving you your physical form back."), SPAN_ALERT("Energies of the void allow you to manifest back in a physical form.")))
 			stage = 0
 		else
-			H.visible_message(pick("<span class='alert'>[H] vanishes from sight!</span>", "<span class='alert'>[H] dissolves into the void!</span>"), pick("<span class='notice'>You are enveloped by the void, hiding your physical manifestation.</span>", "<span class='notice'>You fade into the void!</span>"))
+			H.visible_message(pick(SPAN_ALERT("[H] vanishes from sight!"), SPAN_ALERT("[H] dissolves into the void!")), pick(SPAN_NOTICE("You are enveloped by the void, hiding your physical manifestation."), SPAN_NOTICE("You fade into the void!")))
 			H.set_density(0)
-			APPLY_MOB_PROPERTY(H, PROP_INVISIBILITY, src, INVIS_GHOST)
+			APPLY_ATOM_PROPERTY(H, PROP_MOB_INVISIBILITY, src, INVIS_SPOOKY)
 			H.alpha = 160
 			H.stepsound = null
-			H.see_invisible = 16
+			H.see_invisible = INVIS_SPOOKY
 			stage = 1
 
 //TENTACLE LONG RANGE WHIP//
@@ -246,30 +252,17 @@ var/HasturPresent = 0
 /obj/line_obj/tentacle
 	name = "sharp tentacle"
 	desc = ""
-	anchored = 1
+	anchored = ANCHORED
 	density = 0
 	opacity = 0
-
-	unpooled(var/pool)
-		name = initial(name)
-		desc = initial(desc)
-		anchored = initial(anchored)
-		density = initial(density)
-		opacity = initial(opacity)
-		icon = initial(icon)
-		icon_state = initial(icon_state)
-		layer = initial(layer)
-		pixel_x = initial(pixel_x)
-		pixel_y = initial(pixel_y)
-		..()
 
 /obj/tentacle_trg_dummy
 	name = ""
 	desc = ""
-	anchored = 1
+	anchored = ANCHORED
 	density = 0
 	opacity = 0
-	invisibility = 99
+	invisibility = INVIS_ALWAYS_ISH
 
 
 /datum/limb/longtentacle
@@ -295,24 +288,24 @@ var/HasturPresent = 0
 			return
 		next_shot_at = ticker.round_elapsed_ticks + cooldown
 
-		playsound(user, "sound/misc/hastur/tentacle_hit.ogg", 50, 1)
-		SPAWN_DBG(rand(1,3)) // so it might miss, sometimes, maybe
+		playsound(user, 'sound/misc/hastur/tentacle_hit.ogg', 50, TRUE)
+		SPAWN(rand(1,3)) // so it might miss, sometimes, maybe
 			var/obj/target_r = new/obj/tentacle_trg_dummy(target)
 
-			playsound(user, "sound/misc/hastur/tentacle_hit.ogg", 50, 1)
-			user.visible_message("<span class='alert'><B>[user] sends a sharp tentacle flying!</B></span>")
+			playsound(user, 'sound/misc/hastur/tentacle_hit.ogg', 50, TRUE)
+			user.visible_message(SPAN_ALERT("<B>[user] sends a sharp tentacle flying!</B>"))
 			user.set_dir(get_dir(user, target))
 
 			var/list/affected = DrawLine(user, target_r, /obj/line_obj/tentacle ,'icons/obj/projectiles.dmi',"WholeTentacle",1,1,"HalfStartTentacle","HalfEndTentacle",OBJ_LAYER,1)
 
 			for(var/obj/O in affected)
-				O.anchored = 1 //Proc wont spawn the right object type so lets do that here.
+				O.anchored = ANCHORED //Proc wont spawn the right object type so lets do that here.
 				O.name = "sharp tentacle"
 				var/turf/src_turf = O.loc
 				for(var/obj/machinery/vehicle/A in src_turf)
 					if(A == O || A == user) continue
 					A.meteorhit(O)
-				for(var/obj/grille/A in src_turf)
+				for(var/obj/mesh/grille/A in src_turf)
 					if(A == O || A == user) continue
 					A.damage_blunt(10)
 				for(var/obj/window/A in src_turf)
@@ -321,22 +314,19 @@ var/HasturPresent = 0
 				for(var/mob/living/M in src_turf)
 					if(M == O || M == user) continue
 					if (ishuman(M))
-						playsound(M, "sound/impact_sounds/Flesh_Stab_1.ogg", 50, 1)
+						playsound(M, 'sound/impact_sounds/Flesh_Stab_1.ogg', 50, TRUE)
 						take_bleeding_damage(M, M, 15)
-						M.visible_message("<span class='alert'>[M] gets stabbed by a sharp, spiked tentacle!</span>")
+						M.visible_message(SPAN_ALERT("[M] gets stabbed by a sharp, spiked tentacle!"))
 						random_brute_damage(M, rand(10,20),1)
 					else
 						M.meteorhit(O)
 				for(var/turf/T in src_turf)
 					if(T == O) continue
 					T.meteorhit(O)
-				for(var/obj/machinery/colosseum_putt/A in src_turf)
-					if (A == O || A == user) continue
-					A.meteorhit(O)
 
 			sleep(0.7 SECONDS)
 			for (var/obj/O in affected)
-				pool(O)
+				qdel(O)
 
 			if(istype(target_r, /obj/tentacle_trg_dummy)) qdel(target_r)
 
@@ -365,24 +355,24 @@ var/HasturPresent = 0
 			return
 		next_shot_at = ticker.round_elapsed_ticks + cooldown
 
-		playsound(user, "sound/misc/hastur/tentacle_hit.ogg", 50, 1)
-		SPAWN_DBG(rand(1,3)) // so it might miss, sometimes, maybe
+		playsound(user, 'sound/misc/hastur/tentacle_hit.ogg', 50, TRUE)
+		SPAWN(rand(1,3)) // so it might miss, sometimes, maybe
 			var/obj/target_r = new/obj/tentacle_trg_dummy(target)
 
-			playsound(user, "sound/misc/hastur/tentacle_hit.ogg", 50, 1)
-			user.visible_message("<span class='alert'><B>[user] sends a grabbing tentacle flying!</B></span>")
+			playsound(user, 'sound/misc/hastur/tentacle_hit.ogg', 50, TRUE)
+			user.visible_message(SPAN_ALERT("<B>[user] sends a grabbing tentacle flying!</B>"))
 			user.set_dir(get_dir(user, target))
 
 			var/list/affected = DrawLine(user, target_r, /obj/line_obj/tentacle ,'icons/obj/projectiles.dmi',"WholeTentacle",1,1,"HalfStartTentacle","HalfEndTentacle",OBJ_LAYER,1)
 
 			for(var/obj/O in affected)
-				O.anchored = 1 //Proc wont spawn the right object type so lets do that here.
+				O.anchored = ANCHORED //Proc wont spawn the right object type so lets do that here.
 				O.name = "coiled tentacle"
 				var/turf/src_turf = O.loc
 				for(var/obj/machinery/vehicle/A in src_turf)
 					if(A == O || A == user) continue
 					A.meteorhit(O)
-				for(var/obj/grille/A in src_turf)
+				for(var/obj/mesh/grille/A in src_turf)
 					if(A == O || A == user) continue
 					A.damage_blunt(10)
 				for(var/obj/window/A in src_turf)
@@ -393,9 +383,9 @@ var/HasturPresent = 0
 					var/turf/destination = get_turf(user)
 					if (destination)
 						do_teleport(M, destination, 1, sparks=0) ///You will appear adjacent to Hastur.
-						playsound(M, "sound/impact_sounds/Flesh_Stab_1.ogg", 50, 1)
-						M.changeStatus("paralysis", 2 SECONDS)
-						M.visible_message("<span class='alert'>[M] gets grabbed by a tentacle and dragged!</span>")
+						playsound(M, 'sound/impact_sounds/Flesh_Stab_1.ogg', 50, TRUE)
+						M.changeStatus("unconscious", 2 SECONDS)
+						M.visible_message(SPAN_ALERT("[M] gets grabbed by a tentacle and dragged!"))
 
 
 					else
@@ -403,12 +393,9 @@ var/HasturPresent = 0
 				for(var/turf/T in src_turf)
 					if(T == O) continue
 					T.meteorhit(O)
-				for(var/obj/machinery/colosseum_putt/A in src_turf)
-					if (A == O || A == user) continue
-					A.meteorhit(O)
 
 			sleep(0.7 SECONDS)
 			for (var/obj/O in affected)
-				pool(O)
+				qdel(O)
 
 			if(istype(target_r, /obj/tentacle_trg_dummy)) qdel(target_r)

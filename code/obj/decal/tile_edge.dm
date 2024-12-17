@@ -3,7 +3,7 @@
 	name = "edge"
 	mouse_opacity = 0
 	density = 0
-	anchored = 1
+	anchored = ANCHORED
 	icon = 'icons/obj/decals/misc.dmi'
 	icon_state = "tile_edge"
 	layer = TURF_LAYER + 0.1 // it should basically be part of a turf
@@ -18,12 +18,12 @@
 			var/image/I = image(src.icon, T, src.icon_state, src.layer, src.dir)
 			I.pixel_x = src.pixel_x
 			I.pixel_y = src.pixel_y
-			I.appearance_flags = RESET_COLOR
+			I.appearance_flags = RESET_COLOR | PIXEL_SCALE
 			if (src.color)
 				I.color = src.color
 			var/md5hasho = "tile_edge_[md5("[rand(1,10000)]_[rand(1,10000)]")]"
 			//world.log << md5hasho
-			if (T.UpdateOverlays(I, md5hasho))
+			if (T.AddOverlays(I, md5hasho))
 				qdel(src)
 			else
 				return ..()
@@ -31,33 +31,66 @@
 			return ..()
 
 	Move()
-		return 0
+		SHOULD_CALL_PARENT(FALSE)
+		return FALSE
 
 /obj/decal/tile_edge/stripe
 	name = "hazard stripe"
 	icon = 'icons/obj/hazard_stripes.dmi'
+	#ifndef XMAS
 	icon_state = "stripe-edge"
+	#else
+	icon_state = "xmas"
+	#endif
 
 /obj/decal/tile_edge/stripe/big
+	#ifndef XMAS
 	icon_state = "bigstripe-edge"
+	#else
+	icon_state = "xmas"
+	#endif
 
 /obj/decal/tile_edge/stripe/extra_big
+	#ifndef XMAS
 	icon_state = "xtra_bigstripe-edge"
+	#else
+	icon_state = "xmas"
+	#endif
 
 /obj/decal/tile_edge/stripe/corner
+	#ifndef XMAS
 	name = "hazard stripe corner"
+	#else
+	icon_state = "xmas-corner"
+	#endif
 
 /obj/decal/tile_edge/stripe/corner/big
+	#ifndef XMAS
 	icon_state = "bigstripe-corner"
+	#else
+	icon_state = "xmas-corner"
+	#endif
 
 /obj/decal/tile_edge/stripe/corner/big2
+	#ifndef XMAS
 	icon_state = "bigstripe-corner2"
+	#else
+	icon_state = "xmas-corner2"
+	#endif
 
 /obj/decal/tile_edge/stripe/corner/extra_big
+	#ifndef XMAS
 	icon_state = "xtra_bigstripe-corner"
+	#else
+	icon_state = "xmas-corner"
+	#endif
 
 /obj/decal/tile_edge/stripe/corner/extra_big2
+	#ifndef XMAS
 	icon_state = "xtra_bigstripe-corner2"
+	#else
+	icon_state = "xmas-corner2"
+	#endif
 
 /obj/decal/tile_edge/stripe/corner/xmas
 	icon_state = "xmas-corner"
@@ -124,7 +157,7 @@
 	name = "flowers"
 	icon = 'icons/obj/decoration.dmi'
 	icon_state = "flowers1"
-	anchored = 1
+	anchored = ANCHORED
 
 	New()
 		src.icon_state = "flowers[rand(1,4)]"
@@ -136,26 +169,30 @@
 	icon = 'icons/obj/decals/misc.dmi'
 	icon_state = "curtainthing"
 	density = 1
-	anchored = 1
+	anchored = ANCHORED
 	dir = NORTH
-	event_handler_flags = USE_FLUID_ENTER | USE_CHECKEXIT | USE_CANPASS
+	event_handler_flags = USE_FLUID_ENTER
+	object_flags = HAS_DIRECTIONAL_BLOCKING
+	pass_unstable = TRUE
 
-	CanPass(atom/movable/mover, turf/target, height=0, air_group=0)
+	Cross(atom/movable/mover)
 		if (istype(mover, /obj/projectile))
 			return 1
-		if (get_dir(loc, target) == dir)
+		if ((get_dir(loc, mover) & dir) && (dir in cardinal))
 			return !density
 		else
 			return 1
 
-	CheckExit(atom/movable/O as mob|obj, target as turf)
+	Uncross(atom/movable/O, do_bump = TRUE)
 		if (!src.density)
-			return 1
-		if (istype(O, /obj/projectile))
-			return 1
-		if (get_dir(O.loc, target) == src.dir)
-			return 0
-		return 1
+			. = 1
+		else if (istype(O, /obj/projectile))
+			. = 1
+		else if ((get_dir(O.loc, O.movement_newloc) & src.dir) && (dir in cardinal))
+			. = !density
+		else
+			. = 1
+		UNCROSS_BUMP_CHECK(O)
 
 /obj/decal/stage_edge/alt
 	name = "edge"
@@ -164,7 +201,7 @@
 //Special Manta bar decoration that goes on the floor, shoving it here since it has no better place.
 /obj/decal/risingtidebar
 	name = "The Rising Tide"
-	anchored = 2
+	anchored = ANCHORED_ALWAYS
 	desc = "Follow the anchor to reach The Rising Tide bar!"
 	bound_height = 64
 	bound_width = 32

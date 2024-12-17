@@ -17,7 +17,7 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 			target = input(usr, "Select target", "Select target") as anything in world
 		if (target)
 			if (ismob(target))
-				p_image = target:build_flat_icon()
+				p_image = target:build_flat_icon(SOUTH)
 			else if (isobj(target) || isturf(target) || isarea(target))
 				p_image = getFlatIcon(target, SOUTH)
 			else
@@ -52,13 +52,12 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 	var/print_or_place = alert(usr, "Print out at all printers or place on your tile?", "Selection", "Place", "Print")
 	if (alert(usr, "Confirm poster creation", "Confirmation", "OK", "Cancel") == "OK")
 		if (print_or_place == "Print")
-			for (var/obj/machinery/networked/printer/P in world)
-				LAGCHECK(LAG_LOW)
+			for_by_tcl(P, /obj/machinery/networked/printer)
 				if (P.status & (NOPOWER|BROKEN))
 					continue
 				flick("printer-printing",P)
-				playsound(P.loc, "sound/machines/printer_dotmatrix.ogg", 50, 1)
-				SPAWN_DBG(3.2 SECONDS)
+				playsound(P.loc, 'sound/machines/printer_dotmatrix.ogg', 50, 1)
+				SPAWN(3.2 SECONDS)
 					var/obj/item/poster/titled_photo/np = new(get_turf(P))
 					if (p_title)
 						np.line_title = p_title
@@ -93,8 +92,53 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 				np.line_b3 = p_l3
 			np.generate_poster()
 
-		logTheThing("admin", usr, null, "created a poster[print_or_place == "Print" ? " at all printers" : null]")
+		logTheThing(LOG_ADMIN, usr, "created a poster[print_or_place == "Print" ? " at all printers" : null]")
 		message_admins("[key_name(usr)] created a poster[print_or_place == "Print" ? " at all printers" : null]")
+
+/proc/create_jailbird_wanted_poster(mob/living/carbon/human/H)
+	var/reason = "Previous criminal activity."
+	if (H.job == "Stowaway")
+		reason = "Unauthorized boarding of a Nanotrasen [station_or_ship()]."
+	else
+		var/datum/db_record/sec_record = data_core.security.find_record("id", H.datacore_id)
+		if (sec_record)
+			reason = "[sec_record["ma_crim"]] [sec_record["mi_crim"]]"
+	mass_print_wanted_poster(
+		uppertext(H.real_name),
+		H.build_flat_icon(),
+		"FROM CAMERA FOOTAGE",
+		"WANTED: ALIVE",
+		null, // no bounty
+		"<b>WANTED FOR:</b> [reason]",
+		"<center><i>NANOTRASEN AUTOMATED NOTICE</i></center>"
+	)
+
+/// Print a wanted poster to all station-level printers
+/proc/mass_print_wanted_poster(name, wanted_image, subtitle, dead_or_alive, bounty, wanted_for, notes)
+	for_by_tcl(P, /obj/machinery/networked/printer)
+		if (P.status & (NOPOWER|BROKEN))
+			continue
+		if (P.z != Z_LEVEL_STATION)
+			continue
+		flick("printer-printing",P)
+		playsound(P.loc, 'sound/machines/printer_dotmatrix.ogg', 50, 1)
+		SPAWN(3.2 SECONDS)
+			var/obj/item/poster/titled_photo/wp = new(get_turf(P))
+			if (name)
+				wp.line_title = name
+			if (wanted_image)
+				wp.poster_image = wanted_image
+			if (subtitle)
+				wp.line_photo_subtitle = subtitle
+			if (dead_or_alive)
+				wp.line_below_photo = dead_or_alive
+			if (bounty)
+				wp.line_b1 = bounty
+			if (wanted_for)
+				wp.line_b2 = wanted_for
+			if (notes)
+				wp.line_b3 = notes
+			wp.generate_poster()
 
 // admin wanted poster gen
 /proc/gen_wp(var/target)
@@ -156,29 +200,15 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 	var/print_or_place = alert(usr, "Print out at all printers or place on your tile?", "Selection", "Place", "Print")
 	if (alert(usr, "Confirm poster creation", "Confirmation", "OK", "Cancel") == "OK")
 		if (print_or_place == "Print")
-			for (var/obj/machinery/networked/printer/P in world)
-				LAGCHECK(LAG_LOW)
-				if (P.status & (NOPOWER|BROKEN))
-					continue
-				flick("printer-printing",P)
-				playsound(P.loc, "sound/machines/printer_dotmatrix.ogg", 50, 1)
-				SPAWN_DBG(3.2 SECONDS)
-					var/obj/item/poster/titled_photo/wp = new(get_turf(P))
-					if (w_name)
-						wp.line_title = w_name
-					if (w_image)
-						wp.poster_image = w_image
-					if (w_sub)
-						wp.line_photo_subtitle = w_sub
-					if (doa)
-						wp.line_below_photo = doa
-					if (w_bounty)
-						wp.line_b1 = w_bounty
-					if (w_for)
-						wp.line_b2 = w_for
-					if (w_notes)
-						wp.line_b3 = w_notes
-					wp.generate_poster()
+			mass_print_wanted_poster(
+				w_name,
+				w_image,
+				w_sub,
+				doa,
+				w_bounty,
+				w_for,
+				w_notes
+			)
 		else
 			var/obj/item/poster/titled_photo/wp = new(get_turf(usr))
 			if (w_name)
@@ -197,7 +227,7 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 				wp.line_b3 = w_notes
 			wp.generate_poster()
 
-		logTheThing("admin", usr, null, "created a wanted poster targeting [w_name][print_or_place == "Print" ? " at all printers" : null]")
+		logTheThing(LOG_ADMIN, usr, "created a wanted poster targeting [w_name][print_or_place == "Print" ? " at all printers" : null]")
 		message_admins("[key_name(usr)] created a wanted poster targeting [w_name][print_or_place == "Print" ? " at all printers" : null]")
 
 /mob/proc/build_flat_icon(var/direction)
@@ -206,8 +236,8 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 
 /mob/living/carbon/human/build_flat_icon(var/direction)
 	var/icon/return_icon
-	if (src.mutantrace)
-		return_icon = icon(src.mutantrace.icon, src.mutantrace.icon_state, direction ? direction : null)
+	if (src.mutantrace) //TODO: #14465
+		return_icon = icon(src.mutantrace.get_typeinfo().icon, src.mutantrace.icon_state, direction ? direction : null)
 	else
 		return_icon = icon('icons/mob/human.dmi', "body_[src.gender == MALE ? "m" : "f"]", direction ? direction : null)
 
@@ -218,8 +248,9 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 		undies.Blend(src.bioHolder.mobAppearance.u_color ? src.bioHolder.mobAppearance.u_color : "#FFFFFF", ICON_MULTIPLY)
 		return_icon.Blend(undies, ICON_OVERLAY)
 		undies = null
-
-	var/icon/comp = getFlatIcon(src, direction ? direction : null)
+	var/image/I = image(src)
+	I.dir = direction // force the direction to prevent it differing from the other icons
+	var/icon/comp = getFlatIcon(I, direction)
 	return_icon.Blend(comp, ICON_OVERLAY)
 	return return_icon
 
@@ -237,7 +268,7 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 	//cogwerks - burning vars (stolen from paper - haine)
 	burn_point = 220
 	burn_output = 900
-	burn_possible = 1
+	burn_possible = TRUE
 	health = 15
 
 	var/imgw = 400
@@ -264,41 +295,41 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 		return
 	ex_act(var/severity)
 		qdel(src)
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if (!src.anchored)
 			return ..()
 		if (user.a_intent != INTENT_HARM)
 			src.show_popup_win(user.client)
 			return
 		var/turf/T = src.loc
-		user.visible_message("<span class='alert'><b>[user]</b> rips down [src] from [T]!</span>",\
-		"<span class='alert'>You rip down [src] from [T]!</span>")
+		user.visible_message(SPAN_ALERT("<b>[user]</b> rips down [src] from [T]!"),\
+		SPAN_ALERT("You rip down [src] from [T]!"))
 		var/obj/decal/cleanable/ripped_poster/decal = make_cleanable(/obj/decal/cleanable/ripped_poster,T)
 		decal.icon_state = "[src.icon_state]-rip2"
 		decal.pixel_x = src.pixel_x
 		decal.pixel_y = src.pixel_y
-		src.anchored = 0
+		src.anchored = UNANCHORED
 		src.icon_state = "[src.icon_state]-rip1"
 		src.can_put_up = 0
 		user.put_in_hand_or_drop(src)
 
 	afterattack(var/atom/A as mob|obj|turf, var/mob/user as mob)
-		if (src.can_put_up && (istype(A, /turf/simulated/wall) || istype(A, /turf/simulated/shuttle/wall) || istype(A, /turf/unsimulated/wall) || istype(A, /obj/window)))
+		if (src.can_put_up && (istype(A, /turf/simulated/wall) || istype(A, /turf/simulated/shuttle/wall) || istype(A, /turf/unsimulated/wall)))
 			user.visible_message("<b>[user]</b> attaches [src] to [A].",\
 			"You attach [src] to [A].")
 			user.u_equip(src)
 			src.set_loc(A)
-			src.anchored = 1
+			src.anchored = ANCHORED
 		else
 			return ..()
 
-	attack(mob/M as mob, mob/user as mob)
-		if (src.popup_win && (src.no_spam + 25) <= ticker.round_elapsed_ticks)
-			user.tri_message("<span class='alert'><b>[user]</b> shoves [src] in [user == M ? "[his_or_her(user)] own" : "[M]'s"] face!</span>",\
-			user, "<span class='alert'>You shove [src] in [user == M ? "your own" : "[M]'s"] face!</span>",\
-			M, "<span class='alert'>[M == user ? "You shove" : "<b>[user]</b> shoves"] [src] in your[M == user ? " own" : null] face!</span>")
-			if (M.client)
-				src.show_popup_win(M.client)
+	attack(mob/target, mob/user, def_zone, is_special = FALSE, params = null)
+		if (src.popup_win && !ON_COOLDOWN(target, "poster_spam", 8 SECONDS))
+			user.tri_message(target, SPAN_ALERT("<b>[user]</b> shoves [src] in [user == target ? "[his_or_her(user)] own" : "[target]'s"] face!"),\
+				SPAN_ALERT("You shove [src] in [user == target ? "your own" : "[target]'s"] face!"),\
+				SPAN_ALERT("[target == user ? "You shove" : "<b>[user]</b> shoves"] [src] in your[target == user ? " own" : null] face!"))
+			if (target.client)
+				SETUP_GENERIC_ACTIONBAR(user, target, 2 SECONDS, PROC_REF(show_popup_win), target.client, src.icon, src.icon_state, null, INTERRUPT_MOVE | INTERRUPT_ACT | INTERRUPT_STUNNED | INTERRUPT_ACTION | INTERRUPT_ATTACKED)
 			src.no_spam = ticker.round_elapsed_ticks
 		else
 			return // don't attack people with the poster thanks
@@ -316,16 +347,17 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 	var/line_b1 = null
 	var/line_b2 = null
 	var/line_b3 = null
+	var/author = null
 
 	var/list/plist = null
 
 	New()
 		..()
-		SPAWN_DBG(0.5 SECONDS)
+		SPAWN(0.5 SECONDS)
 			if (!src.poster_HTML)
 				src.generate_poster()
 
-	attackby(obj/item/W as obj, mob/living/user as mob)
+	attackby(obj/item/W, mob/living/user)
 		if (istype(W, /obj/item/photo))
 			var/obj/item/photo/new_p = W
 			if (src.photo)
@@ -347,7 +379,7 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 		else
 			return ..()
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if (src.photo)
 			if (src.anchored && user.a_intent == INTENT_HARM)
 				return ..()
@@ -385,12 +417,14 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 	icon = 'icons/obj/decals/posters.dmi'
 	icon_state = "wall_poster_nt-rip2"
 
+TYPEINFO(/obj/submachine/poster_creator)
+	mats = 6
+
 /obj/submachine/poster_creator
 	name = "wanted poster station"
 	desc = "A machine that can design and print out wanted posters."
 	density = 1
-	anchored = 1
-	mats = 6
+	anchored = ANCHORED
 	deconstruct_flags = DECON_SCREWDRIVER | DECON_WRENCH | DECON_WIRECUTTERS | DECON_MULTITOOL
 	icon = 'icons/obj/objects.dmi'
 	icon_state = "poster_printer"
@@ -402,23 +436,23 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 		. += "There's [src.papers] paper[s_es(src.papers)] loaded into it."
 
 	attack_ai(mob/user as mob)
-		return attack_hand(user)
+		return src.Attackhand(user)
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		src.add_fingerprint(user)
 		if (user.client)
 			src.add_dialog(user)
 			show_window(user.client)
 			onclose(user, "wp_station")
 
-	attackby(var/obj/item/W as obj, var/mob/user as mob)
+	attackby(var/obj/item/W, var/mob/user)
 		src.add_fingerprint(user)
 		if (istype(W, /obj/item/paper))
 			user.visible_message("[user] loads [W] into [src].",\
 			"You load [W] into [src].")
 			src.papers ++
 			user.u_equip(W)
-			pool(W)
+			qdel(W)
 			return
 
 		else if (istype(W, /obj/item/paper_bin))
@@ -427,7 +461,7 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 			for (var/obj/item/paper/P in W)
 				n++
 			if (n <= 0)
-				boutput(user, "<span class='alert'>\The [B] is empty!</span>")
+				boutput(user, SPAN_ALERT("\The [B] is empty!"))
 				return
 			user.visible_message("[user] loads [W] into [src].",\
 			"You load [W] into [src].")
@@ -436,7 +470,7 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 				if (B.amount <= 0)
 					var/obj/item/paper/P = locate(/obj/item/paper) in B
 					if (P)
-						pool(P)
+						qdel(P)
 				else
 					B.amount --
 			B.update()
@@ -444,7 +478,7 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 		else if (istype(W, /obj/item/photo))
 			var/obj/item/photo/P = W
 			if (!istype(P.fullIcon))
-				boutput(user, "<span class='alert'>\The [src] fails to scan [P]!</span>")
+				boutput(user, SPAN_ALERT("\The [src] fails to scan [P]!"))
 				return
 			src.ensure_plist()
 			src.plist["image"] = P.fullIcon
@@ -457,7 +491,7 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 		else if (istype(W, /obj/item/poster/titled_photo))
 			var/obj/item/poster/titled_photo/P = W
 			if (!islist(P.plist))
-				boutput(user, "<span class='alert'>\The [src] fails to scan [P]!</span>")
+				boutput(user, SPAN_ALERT("\The [src] fails to scan [P]!"))
 				return
 			src.plist = P.plist.Copy()
 			user.visible_message("[user] scans [P] into [src].",\
@@ -494,14 +528,15 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 
 	proc/print_poster(mob/user as mob)
 		if (src.papers <= 0)
-			boutput(user, "<span class='alert'>\The [src] is out of paper!</span>")
+			boutput(user, SPAN_ALERT("\The [src] is out of paper!"))
 			return
 		if (!islist(src.plist))
-			boutput(user, "<span class='alert'>\The [src] buzzes grumpily!</span>")
+			boutput(user, SPAN_ALERT("\The [src] buzzes grumpily!"))
 			return
 		src.papers --
-		playsound(src, "sound/machines/printer_dotmatrix.ogg", 30, 1)
+		playsound(src, 'sound/machines/printer_dotmatrix.ogg', 30, TRUE)
 		var/obj/item/poster/titled_photo/P = new (src.loc)
+		P.author = user.key
 		P.name = "Wanted: [src.plist["name"]]"
 		P.line_title = "NAME: [src.plist["name"]]"
 		P.poster_image = src.plist["image"]
@@ -519,16 +554,16 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 	Topic(href, href_list)
 		if (!usr || !usr.client)
 			return ..()
-		if (get_dist(usr,src) > 1)
-			boutput(usr, "<span class='alert'>You need to be closer to [src] to do that!</span>")
+		if (BOUNDS_DIST(usr, src) > 0)
+			boutput(usr, SPAN_ALERT("You need to be closer to [src] to do that!"))
 			return
 		src.ensure_plist()
 
 		if (href_list["print"])
 			var/pnum = input(usr, "Enter amount to print:", "Print Amount", 1) as null|num
-			if (isnull(pnum) || get_dist(usr,src) > 1)
+			if (isnull(pnum) || BOUNDS_DIST(usr, src) > 0)
 				return
-			logTheThing("speech", usr, null, "printed out [pnum] wanted poster(s) [log_loc(src)] contents: name [src.plist["name"]], subtitle [src.plist["subtitle"]], wanted [src.plist["wanted"]], for [src.plist["for"]], notes [src.plist["notes"]]")
+			logTheThing(LOG_STATION, usr, "printed out [pnum] wanted poster(s) [log_loc(src)] contents: name [src.plist["name"]], subtitle [src.plist["subtitle"]], wanted [src.plist["wanted"]], for [src.plist["for"]], notes [src.plist["notes"]]")
 			for (var/i = clamp(pnum, 1, src.papers), i>0, i--)
 				if (src.papers <= 0)
 					break
@@ -538,29 +573,26 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 
 		else if (href_list["entername"])
 			var/ptext = scrubbed_input(usr, "Enter name:", "Name", src.plist["name"])
-			if (isnull(ptext) || !length(ptext) || get_dist(usr,src) > 1)
+			if (isnull(ptext) || !length(ptext) || BOUNDS_DIST(usr, src) > 0)
 				return
 			src.plist["name"] = ptext
-			logTheThing("speech", usr, null, "edited wanted poster's name: [ptext]")
+			logTheThing(LOG_STATION, usr, "edited wanted poster's name: [ptext]")
 
 		else if (href_list["selectphoto"])
 			var/ptext = scrubbed_input(usr, "Enter name or ID of crew to search for:", "Locate File Photo", src.plist["name"])
-			if (isnull(ptext) || !length(ptext) || get_dist(usr,src) > 1)
+			if (isnull(ptext) || !length(ptext) || BOUNDS_DIST(usr, src) > 0)
 				return
-			var/datum/data/record/R
-			for (var/datum/data/record/rec in data_core.general)
-				if ((ckey(rec.fields["name"]) == ckey(ptext) || rec.fields["id"] == ptext))
+			var/datum/db_record/R
+			for (var/datum/db_record/rec as anything in data_core.general.records)
+				if ((ckey(rec["name"]) == ckey(ptext) || rec["id"] == ptext))
 					R = rec
 					break
 			if (!istype(R))
-				boutput(usr, "<span class='alert'>No record found for \"[ptext]\".</span>")
+				boutput(usr, SPAN_ALERT("No record found for \"[ptext]\"."))
 				return
-			if (!islist(R.fields) || !length(R.fields))
-				boutput(usr, "<span class='alert'>Records for \"[ptext]\" are corrupt.</span>")
-				return
-			var/datum/computer/file/image/IMG = R.fields["file_photo"]
+			var/datum/computer/file/image/IMG = R["file_photo"]
 			if (!istype(IMG) || !IMG.ourIcon)
-				boutput(usr, "<span class='alert'>No photo exists on file for \"[ptext]\".</span>")
+				boutput(usr, SPAN_ALERT("No photo exists on file for \"[ptext]\"."))
 				return
 			src.plist["image"] = IMG.ourIcon
 			src.plist["subtitle"] = "FILE PHOTO"
@@ -571,30 +603,30 @@ var/global/icon/wanted_poster_unknown = icon('icons/obj/decals/posters.dmi', "wa
 
 		else if (href_list["enterdoa"])
 			var/ptext = scrubbed_input(usr, "Enter wanted level:", "Wanted Level", src.plist["wanted"])
-			if (isnull(ptext) || !length(ptext) || get_dist(usr,src) > 1)
+			if (isnull(ptext) || !length(ptext) || BOUNDS_DIST(usr, src) > 0)
 				return
 			src.plist["wanted"] = ptext
-			logTheThing("speech", usr, null, "edited wanted poster's wanted: [ptext]")
+			logTheThing(LOG_STATION, usr, "edited wanted poster's wanted: [ptext]")
 
 		else if (href_list["enterreward"])
 			var/pnum = input(usr, "Enter reward amount:", "Reward", src.plist["reward"]) as null|num
-			if (isnull(pnum) || get_dist(usr,src) > 1)
+			if (isnull(pnum) || BOUNDS_DIST(usr, src) > 0)
 				return
 			src.plist["reward"] = pnum
 
 		else if (href_list["enterfor"])
 			var/ptext = scrubbed_input(usr, "Enter wanted information:", "Wanted For", src.plist["for"])
-			if (isnull(ptext) || !length(ptext) || get_dist(usr,src) > 1)
+			if (isnull(ptext) || !length(ptext) || BOUNDS_DIST(usr, src) > 0)
 				return
 			src.plist["for"] = ptext
-			logTheThing("speech", usr, null, "edited wanted poster's for: [ptext]")
+			logTheThing(LOG_STATION, usr, "edited wanted poster's for: [ptext]")
 
 		else if (href_list["enternotes"])
 			var/ptext = scrubbed_input(usr, "Enter notes:", "Notes", src.plist["notes"])
-			if (isnull(ptext) || !length(ptext) || get_dist(usr,src) > 1)
+			if (isnull(ptext) || !length(ptext) || BOUNDS_DIST(usr, src) > 0)
 				return
 			src.plist["notes"] = ptext
-			logTheThing("speech", usr, null, "edited wanted poster's notes: [ptext]")
+			logTheThing(LOG_STATION, usr, "edited wanted poster's notes: [ptext]")
 
 		else
 			return

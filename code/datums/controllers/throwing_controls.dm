@@ -1,3 +1,5 @@
+#define THROW_SPEED_COEFFICIENT 1/1.5
+
 /datum/thrown_thing
 	var/atom/movable/thing
 	var/atom/target
@@ -13,21 +15,24 @@
 	var/matrix/transform_original
 	var/list/params
 	var/turf/thrown_from
+	var/mob/thrown_by
 	var/atom/return_target
 	var/bonus_throwforce = 0
-	var/end_throw_callback
+	var/datum/callback/end_throw_callback
 	var/mob/user
 	var/hitAThing = FALSE
 	var/dist_travelled = 0
 	var/speed_error = 0
+	var/throw_type
+	var/stops_on_mob_hit = TRUE
 
 	New(atom/movable/thing, atom/target, error, speed, dx, dy, dist_x, dist_y, range,
-			target_x, target_y, matrix/transform_original, list/params, turf/thrown_from, atom/return_target,
-			bonus_throwforce=0, end_throw_callback=null)
+			target_x, target_y, matrix/transform_original, list/params, turf/thrown_from, mob/thrown_by, atom/return_target,
+			bonus_throwforce=0, datum/callback/end_throw_callback=null, throw_type=1)
 		src.thing = thing
 		src.target = target
 		src.error = error
-		src.speed = speed
+		src.speed = speed * THROW_SPEED_COEFFICIENT
 		src.dx = dx
 		src.dy = dy
 		src.dist_x = dist_x
@@ -38,16 +43,18 @@
 		src.transform_original = transform_original
 		src.params = params
 		src.thrown_from = thrown_from
+		src.thrown_by = thrown_by
 		src.return_target = return_target
 		src.bonus_throwforce = bonus_throwforce
 		src.end_throw_callback = end_throw_callback
 		src.user = usr // ew
+		src.throw_type = throw_type
 		..()
 
 	proc/get_throw_travelled()
 		. = src.dist_travelled //dist traveled is super innacurrate, especially when stacking throws
-		if (src.thrown_from) //if we have this param we should use it to get the REAL distance.
-			. = get_dist(get_turf(thing), get_turf(src.thrown_from))
+		if (src.thrown_from && (get_step(src.thrown_from, 0)?.z == get_step(src.thing, 0)?.z)) //if we have this param and we haven't gone cross-z-level we should use it to get the REAL distance.
+			. = GET_DIST(get_turf(thing), get_turf(src.thrown_from))
 
 var/global/datum/controller/throwing/throwing_controller = new
 
@@ -59,9 +66,9 @@ var/global/datum/controller/throwing/throwing_controller = new
 	if(src.running)
 		return
 	src.running = TRUE
-	SPAWN_DBG(0)
+	SPAWN(0)
 		while(src.tick())
-			sleep(0.1 SECONDS)
+			sleep(0.001 SECONDS)
 		src.running = FALSE
 
 /datum/controller/throwing/proc/tick()
@@ -99,7 +106,7 @@ var/global/datum/controller/throwing/throwing_controller = new
 				end_throwing = TRUE
 				break
 			thing.glide_size = (32 / (1/thr.speed)) * world.tick_lag
-			if (!thing.Move(next))  // Grayshift: Race condition fix. Bump proc calls are delayed past the end of the loop and won't trigger end condition
+			if (!thing.Move(next))  // Grayshift: Race condition fix. bump proc calls are delayed past the end of the loop and won't trigger end condition
 				thr.hitAThing = TRUE // of !throwing on their own, so manually checking if Move failed as end condition
 				end_throwing = TRUE
 				break
@@ -114,15 +121,25 @@ var/global/datum/controller/throwing/throwing_controller = new
 		if(end_throwing)
 			thrown -= thr
 			if(thr.end_throw_callback)
-				if(call(thr.end_throw_callback)(thr)) // return 1 to continue the throw, might be useful!
+				if(thr.end_throw_callback.Invoke(thr)) // pass /datum/thrown_thing, return 1 to continue the throw, might be useful!
 					thrown += thr
 					continue
 			if(!thing || thing.disposed)
 				continue
-			animate(thing)
+			if(!(thr.throw_type & THROW_PEEL_SLIP))
+				animate(thing)
+
+			if(isliving(thing) && (thr.throw_type & THROW_PEEL_SLIP))
+				var/mob/living/L = thing
+				REMOVE_ATOM_PROPERTY(L, PROP_MOB_CANTMOVE, "peel_slip_\ref[thr]")
 
 			thing.throw_end(thr.params, thrown_from=thr.thrown_from)
 			SEND_SIGNAL(thing, COMSIG_MOVABLE_THROW_END, thr)
+
+			var/mob/thrown_by = thr.thrown_by
+			if (ismob(thrown_by) && !ON_COOLDOWN(thrown_by, "throw_spam", 5 SECONDS))
+				for (var/mob/M in range(3, thrown_by))
+					SEND_SIGNAL(M, COMSIG_MOB_THROW_ITEM_NEARBY, thing, thrown_by)
 
 			if(thr.hitAThing)
 				thr.params = null// if we hit something don't use the pixel x/y from the click params
@@ -137,3 +154,14 @@ var/global/datum/controller/throwing/throwing_controller = new
 			if(thr.target != thr.return_target && thing.throw_return)
 				thing.throw_at(thr.return_target, thing.throw_range, thing.throw_speed)
 	return TRUE
+
+/datum/controller/throwing/proc/throws_of_atom(atom/movable/AM)
+	RETURN_TYPE(/list/datum/thrown_thing)
+	. = list()
+	for(var/_thr in thrown)
+		var/datum/thrown_thing/thr = _thr
+		var/atom/movable/thing = thr.thing
+		if(thing == AM)
+			. += thr
+
+#undef THROW_SPEED_COEFFICIENT

@@ -2,6 +2,13 @@
 /// Evaluates to an actual IEEE 754 infinity!
 #define INFINITY 1e69
 
+#define TICKS *world.tick_lag
+
+// Not QUITE a SI unit, but used frequently nonetheless
+#define LITERS *1
+
+#define LITER LITERS
+
 // SI UNIT DEFINES
 
 //ex:  var/time = 10 SECONDS
@@ -10,12 +17,16 @@
 #define HOURS *(60 MINUTES)
 #define DAYS *(24 HOURS)
 #define WEEKS *(7 DAYS)
+#define MONTHS *(30 DAYS) //uhhhhh sure
+#define YEARS *(365 DAYS) //leap years aren't real
 
 #define SECOND SECONDS
 #define MINUTE MINUTES
 #define HOUR HOURS
 #define DAY DAYS
 #define WEEK WEEKS
+#define MONTH MONTHS
+#define YEAR YEARS
 
 #define WATTS *1
 #define METERS *1
@@ -25,6 +36,7 @@
 #define MOLES *1
 #define CANDELAS *1
 #define PASCALS *1
+#define SIEVERTS *1
 
 #define WATT WATTS
 #define METER METERS
@@ -35,6 +47,7 @@
 #define MOLE MOLES
 #define CANDELA CANDELAS
 #define PASCAL PASCALS
+#define SIEVERT SIEVERTS
 
 #define YOTTA *(10**24)
 #define ZETTA *(10**21)

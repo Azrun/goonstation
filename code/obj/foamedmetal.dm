@@ -6,12 +6,13 @@
 	icon_state = "metalfoam"
 	density = 1
 	opacity = 0 	// changed in New()
-	anchored = 1
+	anchored = ANCHORED
 	name = "foamed metal"
 	desc = "A lightweight foamed metal wall."
-	flags = FPRINT | CONDUCT | USEDELAY
-	event_handler_flags = USE_FLUID_ENTER | USE_CANPASS
+	flags = CONDUCT | USEDELAY
+	event_handler_flags = USE_FLUID_ENTER
 	var/metal = 1		// 1=aluminium, 2=iron
+	gas_impermeable = TRUE
 
 	New()
 		..()
@@ -20,16 +21,16 @@
 			loc:ReplaceWithMetalFoam(metal)
 
 		update_nearby_tiles(1)
-		SPAWN_DBG(1 DECI SECOND)
-			RL_SetOpacity(1)
+		SPAWN(1 DECI SECOND)
+			set_opacity(1)
 
 	disposing()
-		RL_SetOpacity(0)
+		set_opacity(0)
 		density = 0
 		update_nearby_tiles(1)
 		..()
 
-	proc/updateicon()
+	update_icon()
 		if(metal == 1)
 			icon_state = "metalfoam"
 		else
@@ -42,16 +43,17 @@
 	blob_act(var/power)
 		dispose()
 
-	bullet_act()
+	bullet_act(obj/projectile/P)
 		if(metal==1 || prob(50))
-			dispose()
+			SPAWN(0)
+				dispose()
 
 	attack_hand(var/mob/user)
 		if (user.is_hulk() || (prob(75 - metal*25)))
-			user.visible_message("<span class='alert'>[user] smashes through the foamed metal.</span>")
+			user.visible_message(SPAN_ALERT("[user] smashes through the foamed metal."))
 			dispose()
 		else
-			boutput(user, "<span class='notice'>You hit the metal foam but bounce off it.</span>")
+			boutput(user, SPAN_NOTICE("You hit the metal foam but bounce off it."))
 		return
 
 
@@ -60,23 +62,25 @@
 		if (istype(I, /obj/item/grab))
 			var/obj/item/grab/G = I
 			G.affecting.set_loc(src.loc)
-			src.visible_message("<span class='alert'>[G.assailant] smashes [G.affecting] through the foamed metal wall.</span>")
+			src.visible_message(SPAN_ALERT("[G.assailant] smashes [G.affecting] through the foamed metal wall."))
 			I.dispose()
 			dispose()
 			return
 
 		if(prob(I.force*20 - metal*25))
-			user.visible_message( "<span class='alert'>[user] smashes through the foamed metal.</span>", "<span class='notice'>You smash through the foamed metal with \the [I].</span>")
+			user.visible_message( SPAN_ALERT("[user] smashes through the foamed metal."), SPAN_NOTICE("You smash through the foamed metal with \the [I]."))
 			dispose()
 		else
-			boutput(user, "<span class='notice'>You hit the metal foam to no effect.</span>")
+			boutput(user, SPAN_NOTICE("You hit the metal foam to no effect."))
 
-	// only air group geometry can pass
-	CanPass(atom/movable/mover, turf/target, height=1.5, air_group = 0)
-		return air_group
+	hitby(atom/movable/AM, datum/thrown_thing/thr)
+		. = ..()
+		if (prob((AM.throwforce + thr.bonus_throwforce) * 10 - src.metal * 25))
+			AM.visible_message(SPAN_ALERT("[AM] smashes through the foamed metal."))
+			dispose()
 
 	proc/update_nearby_tiles(need_rebuild)
-		var/turf/simulated/source = loc
+		var/turf/source = src.loc
 		if (istype(source))
 			return source.update_nearby_tiles(need_rebuild)
 

@@ -20,7 +20,12 @@
 ////////////////
 /turf/simulated/shuttle/wall/flock
 	icon = 'icons/misc/featherzone.dmi'
+#ifdef UNDERWATER_MAP
+	color = OCEAN_COLOR
+	icon_state = "shuttle-wall-oshan"
+#else
 	icon_state = "shuttle-wall"
+#endif
 
 /////////////////
 // SHUTTLE FLOORS
@@ -29,16 +34,14 @@
 	icon = 'icons/misc/featherzone.dmi'
 	icon_state = "shuttle-floor"
 
+TYPEINFO(/turf/simulated/floor/shuttlebay/flock)
+	mat_appearances_to_ignore = list("steel","gnesis")
 /turf/simulated/floor/shuttlebay/flock
 	name = "shuttle bay plating"
-	mat_appearances_to_ignore = list("steel","gnesis")
 	icon = 'icons/misc/featherzone.dmi'
 	icon_state = "shuttle-bay"
 	allows_vehicles = 1
-
-/turf/simulated/floor/shuttlebay/flock/New()
-	..()
-	setMaterial(getMaterial("gnesis"))
+	default_material = "gnesis"
 
 /turf/simulated/floor/shuttlebay/flock/middle
 	icon = 'icons/misc/featherzone.dmi'
@@ -59,26 +62,26 @@
 // FLOCK FAKEOBJECT PARENT
 ///////////////////////////
 
-/obj/decal/fakeobjects/flock
+/obj/fakeobject/flock
 	icon = 'icons/misc/featherzone.dmi'
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 
 /////////
 // WING
 /////////
-/obj/decal/fakeobjects/flock/wing
+/obj/fakeobject/flock/wing
 	icon = 'icons/misc/featherzone-96x96.dmi'
 	icon_state = "wing"
 	name = "sparking blade"
 	desc = "It looks very fragile from here. And dangerously live. Best not get too close."
 
-/obj/decal/fakeobjects/flock/wing/broken
+/obj/fakeobject/flock/wing/broken
 	icon_state = "wing-broken"
 	name = "jagged blade"
 	desc = "Looks incredibly sharp. It'll probably tear your hand to shreds if you try touching it."
 
-/obj/decal/fakeobjects/flock/wing/destroyed
+/obj/fakeobject/flock/wing/destroyed
 	icon_state = "wing-destroyed"
 	name = "razor-sharp shrapnel"
 	desc = "Looks incredibly sharp. It'll probably tear your hand to shreds if you try touching it."
@@ -86,15 +89,18 @@
 ///////////
 // ANTENNA
 ///////////
-/obj/decal/fakeobjects/flock/antenna
+/obj/fakeobject/flock/antenna
 	icon_state = "antenna"
 	name = "fibrous pole"
 	desc = "Huh. Weird."
 
-/obj/decal/fakeobjects/flock/antenna/end
+/obj/fakeobject/flock/antenna/not_dense
+	density = FALSE
+
+/obj/fakeobject/flock/antenna/end
 	icon_state = "antenna-end"
 
-/obj/decal/fakeobjects/flock/antenna/broken
+/obj/fakeobject/flock/antenna/broken
 	icon_state = "antenna-broken-1"
 	desc = "Huh. Looks busted."
 	random_icon_states = list("antenna-broken-1", "antenna-broken-2")
@@ -102,7 +108,7 @@
 ///////////////////
 // TELEPORT MARKER
 ///////////////////
-/obj/decal/fakeobjects/flock/telepad
+/obj/fakeobject/flock/telepad
 	icon_state = "telemarker"
 	name = "glowing marker"
 	desc = "I got nothin'."
@@ -121,17 +127,21 @@
 	var/range = 4
 
 	New()
-		START_TRACKING_CAT(TR_CAT_TELEPORT_JAMMERS)
+		APPLY_ATOM_PROPERTY(src, PROP_ATOM_TELEPORT_JAMMER, src, src.range)
 		..()
 
 	disposing()
-		STOP_TRACKING_CAT(TR_CAT_TELEPORT_JAMMERS)
+		REMOVE_ATOM_PROPERTY(src, PROP_ATOM_TELEPORT_JAMMER, src)
 		..()
 
 /obj/item/device/flockblocker/attack_self(mob/user as mob)
 	active = !active
+	if (!src.active)
+		REMOVE_ATOM_PROPERTY(src, PROP_ATOM_TELEPORT_JAMMER, src)
+	else
+		APPLY_ATOM_PROPERTY(src, PROP_ATOM_TELEPORT_JAMMER, src, src.range)
 	icon_state = "[base_state]-[active ? "on" : "off"]"
-	boutput(user, "<span class='notice'>You fumble with [src] until you [active ? "turn it on. Space suddenly feels more thick." : "turn it off. You feel strangely exposed."]</span>")
+	boutput(user, SPAN_NOTICE("You fumble with [src] until you [active ? "turn it on. Space suddenly feels more thick." : "turn it off. You feel strangely exposed."]"))
 
 
 ////////////////
@@ -145,7 +155,6 @@
 	picture = "flocktrader.png"
 	name = "Flocktrader Sa.le"
 	desc = "Some sort of weird holographic image on some fancy totem thing. Seems like it wants to trade."
-	trader_area = "/area/flock_trader"
 	var/is_greeting = 0
 	var/grad_col_1 = "#3cb5a3"
 	var/grad_col_2 = "#124e43"
@@ -181,6 +190,7 @@
 	src.goods_sell += new/datum/commodity/flock/tech/flockburger(src)
 	src.goods_sell += new/datum/commodity/flock/tech/flockblocker(src)
 	src.goods_sell += new/datum/commodity/flock/tech/incapacitor(src)
+	src.goods_sell += new/datum/commodity/flock/tech/ai_kit_flock(src)
 
 
 	greeting= {"[src.name] clicks from your headset. \"[gradientText(grad_col_1, grad_col_2, "Greetings, spacefarer. There are many permutations of the Signal, and we are an iteration less inclined to senseless destruction. Do you wish to engage in trade?")]\""}
@@ -229,13 +239,13 @@
 		"\"[gradientText(grad_col_1, grad_col_2, "We will not agree to any other price. Take it or leave it.")]\"")
 
 	// set up environmental things
-	SPAWN_DBG(10 SECONDS)
+	SPAWN(10 SECONDS)
 		for(var/obj/flock_screen/F in orange(5, src))
 			screen = F
-		screen.trader = src
+		screen?.trader = src
 		for(var/obj/flock_reclaimer/R in orange(5, src))
 			reclaimer = R
-		reclaimer.trader = src
+		reclaimer?.trader = src
 		for(var/obj/machinery/door/feather/trader/D in orange(5, src))
 			door = D
 
@@ -246,17 +256,17 @@
 	src.visible_message("<B>[src.name]</B> screeches, \"[gradientText(grad_col_1, grad_col_2, "We will not tolerate this!")]\"")
 	for(var/turf/T in get_area_turfs( get_area(src) ))
 		for(var/mob/living/L in T)
-			if(isflock(L))
+			if(isflockmob(L))
 				continue // don't zap our buddies
 			arcFlash(src, L, 2000000)
 
 
 /obj/npc/trader/flock/anger()
 	for(var/mob/M in AIviewers(src))
-		boutput(M, "<span class='alert'><B>[src.name]</B> becomes angry!</span>")
+		boutput(M, SPAN_ALERT("<B>[src.name]</B> becomes angry!"))
 	src.desc = "Looks absolutely furious, as far as you can read the expressions of holographic alien heads."
 	src.icon_state = "totem-angry"
-	SPAWN_DBG(rand(1000,3000))
+	SPAWN(rand(1000,3000))
 		src.icon_state = "totem"
 		src.visible_message("<b>[src.name] calms down.</b>")
 		src.desc = "[src] looks a bit annoyed."
@@ -277,7 +287,7 @@
 	is_greeting = 1
 	if(trader in approved_traders)
 		if(screen)
-			SPAWN_DBG(0)
+			SPAWN(0)
 				screen.show_icon("yes")
 			screen.say(pick_string("flockmind.txt", "flocktrader_friendly_greeting"))
 		sleep(1 SECOND)
@@ -285,7 +295,7 @@
 			door.open()
 	else
 		if(screen)
-			SPAWN_DBG(0)
+			SPAWN(0)
 				screen.show_icon("no")
 			screen.say(pick_string("flockmind.txt", "flocktrader_cautious_greeting"))
 	is_greeting = 0
@@ -303,14 +313,14 @@
 		var/existing_trader = (donator in approved_traders)
 		approved_traders |= donator
 		approved_at *= increase_rate
-		SPAWN_DBG(0)
+		SPAWN(0)
 			if(screen)
 				if(existing_trader)
-					SPAWN_DBG(0)
+					SPAWN(0)
 						screen.show_icon("present")
 					screen.say(pick_string("flockmind.txt", "flocktrader_target_met_existing_trader"))
 				else
-					SPAWN_DBG(0)
+					SPAWN(0)
 						screen.show_icon("yes")
 					screen.say(pick_string("flockmind.txt", "flocktrader_target_met_new_trader"))
 			sleep(1 SECOND)
@@ -329,7 +339,7 @@
 	name = "blank surface"
 	desc = "Huh."
 	density = 1
-	anchored = 1
+	anchored = ANCHORED
 	var/obj/npc/trader/flock/trader
 
 /obj/flock_screen/proc/show_icon(var/state)
@@ -344,7 +354,7 @@
 /obj/flock_screen/proc/say(var/message)
 	if(!message)
 		return
-	src.audible_message("<span class='game say'><span class='name'>[src]</span> beeps, \"[gradientText("#3cb5a3", "#124e43", message)]\"")
+	src.audible_message(SPAN_SAY("[SPAN_NAME("[src]")] beeps, \"[gradientText("#3cb5a3", "#124e43", message)]\""))
 
 ////////////////////////////////
 // FLOCKTRADER DONATE RECLAIMER
@@ -355,43 +365,34 @@
 	name = "open receptacle"
 	desc = "Probably don't stick your hand in it. Looks like some kinda plasma blender."
 	density = 1
-	anchored = 1
+	anchored = ANCHORED
 	var/obj/npc/trader/flock/trader
 
-/obj/flock_reclaimer/attack_hand(mob/user as mob)
+/obj/flock_reclaimer/attack_hand(mob/user)
 	if(!user)
 		return
 	if(!trader)
-		boutput(user, "<span class='alert'>Nothing happens.</span>")
+		boutput(user, SPAN_ALERT("Nothing happens."))
 		return
-	src.visible_message("<span class='notice'>[user.name] waves their hand over [src.name].</span>")
+	src.visible_message(SPAN_NOTICE("[user.name] waves their hand over [src.name]."))
 	trader.greet(user)
 
-/obj/flock_reclaimer/attackby(obj/item/W as obj, mob/user as mob)
+/obj/flock_reclaimer/attackby(obj/item/W, mob/user)
 	if(!W || !user || W.cant_drop)
 		return
 	if(istype(W, /obj/item/grab))
-		boutput(user, "<span class='alert'>You can't fit them into this, sadly.</span>")
+		var/obj/item/grab/G = W
+		boutput(user, SPAN_ALERT("You can't fit [him_or_her(G.affecting)] into this, sadly."))
 		return
-	src.visible_message("<span class='alert'>[user.name] puts [W] in [src].</span>")
+	src.visible_message(SPAN_ALERT("[user.name] puts [W] in [src]."))
 	var/gained_resources = (W.health * 2) + 5
 	user.remove_item(W)
 	qdel(W)
 	sleep(1 SECOND)
-	playsound(src.loc, "sound/impact_sounds/Energy_Hit_2.ogg", 70, 1)
+	playsound(src.loc, 'sound/impact_sounds/Energy_Hit_2.ogg', 70, 1)
 	sleep(0.5 SECONDS)
 	if(trader)
 		trader.donate(user, gained_resources)
-
-///////////////////////////
-// FLOCK WINGRILLE SPAWNER
-///////////////////////////
-/obj/wingrille_spawn/flock
-	icon = 'icons/misc/featherzone.dmi'
-	icon_state = "wingrille"
-	win_path = "/obj/window/feather"
-	grille_path = "/obj/grille/flock"
-	full_win = 1
 
 ////////////////////
 // FLOCKTRADER DOOR
@@ -418,7 +419,7 @@
 // make sure to put more specific types first, else they'll be skipped over in the processing
 /var/list/flocklore = list(
 	/obj/item/book_kinginyellow = "flocklore_king_in_yellow",
-	/obj/item/storage/bible = "flocklore_bible",
+	/obj/item/bible = "flocklore_bible",
 	/obj/item/space_thing = "flocklore_space_thing",
 	/obj/item/reagent_containers/food/snacks/ingredient/egg/bee/buddy = "flocklore_buddy_egg",
 	/obj/item/reagent_containers/food/snacks/ingredient/egg/bee/moon = "flocklore_moon_egg",
@@ -444,7 +445,7 @@
 )
 // items that, instead of being flung aside, will gently be moved elsewhere
 /var/list/respected_items = list(
-	/obj/item/storage/bible,
+	/obj/item/bible,
 	/obj/item/space_thing,
 	/obj/item/reagent_containers/food/snacks/ingredient/egg/bee,
 	/obj/item/feather,

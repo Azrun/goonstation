@@ -7,6 +7,7 @@
 	var/scan_decal = null
 	var/prevent_excavation = 0
 	var/restrict_to_turf_type = null
+	var/weight = 100
 
 	set_up(var/datum/ore/event/parent_event)
 		..()
@@ -24,17 +25,45 @@
 	set_up(var/datum/ore/parent)
 		if (..() || !parent)
 			return 1
-		if (parent.gems.len < 1)
+		if (length(parent.gems) < 1)
 			return 1
 		gem_type = pick(parent.gems)
 
-	onExcavate(var/turf/simulated/wall/asteroid/AST)
+	onExcavate(var/turf/simulated/wall/auto/asteroid/AST)
 		if (..())
 			return
-		var/obj/item/I = unpool(gem_type)
+		var/obj/item/I = new gem_type
 		I.set_loc(AST)
-		I.quality = AST.quality + rand(-50,50)
-		I.name = "[getGemQualityName(I.quality)] [I.name]"
+
+/datum/ore/event/geode
+	analysis_string = "Large crystalline formations detected."
+	excavation_string = "A geode was unearthed!"
+	scan_decal = "scan-object"
+	weight = 200 //let's make these pretty common for now
+	///weighted lists of geode types to pick from
+	var/static/list/fluid_geode_types = list()
+	var/static/list/crystal_geode_types = list()
+
+	onExcavate(turf/simulated/wall/auto/asteroid/AST)
+		if (..())
+			return
+		//horrible weighted caching zone
+		if (!length(src.fluid_geode_types))
+			for (var/obj/geode/type as anything in concrete_typesof(/obj/geode/fluid))
+				src.fluid_geode_types[type] = initial(type.weight)
+		if (!length(src.crystal_geode_types))
+			for (var/obj/geode/type as anything in concrete_typesof(/obj/geode/crystal))
+				src.crystal_geode_types[type] = initial(type.weight)
+
+		var/geode_type = null
+		if (prob(30)) //make fluid geodes always a bit rarer since they're more niche
+			if (prob(50)) //hardcoded oil chance so the weight stays high as more fluid geodes are added
+				geode_type = /obj/geode/fluid/oil
+			else
+				geode_type = weighted_pick(src.fluid_geode_types)
+		else
+			geode_type = weighted_pick(src.crystal_geode_types)
+		new geode_type(AST)
 
 /datum/ore/event/gem/molitz_b
 	analysis_string = "Small unusual crystalline deposit detected."
@@ -45,7 +74,7 @@
 			return
 		gem_type = /obj/item/raw_material/molitz_beta
 
-	onExcavate(var/turf/simulated/wall/asteroid/AST)
+	onExcavate(var/turf/simulated/wall/auto/asteroid/AST)
 		var/quantity = rand(2,3)
 		for(var/i in 1 to quantity)
 			..()
@@ -55,19 +84,20 @@
 	analysis_string = "Caution! Life signs detected!"
 	excavation_string = "A rock worm jumps out of the collapsing rock!"
 	scan_decal = "scan-object"
-	restrict_to_turf_type = /turf/simulated/wall/asteroid
+	restrict_to_turf_type = /turf/simulated/wall/auto/asteroid
 
-	onExcavate(var/turf/simulated/wall/asteroid/AST)
+	onExcavate(var/turf/simulated/wall/auto/asteroid/AST)
 		if (..())
 			return
-		new /obj/critter/rockworm(AST)
+		new /mob/living/critter/rockworm(AST)
 
 /datum/ore/event/loot_crate
 	analysis_string = "Caution! Large object embedded in rock!"
 	excavation_string = "An abandoned crate was unearthed!"
 	scan_decal = "scan-object"
+	weight = 10
 
-	onExcavate(var/turf/simulated/wall/asteroid/AST)
+	onExcavate(var/turf/simulated/wall/auto/asteroid/AST)
 		if (..())
 			return
 		new /obj/storage/crate/loot(AST)
@@ -77,7 +107,7 @@
 	excavation_string = "An artifact was unearthed!"
 	scan_decal = "scan-object"
 
-	onExcavate(var/turf/simulated/wall/asteroid/AST)
+	onExcavate(var/turf/simulated/wall/auto/asteroid/AST)
 		if (..())
 			return
 		Artifact_Spawn(AST)
@@ -90,7 +120,7 @@
 	nearby_tile_distribution_max = 12
 	scan_decal = "scan-soft"
 
-	onGenerate(var/turf/simulated/wall/asteroid/AST)
+	onGenerate(var/turf/simulated/wall/auto/asteroid/AST)
 		if (..())
 			return
 		AST.hardness += hardness_mod
@@ -103,7 +133,7 @@
 	nearby_tile_distribution_max = 12
 	scan_decal = "scan-hard"
 
-	onGenerate(var/turf/simulated/wall/asteroid/AST)
+	onGenerate(var/turf/simulated/wall/auto/asteroid/AST)
 		if (..())
 			return
 		AST.hardness += hardness_mod
@@ -113,38 +143,38 @@
 	analysis_string = "Caution! Volatile compounds detected!"
 	scan_decal = "scan-danger"
 	prevent_excavation = 1
-	restrict_to_turf_type = /turf/simulated/wall/asteroid
+	restrict_to_turf_type = /turf/simulated/wall/auto/asteroid
 	var/image/warning_overlay = null
 
 	New()
 		..()
-		warning_overlay = image('icons/turf/asteroid.dmi', "unstable")
+		warning_overlay = image('icons/turf/walls/asteroid.dmi', "unstable")
 
-	onHit(var/turf/simulated/wall/asteroid/AST)
+	onHit(var/turf/simulated/wall/auto/asteroid/AST)
 		if (..())
 			return
 		AST.overlays += warning_overlay
 		var/timer = rand(3,6) * 10
-		SPAWN_DBG(timer)
+		SPAWN(timer)
 			if (istype(AST)) //Wire note: Fix for Undefined variable /turf/simulated/floor/plating/airless/asteroid/var/invincible
 				AST.invincible = 0
-				explosion(AST, AST, 1, 2, 3, 4, 1)
+				explosion(AST, AST, 1, 2, 3, 4)
 
 /datum/ore/event/radioactive
 	analysis_string = "Caution! Radioactive mineral deposits detected!"
 	nearby_tile_distribution_min = 4
 	nearby_tile_distribution_max = 8
 	scan_decal = "scan-danger"
-	restrict_to_turf_type = /turf/simulated/wall/asteroid
+	restrict_to_turf_type = /turf/simulated/wall/auto/asteroid
 
-	onHit(var/turf/simulated/wall/asteroid/AST)
+	onHit(var/turf/simulated/wall/auto/asteroid/AST)
 		if (..())
 			return
 		for (var/mob/living/L in range(1,AST))
-			L.changeStatus("radiation", 5 SECONDS, 2)
+			L.take_radiation_dose(0.05 SIEVERTS)
 
-	onExcavate(var/turf/simulated/wall/asteroid/AST)
+	onExcavate(var/turf/simulated/wall/auto/asteroid/AST)
 		if (..())
 			return
 		for (var/mob/living/L in range(1,AST))
-			L.changeStatus("radiation", 10 SECONDS, 2)
+			L.take_radiation_dose(0.1 SIEVERTS)

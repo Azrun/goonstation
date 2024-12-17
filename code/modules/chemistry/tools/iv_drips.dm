@@ -10,15 +10,15 @@
 	desc = "A bag with a fine needle attached at the end, for injecting patients with fluids."
 	icon = 'icons/obj/surgery.dmi'
 	icon_state = "IV"
-	uses_multiple_icon_states = 1
 	inhand_image_icon = 'icons/mob/inhand/hand_medical.dmi'
 	item_state = "IV"
 	w_class = W_CLASS_TINY
-	flags = FPRINT | TABLEPASS | SUPPRESSATTACK | OPENCONTAINER
+	flags = TABLEPASS | SUPPRESSATTACK | OPENCONTAINER
 	rc_flags = RC_VISIBLE | RC_FULLNESS | RC_SPECTRO
 	amount_per_transfer_from_this = 5
 	initial_volume = 250//100
 	var/image/fluid_image = null
+	var/image/label_image = null
 	var/image/image_inj_dr = null
 	var/mob/living/carbon/human/patient = null
 	var/obj/iv_stand/stand = null
@@ -26,26 +26,38 @@
 	var/in_use = 0
 	var/slashed = 0
 
-	on_reagent_change()
-		src.update_icon()
-		if (src.stand)
-			src.stand.update_icon()
+	New()
+		..()
+		if (src.reagents.get_master_reagent_name() == "blood")
+			src.label_image = image(src.icon, "IVlabel-blood")
+		if (!src.label_image)
+			src.label_image = image(src.icon, "IVlabel")
+		src.UpdateOverlays(src.label_image, "label")
+		src.UpdateIcon()
 
-	proc/update_icon()
+	on_reagent_change()
+		..()
+		src.UpdateIcon()
+		if (src.stand)
+			src.stand.UpdateIcon()
+
+	update_icon()
 		if (src.reagents && src.reagents.total_volume)
-			var/iv_state = max(min(round((src.reagents.total_volume / src.reagents.maximum_volume) * 100, 10) / 10, 100), 0) //Look away, you fool! Like the sun, this section of code is harmful for your eyes if you look directly at it
+			var/iv_state = clamp((ceil(((src.reagents.total_volume / src.reagents.maximum_volume) * 90) / 9)), 1, 9) //Look away, you fool! Like the sun, this section of code is harmful for your eyes if you look directly at it
 			if (!src.fluid_image)
-				src.fluid_image = image(src.icon, "IV-0")
-			src.fluid_image.icon_state = "IV-[iv_state]"
+				src.fluid_image = image(src.icon, "IVfluid-0")
+			src.fluid_image.icon_state = "IVfluid-[iv_state]"
 			var/datum/color/average = reagents.get_average_color()
 			src.fluid_image.color = average.to_rgba()
 			src.UpdateOverlays(src.fluid_image, "fluid")
+			src.icon_state = "IV-[iv_state]"
 			src.name = src.reagents.get_master_reagent_name() == "blood" ? "blood pack" : "[src.reagents.get_master_reagent_name()] drip"
 		else
 			src.UpdateOverlays(null, "fluid")
 			if (src.fluid_image) //ZeWaka: Fix for null.icon_state
-				src.fluid_image.icon_state = "IV-0"
+				src.fluid_image.icon_state = "IVfluid-0"
 			src.name = "\improper IV drip"
+			src.icon_state = "IV"
 		if (ismob(src.loc))
 			if (!src.image_inj_dr)
 				src.image_inj_dr = image(src.icon)
@@ -60,31 +72,31 @@
 
 	pickup(mob/user)
 		..()
-		src.update_icon()
+		src.UpdateIcon()
 
 	dropped(mob/user)
 		..()
-		SPAWN_DBG(0)
-			src.update_icon()
+		SPAWN(0)
+			src.UpdateIcon()
 
 	attack_self(mob/user as mob)
 		src.mode = !(src.mode)
 		user.show_text("You switch [src] to [src.mode ? "inject" : "draw"].")
-		src.update_icon()
+		src.UpdateIcon()
 
-	attack(mob/living/carbon/M as mob, mob/living/carbon/user as mob)
-		if (!ishuman(M))
+	attack(mob/target, mob/user, def_zone, is_special = FALSE, params = null)
+		if (!ishuman(target))
 			return ..()
-		var/mob/living/carbon/human/H = M
+		var/mob/living/carbon/human/H = target
 
 		if (in_use && src.patient)
 			if (src.patient != H)
 				user.show_text("[src] is already being used by someone else!", "red")
 				return
 			else if (src.patient == H)
-				H.tri_message("<span class='notice'><b>[user]</b> removes [src]'s needle from [H == user ? "[his_or_her(H)]" : "[H]'s"] arm.</span>",\
-				user, "<span class='notice'>You remove [src]'s needle from [H == user ? "your" : "[H]'s"] arm.</span>",\
-				H, "<span class='notice'>[H == user ? "You remove" : "<b>[user]</b> removes"] [src]'s needle from your arm.</span>")
+				H.tri_message(user, SPAN_NOTICE("<b>[user]</b> removes [src]'s needle from [H == user ? "[his_or_her(H)]" : "[H]'s"] arm."),\
+					SPAN_NOTICE("You remove [src]'s needle from [H == user ? "your" : "[H]'s"] arm."),\
+					SPAN_NOTICE("[H == user ? "You remove" : "<b>[user]</b> removes"] [src]'s needle from your arm."))
 				src.stop_transfusion()
 				return
 		else
@@ -106,28 +118,14 @@
 					user.show_text("[H] doesn't have anything left to give!", "red")
 					return
 
-			H.tri_message("<span class='notice'><b>[user]</b> begins inserting [src]'s needle into [H == user ? "[his_or_her(H)]" : "[H]'s"] arm.</span>",\
-			user, "<span class='notice'>You begin inserting [src]'s needle into [H == user ? "your" : "[H]'s"] arm.</span>",\
-			H, "<span class='notice'>[H == user ? "You begin" : "<b>[user]</b> begins"] inserting [src]'s needle into your arm.</span>")
-			logTheThing("combat", user, H, "tries to hook up an IV drip [log_reagents(src)] to [constructTarget(H,"combat")] at [log_loc(user)].")
-
-			if (H != user)
-				if (!do_mob(user, H, 50))
-					user.show_text("You were interrupted!", "red")
-					return
-			else if (!do_after(H, 1.5 SECONDS))
-				H.show_text("You were interrupted!", "red")
-				return
-
-			src.patient = H
-			H.tri_message("<span class='notice'><b>[user]</b> inserts [src]'s needle into [H == user ? "[his_or_her(H)]" : "[H]'s"] arm.</span>",\
-			user, "<span class='notice'>You insert [src]'s needle into [H == user ? "your" : "[H]'s"] arm.</span>",\
-			H, "<span class='notice'>[H == user ? "You insert" : "<b>[user]</b> inserts"] [src]'s needle into your arm.</span>")
-			logTheThing("combat", user, H, "connects an IV drip [log_reagents(src)] to [constructTarget(H,"combat")] at [log_loc(user)].")
-			src.start_transfusion()
+			H.tri_message(user, SPAN_NOTICE("<b>[user]</b> begins inserting [src]'s needle into [H == user ? "[his_or_her(H)]" : "[H]'s"] arm."),\
+				SPAN_NOTICE("[H == user ? "You begin" : "<b>[user]</b> begins"] inserting [src]'s needle into your arm."),\
+				SPAN_NOTICE("You begin inserting [src]'s needle into [H == user ? "your" : "[H]'s"] arm."))
+			logTheThing(LOG_COMBAT, user, "tries to hook up an IV drip [log_reagents(src)] to [constructTarget(H,"combat")] at [log_loc(user)].")
+			SETUP_GENERIC_ACTIONBAR(user, src, 3 SECONDS, /obj/item/reagent_containers/iv_drip/proc/insert_needle, list(H, user), src.icon, "IV", null, null)
 			return
 
-	attackby(obj/A as obj, mob/user as mob)
+	attackby(obj/A, mob/user)
 		if (iscuttingtool(A) && !(src.slashed))
 			src.slashed = 1
 			src.desc = "[src.desc] It has been sliced open with a scalpel."
@@ -142,21 +140,21 @@
 			src.stop_transfusion()
 			return
 
-		if ((!src.stand && get_dist(src, src.patient) > 1) || (src.stand && get_dist(src.stand, src.patient) > 1))
+		if ((!src.stand && !in_interact_range(src, src.patient)) || (src.stand && !in_interact_range(src.stand, src.patient)))
 			var/fluff = pick("pulled", "yanked", "ripped")
-			src.patient.visible_message("<span class='alert'><b>[src]'s needle gets [fluff] out of [src.patient]'s arm!</b></span>",\
-			"<span class='alert'><b>[src]'s needle gets [fluff] out of your arm!</b></span>")
+			src.patient.visible_message(SPAN_ALERT("<b>[src]'s needle gets [fluff] out of [src.patient]'s arm!</b>"),\
+			SPAN_ALERT("<b>[src]'s needle gets [fluff] out of your arm!</b>"))
 			src.stop_transfusion()
 			return
 
 		if (src.mode == IV_INJECT)
 			if (src.patient.reagents.is_full())
-				src.patient.visible_message("<span class='notice'><b>[src.patient]</b>'s transfusion finishes.</span>",\
-				"<span class='notice'>Your transfusion finishes.</span>")
+				src.patient.visible_message(SPAN_NOTICE("<b>[src.patient]</b>'s transfusion finishes."),\
+				SPAN_NOTICE("Your transfusion finishes."))
 				src.stop_transfusion()
 				return
 			if (!src.reagents.total_volume)
-				src.patient.visible_message("<span class='alert'>[src] runs out of fluid!</span>")
+				src.patient.visible_message(SPAN_ALERT("[src] runs out of fluid!"))
 				src.stop_transfusion()
 				return
 
@@ -167,15 +165,15 @@
 
 		else if (src.mode == IV_DRAW)
 			if (src.reagents.is_full())
-				src.patient.visible_message("<span class='notice'>[src] fills up and stops drawing blood from [src.patient].</span>",\
-				"<span class='notice'>[src] fills up and stops drawing blood from you.</span>")
+				src.patient.visible_message(SPAN_NOTICE("[src] fills up and stops drawing blood from [src.patient]."),\
+				SPAN_NOTICE("[src] fills up and stops drawing blood from you."))
 				src.stop_transfusion()
 				return
 			// Vampires can't use this trick to inflate their blood count, because they can't get more than ~30% of it back.
 			// Also ignore that second container of blood entirely if it's a vampire (Convair880).
 			if ((isvampire(src.patient) && (src.patient.get_vampire_blood() <= 0)) || (!isvampire(src.patient) && !src.patient.reagents.total_volume && !src.patient.blood_volume))
-				src.patient.visible_message("<span class='alert'>[src] can't seem to draw anything more out of [src.patient]!</span>",\
-				"<span class='alert'>Your veins feel utterly empty!</span>")
+				src.patient.visible_message(SPAN_ALERT("[src] can't seem to draw anything more out of [src.patient]!"),\
+				SPAN_ALERT("Your veins feel utterly empty!"))
 				src.stop_transfusion()
 				return
 
@@ -183,14 +181,28 @@
 			transfer_blood(src.patient, src, src.amount_per_transfer_from_this)
 			return
 
+	proc/insert_needle(var/mob/living/carbon/human/H as mob, mob/living/carbon/user as mob)
+		src.patient = H
+		H.tri_message(user, SPAN_NOTICE("<b>[user]</b> inserts [src]'s needle into [H == user ? "[his_or_her(H)]" : "[H]'s"] arm."),\
+			SPAN_NOTICE("[H == user ? "You insert" : "<b>[user]</b> inserts"] [src]'s needle into your arm."),\
+			SPAN_NOTICE("You insert [src]'s needle into [H == user ? "your" : "[H]'s"] arm."))
+		logTheThing(LOG_COMBAT, user, "connects an IV drip [log_reagents(src)] to [constructTarget(H,"combat")] at [log_loc(user)].")
+		src.start_transfusion()
+
 	proc/start_transfusion()
 		src.in_use = 1
 		processing_items |= src
+		APPLY_ATOM_PROPERTY(patient, PROP_MOB_BLOOD_ABSORPTION_RATE, src, 2)
+		if (src.stand)
+			src.stand.UpdateIcon()
 
 	proc/stop_transfusion()
 		processing_items -= src
 		src.in_use = 0
+		REMOVE_ATOM_PROPERTY(patient, PROP_MOB_BLOOD_ABSORPTION_RATE, src)
 		src.patient = null
+		if (src.stand)
+			src.stand.UpdateIcon()
 
 /* =================================================== */
 /* -------------------- Sub-Types -------------------- */
@@ -198,7 +210,6 @@
 
 /obj/item/reagent_containers/iv_drip/blood
 	desc = "A bag filled with some odd, synthetic blood. There's a fine needle at the end that can be used to transfer it to someone."
-	icon_state = "IV-blood"
 	mode = IV_INJECT
 	initial_reagents = "blood"
 
@@ -214,36 +225,37 @@
 /* -------------------- IV Stand -------------------- */
 /* ================================================== */
 
+TYPEINFO(/obj/iv_stand)
+	mats = 10
+
 /obj/iv_stand
 	name = "\improper IV stand"
 	desc = "A metal pole that you can hang IV bags on, which is useful since we aren't animals that go leaving our sanitized medical equipment all over the ground or anything!"
 	icon = 'icons/obj/surgery.dmi'
 	icon_state = "IVstand"
-	anchored = 0
+	anchored = UNANCHORED
 	density = 0
 	var/image/fluid_image = null
 	var/image/bag_image = null
 	var/obj/item/reagent_containers/iv_drip/IV = null
 	var/obj/paired_obj = null
-	mats = 10
+	var/finished_pumping = FALSE
 
 	get_desc()
 		if (src.IV)
 			var/list/examine_list = src.IV.examine()
 			return examine_list.Join("\n")
 
-	proc/update_icon()
+	update_icon()
 		if (!src.IV)
 			src.icon_state = "IVstand"
 			src.name = "\improper IV stand"
 			src.UpdateOverlays(null, "fluid")
 			src.UpdateOverlays(null, "bag")
 		else
-			if(!src.bag_image)
-				src.bag_image = image(src.icon, icon_state = "IVstand1")
-			src.UpdateOverlays(src.bag_image, "bag")
 			src.name = "\improper IV stand ([src.IV])"
 			if (src.IV.reagents.total_volume)
+				src.bag_image = image(src.icon, icon_state = "IVstand1-full")
 				if (!src.fluid_image)
 					src.fluid_image = image(src.icon, icon_state = "IVstand1-fluid")
 				src.fluid_image.icon_state = "IVstand1-fluid"
@@ -251,7 +263,15 @@
 				src.fluid_image.color = average.to_rgba()
 				src.UpdateOverlays(src.fluid_image, "fluid")
 			else
+				src.bag_image = image(src.icon, icon_state = "IVstand1")
 				src.UpdateOverlays(null, "fluid")
+			if(!src.bag_image)
+				src.bag_image = image(src.icon, icon_state = "IVstand1")
+			src.UpdateOverlays(src.bag_image, "bag")
+			if (src.IV.in_use)
+				src.icon_state = "IVstand-active"
+			else
+				src.icon_state = "IVstand-finished"
 
 	attackby(obj/item/W, mob/user)
 		if (iswrenchingtool(W))
@@ -261,42 +281,42 @@
 			if (isrobot(user)) // are they a borg? it's probably a mediborg's IV then, don't take that!
 				return
 			var/obj/item/reagent_containers/iv_drip/newIV = W
-			user.visible_message("<span class='notice'>[user] hangs [newIV] on [src].</span>",\
-			"<span class='notice'>You hang [newIV] on [src].</span>")
+			user.visible_message(SPAN_NOTICE("[user] hangs [newIV] on [src]."),\
+			SPAN_NOTICE("You hang [newIV] on [src]."))
 			user.u_equip(newIV)
 			newIV.set_loc(src)
 			src.IV = newIV
 			newIV.stand = src
-			src.update_icon()
+			src.UpdateIcon()
 			return
 		else if (src.IV)
-			//src.IV.attackby(W, user)
-			W.afterattack(src.IV, user)
+			//src.IV.Attackby(W, user)
+			W.AfterAttack(src.IV, user)
 			return
 		else
 			return ..()
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if (src.IV && !isrobot(user))
 			var/obj/item/reagent_containers/iv_drip/oldIV = src.IV
-			user.visible_message("<span class='notice'>[user] takes [oldIV] down from [src].</span>",\
-			"<span class='notice'>You take [oldIV] down from [src].</span>")
+			user.visible_message(SPAN_NOTICE("[user] takes [oldIV] down from [src]."),\
+			SPAN_NOTICE("You take [oldIV] down from [src]."))
 			user.put_in_hand_or_drop(oldIV)
 			oldIV.stand = null
 			src.IV = null
-			src.update_icon()
+			src.UpdateIcon()
 			return
 		else
 			return ..()
 
-	MouseDrop(atom/over_object as mob|obj)
+	mouse_drop(atom/over_object as mob|obj)
 		var/atom/movable/A = over_object
 		if (usr && !usr.restrained() && !usr.stat && in_interact_range(src, usr) && in_interact_range(over_object, usr) && istype(A))
 			if (src.IV && ishuman(over_object))
 				src.IV.attack(over_object, usr)
 				return
 			else if (src.IV && over_object == src)
-				src.IV.attack_self(usr)
+				src.IV.AttackSelf(usr)
 				return
 			else if (istype(over_object, /obj/stool/bed) || istype(over_object, /obj/stool/chair) || istype(over_object, /obj/machinery/optable))
 				if (A == src.paired_obj && src.detach_from())
@@ -320,7 +340,7 @@
 		mutual_attach(src, O)
 		src.set_loc(O.loc)
 		src.layer = (O.layer-0.1)
-		src.pixel_y = 8
+		src.pixel_y = 10
 		src.paired_obj = O
 		return 1
 

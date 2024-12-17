@@ -4,10 +4,10 @@ obj/machinery/air_sensor
 	name = "Gas Sensor"
 	desc = "A device that detects the composition of the air nearby."
 
-	anchored = 1
+	anchored = ANCHORED
 
 	var/id_tag
-	var/frequency = 1439
+	var/frequency = FREQ_AIR_ALARM_CONTROL
 
 	var/on = 1
 	var/output = 3
@@ -24,9 +24,8 @@ obj/machinery/air_sensor
 	// 64 for other shit
 
 
-	var/datum/radio_frequency/radio_connection
 
-	proc/update_icon()
+	update_icon()
 		icon_state = "gsensor[on]"
 
 	process()
@@ -55,34 +54,9 @@ obj/machinery/air_sensor
 					signal.data["carbon_dioxide"] = round(100*air_sample.carbon_dioxide/total_moles)
 				if(output&32)
 					signal.data["nitrogen"] = round(100*air_sample.nitrogen/total_moles)
-				if(output&64)
-					var/tgmoles = 0
-					if(length(air_sample.trace_gases))
-						for(var/datum/gas/trace_gas as anything in air_sample.trace_gases)
-							tgmoles += trace_gas.moles
-					signal.data["other"] = round(100*tgmoles/total_moles)
-
-
-
-			radio_connection.post_signal(src, signal)
-
-
-	proc
-		set_frequency(new_frequency)
-			radio_controller.remove_object(src, "[frequency]")
-			frequency = new_frequency
-			radio_connection = radio_controller.add_object(src, "[frequency]")
-
-	initialize()
-		set_frequency(frequency)
+			SEND_SIGNAL(src, COMSIG_MOVABLE_POST_RADIO_PACKET, signal)
 
 	New()
 		..()
-
-		if(radio_controller)
-			set_frequency(frequency)
-
-	disposing()
-		radio_controller.remove_object(src, "[frequency]")
-		..()
+		MAKE_SENDER_RADIO_PACKET_COMPONENT(null, null, frequency)
 

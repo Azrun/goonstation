@@ -3,20 +3,18 @@
 	icon_state = "shock_kit"
 	var/obj/item/clothing/head/helmet/part1 = null
 	var/obj/item/device/radio/electropack/part2 = null
-	status = 0.0
+	status = 0
 	w_class = W_CLASS_HUGE
-	flags = FPRINT | TABLEPASS| CONDUCT
+	flags = TABLEPASS | CONDUCT
 
-/obj/item/assembly/shock_kit/New()
+/obj/item/assembly/shock_kit/New(atom/newLoc, obj/item/clothing/head/helmet/helmet, obj/item/device/radio/electropack/electropack)
 	..()
-	SPAWN_DBG(2 SECONDS)
-		if (src)
-			if (!(src.part1 && istype(src.part1)))
-				src.part1 = new /obj/item/clothing/head/helmet(src)
-				src.part1.master = src
-			if (!(src.part2 && istype(src.part2)))
-				src.part2 = new /obj/item/device/radio/electropack(src)
-				src.part2.master = src
+	helmet ||= new /obj/item/clothing/head/helmet(src)
+	src.part1 = helmet
+	helmet.master = src
+	electropack ||= new /obj/item/device/radio/electropack(src)
+	src.part2 = electropack
+	electropack.master = src
 
 /obj/item/assembly/shock_kit/disposing()
 	if (src.part1)
@@ -27,7 +25,7 @@
 		src.part2 = null
 	..()
 
-/obj/item/assembly/shock_kit/attackby(obj/item/W as obj, mob/user as mob)
+/obj/item/assembly/shock_kit/attackby(obj/item/W, mob/user)
 	src.add_fingerprint(user)
 
 	if (iswrenchingtool(W))
@@ -46,8 +44,8 @@
 	else return ..()
 
 /obj/item/assembly/shock_kit/attack_self(mob/user as mob)
-	src.part1.attack_self(user, src.status)
-	src.part2.attack_self(user, src.status)
+	src.part1.AttackSelf(user)
+	src.part2.AttackSelf(user)
 	src.add_fingerprint(user)
 	return
 
@@ -55,6 +53,6 @@
 	if (src.master && istype(src.master, /obj/stool/chair/e_chair))
 		var/obj/stool/chair/e_chair/C = src.master
 		if (C.buckled_guy)
-			logTheThing("signalers", usr, C.buckled_guy, "signalled an electric chair (setting: [C.lethal ? "lethal" : "non-lethal"]), shocking [constructTarget(C.buckled_guy,"signalers")] at [log_loc(C)].") // Added (Convair880).
+			logTheThing(LOG_SIGNALERS, usr, "signalled an electric chair (setting: [C.lethal ? "lethal" : "non-lethal"]), shocking [constructTarget(C.buckled_guy,"signalers")] at [log_loc(C)].") // Added (Convair880).
 		C.shock()
 	return

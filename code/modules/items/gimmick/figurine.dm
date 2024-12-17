@@ -1,6 +1,6 @@
 /obj/item/toy/figure
 	name = "collectable figure"
-	desc = "<b><span class='alert'>WARNING:</span> CHOKING HAZARD</b> - Small parts. Not for children under 3 years."
+	desc = SPAN_ALERT("<b>WARNING: CHOKING HAZARD</b> - Small parts. Not for children under 3 years.")
 	icon = 'icons/obj/items/figures.dmi'
 	icon_state = "fig-"
 	w_class = W_CLASS_TINY
@@ -28,30 +28,50 @@
 
 	New(loc, var/datum/figure_info/newInfo)
 		..()
+		if (!length(donator_ckeys)) //creates a list of existing donator Ckeys if one does not already exist
+			for (var/datum/figure_info/patreon/fig as anything in concrete_typesof(/datum/figure_info/patreon))
+				donator_ckeys += initial(fig.ckey)
+
 		if (istype(newInfo))
 			src.info = newInfo
 		else if (!istype(src.info))
 			var/datum/figure_info/randomInfo
 
-			var/potential_donator_ckey = usr?.mind.ckey
-			var/donator_figtype = null
-			if (potential_donator_ckey) // check if the player has a figurine (therefore a donator)
-				for (var/datum/figure_info/patreon/fig as anything in concrete_typesof(/datum/figure_info/patreon))
-					if (initial(fig.ckey) == potential_donator_ckey)
-						donator_figtype = fig
-						src.patreon_prob *= 2	// x2 chance of getting patreon figure
+			var/potential_donator_ckey = usr?.mind?.ckey
+			var/donator_fig_ckey = null
+			var/list/online_donator_ckeys_nouser = online_donator_ckeys.Copy()
+
+			if (online_donator_ckeys.Find(potential_donator_ckey))
+				donator_fig_ckey = potential_donator_ckey
+				online_donator_ckeys_nouser -= donator_fig_ckey
+				src.patreon_prob *= 2	// x2 chance of getting patreon figure
+
 			if (prob(src.patreon_prob))
-				if (donator_figtype && prob(30)) // 30% additional chance of donators getting their fig
-					randomInfo = donator_figtype
-				else
-					randomInfo = pick(figure_patreon_rarity)
+				var/fig_ckey = null
+				switch (rand(1,100))
+					if (1 to 20)
+						fig_ckey = donator_fig_ckey
+					if (20 to 40)
+						if (length(online_donator_ckeys_nouser))
+							fig_ckey = pick(online_donator_ckeys_nouser)
+					if (40 to 100)
+						if (length(donator_ckeys))
+							fig_ckey = pick(donator_ckeys)
+				if (!fig_ckey) fig_ckey = pick(donator_ckeys)
+
+				//Now that we've picked the ckey to look for, find its randomInfo
+				for (var/datum/figure_info/patreon/fig as anything in concrete_typesof(/datum/figure_info/patreon))
+					if (initial(fig.ckey) == fig_ckey)
+						randomInfo = fig
+						break
+
 			else if (prob(src.rare_prob))
 				randomInfo = pick(figure_high_rarity)
 			else
 				randomInfo = pick(figure_low_rarity)
 
 			src.info = new randomInfo(src)
-		src.name = "[src.info.name] figure"
+ 		src.name = "[src.info.name] figure"
 		src.icon_state = "fig-[src.info.icon_state]"
 		if (src.info.rare_varieties.len && prob(5))
 			src.icon_state = "fig-[pick(src.info.rare_varieties)]"
@@ -85,28 +105,28 @@
 	suicide(var/mob/user as mob)
 		if (!src.user_can_suicide(user))
 			return 0
-		user.visible_message("<span class='alert'><b>[user] shoves [src] down [his_or_her(user)] throat and chokes on it!</b></span>")
+		user.visible_message(SPAN_ALERT("<b>[user] shoves [src] down [his_or_her(user)] throat and chokes on it!</b>"))
 		user.take_oxygen_deprivation(175)
-		SPAWN_DBG(50 SECONDS)
+		SPAWN(50 SECONDS)
 			if (user && !isdead(user))
 				user.suiciding = 0
 		qdel(src)
 		return 1
 
-	attackby(obj/item/W as obj, mob/user as mob)
+	attackby(obj/item/W, mob/user)
 		if(istype(W, /obj/item/toy/figure))
 			if(user:a_intent == INTENT_HELP)
-				playsound(src, "sound/items/toys/figure-kiss.ogg", 15, 1)
-				user.visible_message("<span class='alert'>[user] makes the [W.name] and the [src.name] kiss and kiss and kiss!</span>")
+				playsound(src, 'sound/items/toys/figure-kiss.ogg', 15, TRUE)
+				user.visible_message(SPAN_ALERT("[user] makes the [W.name] and the [src.name] kiss and kiss and kiss!"))
 			else if(user:a_intent == INTENT_DISARM)
-				playsound(src, "sound/items/toys/figure-knock.ogg", 15, 1)
-				user.visible_message("<span class='alert'>[user] makes the [W.name] knock over and fart on the [src.name]!</span>")
+				playsound(src, 'sound/items/toys/figure-knock.ogg', 15, TRUE)
+				user.visible_message(SPAN_ALERT("[user] makes the [W.name] knock over and fart on the [src.name]!"))
 			else if(user:a_intent == INTENT_GRAB)
-				playsound(src, "sound/items/toys/figure-headlock.ogg", 15, 1)
-				user.visible_message("<span class='alert'>[user] has [W.name] put the [src.name] in a headlock!</span>")
+				playsound(src, 'sound/items/toys/figure-headlock.ogg', 15, TRUE)
+				user.visible_message(SPAN_ALERT("[user] has [W.name] put the [src.name] in a headlock!"))
 			else if(user:a_intent == INTENT_HARM)
-				playsound(src, "sound/impact_sounds/Flesh_Break_1.ogg", 15, 1, 0.1, 2.5)
-				user.visible_message("<span class='alert'>[user] bangs the [W.name] into the [src.name] over and over!</span>")
+				playsound(src, 'sound/impact_sounds/Flesh_Break_1.ogg', 15, TRUE, 0.1, 2.5)
+				user.visible_message(SPAN_ALERT("[user] bangs the [W.name] into the [src.name] over and over!"))
 		else if (W.force > 1 && src.icon_state == "fig-shelterfrog" || src.icon_state == "fig-shelterfrog-dead")
 			playsound(src.loc, W.hitsound, 50, 1, -1)
 			if (src.icon_state != "fig-shelterfrog-dead")
@@ -119,11 +139,11 @@
 		if (!ishuman(user))
 			return
 		var/message = input("What should [src] say?")
-		message = trim(copytext(sanitize(html_encode(message)), 1, MAX_MESSAGE_LEN))
-		if (!message || get_dist(src, user) > 1)
+		message = trimtext(copytext(sanitize(html_encode(message)), 1, MAX_MESSAGE_LEN))
+		if (!message || BOUNDS_DIST(src, user) > 0)
 			return
-		logTheThing("say", user, null, "makes [src] say,  \"[message]\"")
-		user.audible_message("<span class='emote'>[src] says, \"[message]\"</span>")
+		logTheThing(LOG_SAY, user, "makes [src] say,  \"[message]\"")
+		user.audible_message(SPAN_EMOTE("[src] says, \"[message]\""))
 		var/mob/living/carbon/human/H = user
 		if (H.sims)
 			H.sims.affectMotive("fun", 1)
@@ -132,7 +152,7 @@
 		..()
 
 		if (istype(target,/obj/stool/bed))
-			user.visible_message("<span class='alert'>[user] tucks the [src.name] into [target].</span>")
+			user.visible_message(SPAN_ALERT("[user] tucks the [src.name] into [target]."))
 			var/obj/O = target
 			O.place_on(src, user, params)
 			if (src.icon_state == "fig-beebo")
@@ -147,6 +167,10 @@
 			src.name = "[name_prefix(null, 1)][src.info.name] figure[name_suffix(null, 1)]"
 		else
 			return ..()
+
+proc/add_to_donator_list(var/potential_donator_ckey)
+	if (donator_ckeys.Find(potential_donator_ckey))
+		online_donator_ckeys += potential_donator_ckey
 
 var/list/figure_low_rarity = list(\
 /datum/figure_info/assistant,
@@ -177,7 +201,7 @@ var/list/figure_high_rarity = list(\
 /datum/figure_info/boxer,
 /datum/figure_info/lawyer,
 /datum/figure_info/barber,
-/datum/figure_info/mailman,
+/datum/figure_info/mailcourier,
 /datum/figure_info/tourist,
 /datum/figure_info/vice,
 /datum/figure_info/clown,
@@ -195,7 +219,7 @@ var/list/figure_high_rarity = list(\
 /datum/figure_info/omnitraitor,
 /datum/figure_info/shitty_bill,
 /datum/figure_info/don_glabs,
-/datum/figure_info/father_jack,
+/datum/figure_info/father_grife,
 /datum/figure_info/inspector,
 /datum/figure_info/coach,
 /datum/figure_info/sous_chef,
@@ -268,8 +292,8 @@ var/list/figure_patreon_rarity = concrete_typesof(/datum/figure_info/patreon)
 		name = "barber"
 		icon_state = "barber"
 
-	mailman
-		name = "mailman"
+	mailcourier
+		name = "mail courier"
 		icon_state = "mailman"
 
 	atmos
@@ -486,9 +510,9 @@ var/list/figure_patreon_rarity = concrete_typesof(/datum/figure_info/patreon)
 		name = "\improper Donald \"Don\" Glabs"
 		icon_state = "don"
 
-	father_jack
-		name = "\improper Father Jack"
-		icon_state = "jack"
+	father_grife
+		name = "\improper Father Grife"
+		icon_state = "grife"
 
 #ifdef XMAS
 	santa
@@ -647,9 +671,9 @@ ABSTRACT_TYPE(/datum/figure_info/patreon)
 		icon_state = "mavericksabre"
 		ckey = "wrench1"
 
-	whitneystingray
-		name = "\improper Whitney Stingray"
-		icon_state = "whitneystingray"
+	anguishedenglish
+		name = "\improper Whitney Blanchet"
+		icon_state = "whitneyblanchet"
 		ckey = "anguishedenglish"
 
 	fleur
@@ -692,8 +716,8 @@ ABSTRACT_TYPE(/datum/figure_info/patreon)
 		ckey = "bunnykimber"
 
 	retrino
-		name = "\improper Neo Xzilon"
-		icon_state = "neoxzilon"
+		name = "\improper Mallow Rhosin"
+		icon_state = "mallowrhosin"
 		ckey = "retrino"
 
 		New()
@@ -712,7 +736,7 @@ ABSTRACT_TYPE(/datum/figure_info/patreon)
 		icon_state = "vicky"
 		ckey = "mrprogamer96"
 
-	vicky
+	camrynstern
 		name = "\improper Camryn Stern"
 		icon_state = "camrynstern"
 		ckey = "richardgere"
@@ -722,12 +746,331 @@ ABSTRACT_TYPE(/datum/figure_info/patreon)
 		icon_state = "newttreitor"
 		ckey = "edwardly"
 
+	ook
+		name = "\improper Ook"
+		icon_state = "ook"
+		ckey = "taocat"
+
+	brucemcafee
+		name = "\improper Bruce McAfee"
+		icon_state = "brucemcafee"
+		ckey = "mysticmidgit"
+
+	chefbot
+		name = "\improper ChefBot"
+		icon_state = "chefbot"
+		ckey = "skeletondoot"
+
+	flyntloach
+		name = "\improper Flynt Loach"
+		icon_state = "flyntloach"
+		ckey = "profomii"
+
+	dennismccreary
+		name = "\improper Dennis McCreary"
+		icon_state = "dennismccreary"
+		ckey = "lordvoxelrot"
+
+	stinko
+		name = "\improper Stinko"
+		icon_state = "stinko"
+		ckey = "dataerr0r"
+
+	gabr
+		name = "\improper Jayson Rodgers"
+		icon_state = "jaysonrodgers"
+		ckey = "gabr"
+
+	wivernshy
+		name = "\improper Fern Barker"
+		icon_state = "fernbarker"
+		ckey = "wivernshy"
+
+	kingmorshu552
+		name = "\improper David Cain"
+		icon_state = "davidcain"
+		ckey = "kingmorshu552"
+
+	telareti
+		name = "\improper Gael Yamikurai"
+		icon_state = "gaelyamikurai"
+		ckey = "telareti"
+
+	averyquill
+		name = "\improper Miss Helper"
+		icon_state = "misshelper"
+		ckey = "averyquill"
+
+	slashsync
+		name = "\improper Snark"
+		icon_state = "snark"
+		ckey = "slashsync"
+
+	zigguratx
+		name = "\improper Zoya Wagner"
+		icon_state = "zoyawagner"
+		ckey = "zigguratx"
+
+	badshot
+		name = "\improper Lydia Aivoras"
+		icon_state = "lydiaaivoras"
+		ckey = "badshot"
+
+	ezio334
+		name = "\improper Ezio Dane"
+		icon_state = "eziodane"
+		ckey = "ezio334"
+
+	ryeanbread
+		name = "\improper Neo Ryder"
+		icon_state = "neoryder"
+		ckey = "ryeanbread"
+
+	twobraids
+		name = "\improper Nurse Dee Ceased"
+		icon_state = "nursedeeceased"
+		ckey = "twobraids"
+
+	mikethewalldweller
+		name = "\improper Mikey"
+		icon_state = "mikey"
+		ckey = "mikethewalldweller"
+
+	ladygeartheart
+		name = "\improper Piffany Boudle"
+		icon_state = "piffany"
+		ckey = "ladygeartheart"
+
+	snowkeith
+		name = "\improper SC077Y"
+		icon_state = "sc077y"
+		ckey = "snowkeith"
+
+	ihaveteeth
+		name = "\improper Teeth Rattletail"
+		icon_state = "teeth"
+		ckey = "ihaveteeth"
+
+	walpvrgis
+		name = "\improper Cygnus Gwyllion"
+		icon_state = "cygnus"
+		ckey = "walpvrgis"
+
+	froggitdogget
+		name = "\improper Investigangster Klutz"
+		icon_state = "froggit"
+		ckey = "froggitdogget"
+
+	munien
+		name = "\improper Elijah Retluoc"
+		icon_state = "elijahretluoc"
+		ckey = "munien"
+
+	calliopesoups
+		name = "\improper Grup Guppy"
+		icon_state = "grupguppy"
+		ckey = "calliopesoups"
+
+	eggcereal
+		name = "\improper Litol Guy"
+		icon_state = "litol"
+		ckey = "eggcereal"
+
+	yourdadthesquid
+		name = "\improper Roxy"
+		icon_state = "roxy"
+		ckey = "yourdadthesquid"
+
+	dumbnewguy
+		name = "\improper Cackles Maniacally"
+		icon_state = "cackles"
+		ckey = "dumbnewguy"
+
+	avimour
+		name = "\improper Siva Fata"
+		icon_state = "sivafata"
+		ckey = "avimour"
+
+	aft2001
+		name = "\improper NEX-13"
+		icon_state = "nex"
+		ckey = "aft2001"
+
+	improvedname
+		name = "\improper Latex Lizard"
+		icon_state = "latexlizard"
+		ckey = "improvedname"
+
+	haydus
+		name = "\improper Sonya Azazel"
+		icon_state = "sonyaazazel"
+		ckey = "haydus"
+
+	largeamountsofscreaming
+		name = "\improper Mavis Moovenheimer"
+		icon_state = "mavis"
+		ckey = "largeamountsofscreaming"
+
+	rockinend
+		name = "\improper Rooke Ennen"
+		icon_state = "rookeennen"
+		ckey = "rockingend"
+
+	rycool
+		name = "\improper Neo Politan"
+		icon_state = "neopolitan"
+		ckey = "rycool"
+
+	konamaco
+		name = "\improper Johnathan Pepper"
+		icon_state = "jonathanpepper"
+		ckey = "konamaco"
+
+	coolcrow420
+		name = "\improper Niko Balthazar"
+		icon_state = "nikobalthazar"
+		ckey = "coolcrow420"
+
+	comradeinput
+		name = "\improper Ezra Callison"
+		icon_state = "ezracallison"
+		ckey = "comradeinput"
+
+	goosime
+		name = "\improper James Crowley"
+		icon_state = "jamescrowley"
+		ckey = "gooisme"
+
+	folty
+		name = "\improper Derrick Sholl"
+		icon_state = "derricksholl"
+		ckey = "folty"
+
+	evaevaevaeva
+		name = "\improper Alma Lowry"
+		icon_state = "almalowry"
+		ckey = "evaevaevaeva"
+
+	fredric_80100
+		name = "\improper Pearl Shess"
+		icon_state = "pearlshess"
+		ckey = "fredric_80100"
+
+	seththecleric
+		name = "\improper Stephen Sawer"
+		icon_state = "stephensawer"
+		ckey = "seththecleric"
+
+	jugularWhale
+		name = "\improper Norm AlMann"
+		icon_state = "normalmann"
+		ckey = "jugularWhale"
+
+	carton171
+		name = "\improper Andrew Pieter"
+		icon_state = "andrewpieter"
+		ckey = "carton171"
+
+	jebsvs
+		name = "\improper Snart Blast"
+		icon_state = "snartblast"
+		ckey = "jebsvs"
+
+	lazy_shyguy
+		name = "\improper Bjeurn Seuz"
+		icon_state = "bjeurnseuz"
+		ckey = "lazy_shyguy"
+
+	mrmora
+		name = "\improper Loyd Xiphos"
+		icon_state = "loydxiphos"
+		ckey = "mrmora"
+
+	mintyphresh
+		name = "\improper Arp Davale"
+		icon_state = "arpdavale"
+		ckey = "mintyphresh"
+
+	fourfourfourexplorer
+		name = "\improper Minty"
+		icon_state = "minty"
+		ckey = "444explorer"
+
+	jonaleia
+		name = "\improper Arcas Lake-Younger"
+		icon_state = "arcas"
+		ckey = "jonaleia"
+	huskymaru
+		name = "\improper Neo Lycan"
+		icon_state = "neolycan"
+		ckey = "huskymaru"
+	bowlofnuts
+		name = "\improper Argile Pratt"
+		icon_state = "argile"
+		ckey = "bowlofnuts"
+
+	joeled
+		name = "\improper Tank Transfer"
+		icon_state = "tanktransfer"
+		ckey = "joeled"
+
+	firekestrel
+		name = "\improper Merryn Morse"
+		icon_state = "morse"
+		ckey = "firekestrel"
+
+	lyy
+		name = "\improper Jelly Fish"
+		icon_state = "jellyfish"
+		ckey = "lyy"
+
+	avanth
+		name = "\improper Sally MacCaa"
+		icon_state = "sallymaccaa"
+		ckey = "avanth"
+
+	rukert
+		name = "\improper Rupert Crimehanson"
+		icon_state = "rupertcrimehanson"
+		ckey = "rukert"
+
+	kirdy2
+		name = "\improper Old Longbert"
+		icon_state = "oldlongbert"
+		ckey = "kirdy2"
+
+	O514
+		name = "\improper Emma Nureni"
+		icon_state = "emmanureni"
+		ckey = "O514"
+
+	sockssq
+		name = "\improper Hot Fudge"
+		icon_state = "hotfudge"
+		ckey = "sockssq"
+
+	torchwick
+		name = "\improper Sam Relius"
+		icon_state = "samrelius"
+		ckey = "torchwick"
+	klushy225
+		name = "\improper Munches Paper"
+		icon_state = "munchespaper"
+		ckey = "klushy225"
+	linkey
+		name = "\improper Kate Smith"
+		icon_state = "katesmith"
+		ckey = "linkey"
+	gibusgame
+		name = "\improper Harper Costache"
+		icon_state = "harpercostache"
+		ckey = "gibusgame"
+
 /obj/item/item_box/figure_capsule
 	name = "capsule"
 	desc = "A little plastic ball for keeping stuff in. Woah! We're truly in the future with technology like this."
 	icon = 'icons/obj/items/figures.dmi'
 	icon_state = "cap-y"
-	uses_multiple_icon_states = 1
 	contained_item = /obj/item/toy/figure
 	item_amount = 1
 	max_item_amount = 1
@@ -740,9 +1083,10 @@ ABSTRACT_TYPE(/datum/figure_info/patreon)
 	New()
 		..()
 		src.ccolor = pick("y", "r", "g", "b")
-		src.update_icon()
+		src.UpdateIcon()
 
 	update_icon()
+
 		if (src.icon_state != "cap-[src.ccolor]")
 			src.icon_state = "cap-[src.ccolor]"
 		if (!src.cap_image)
@@ -757,6 +1101,16 @@ ABSTRACT_TYPE(/datum/figure_info/patreon)
 			src.cap_image.icon_state = "cap-cap[src.item_amount ? 1 : 0]"
 			src.UpdateOverlays(src.cap_image, "cap")
 
+	attack_self(mob/user as mob)
+		if (!ON_COOLDOWN(user, "capsule_pop", 1 SECOND) && open == 0)
+			playsound(user.loc, 'sound/items/capsule_pop.ogg', 30, 1)
+		else if (open && item_amount == 0)
+			user.playsound_local(user, 'sound/items/can_crush-3.ogg', 50, 1)
+			boutput(user, SPAN_NOTICE("You crush the empty capsule into an insignificant speck."))
+			qdel(src)
+			return
+		..()
+
 /obj/machinery/vending/capsule
 	name = "capsule machine"
 	desc = "A little figure in every capsule, guaranteed*!"
@@ -766,24 +1120,32 @@ ABSTRACT_TYPE(/datum/figure_info/patreon)
 	icon_state = "machine1"
 	icon_panel = "machine-panel"
 	var/sound_vend = 'sound/machines/capsulebuy.ogg'
+	var/base_icon_state = "machine1"
 	var/image/capsule_image = null
 
-	New()
-		..()
-		//Products
-		product_list += new/datum/data/vending_product(/obj/item/item_box/figure_capsule, 26, cost=PAY_UNTRAINED/5)
+	create_products(restocked)
+		product_list += new/datum/data/vending_product(/obj/item/item_box/figure_capsule, 35, cost=PAY_UNTRAINED/5)
 		product_list += new/datum/data/vending_product(/obj/item/satchel/figurines, 2, cost=PAY_UNTRAINED*3)
 		product_list += new/datum/data/vending_product(/obj/item/item_box/figure_capsule/gaming_capsule, rand(4,10), cost=PAY_UNTRAINED/3, hidden=1)
-		src.icon_state = "machine[rand(1,6)]"
+		src.base_icon_state = "machine[rand(1,6)]"
+		src.icon_state = src.base_icon_state
 		src.capsule_image = image(src.icon, "m_caps26")
 		src.UpdateOverlays(src.capsule_image, "capsules")
 
 	prevend_effect()
 		playsound(src.loc, sound_vend, 80, 1)
-		SPAWN_DBG(1 SECOND)
+		SPAWN(1 SECOND)
 			var/datum/data/vending_product/R = src.product_list[1]
 			src.capsule_image.icon_state = "m_caps[R.product_amount]"
 			src.UpdateOverlays(src.capsule_image, "capsules")
+
+	fall()
+		..()
+		src.icon_state = "[src.base_icon_state]-fallen"
+
+	right()
+		..()
+		src.icon_state = src.base_icon_state
 
 	powered()
 		return

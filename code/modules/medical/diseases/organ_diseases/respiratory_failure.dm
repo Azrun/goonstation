@@ -4,8 +4,8 @@
 	scantype = "Medical Emergency"
 	max_stages = 3
 	spread = "The patient's respiratory is starting to fail"
-	cure = "Oxygen-healing drugs or surgery"
-	reagentcure = list("organ_drug1")
+	cure_flags = CURE_CUSTOM
+	cure_desc = "Oxygen-healing drugs or surgery"
 	recureprob = 10
 	affected_species = list("Human")
 	stage_prob = 1
@@ -18,7 +18,7 @@
 /datum/ailment/disease/respiratory_failure/right
 	failing_organ = "r"
 
-/datum/ailment/disease/respiratory_failure/stage_act(var/mob/living/affected_mob,var/datum/ailment_data/D)
+/datum/ailment/disease/respiratory_failure/stage_act(var/mob/living/affected_mob, var/datum/ailment_data/D, mult)
 	if (..())
 		return
 
@@ -30,7 +30,7 @@
 		H.cure_disease(D)
 		return
 
-	//so you only need to remove the one lung to cure the disease. 
+	//so you only need to remove the one lung to cure the disease.
 	if ((failing_organ == "l" && !H.organHolder.left_lung) || (failing_organ == "r" && !H.organHolder.right_lung))
 		H.cure_disease(D)
 		return
@@ -43,37 +43,37 @@
 
 		//handle roborespiratory failuer. should do some stuff I guess
 		// else if (H.organHolder.respiratory && H.organHolder.respiratory.robotic && !H.organHolder.heart.health > 0)
-	if (prob(D.stage * 30))
+	if (probmult(D.stage * 30))
 		H.organHolder.damage_organs(0, 0, D.stage, 50, list("left_lung", "right_lung"))
 	switch (D.stage)
 		if (1)
-			if (prob(1) && prob(10))
-				boutput(H, "<span class='notice'>You feel better.</span>")
+			if (probmult(0.1))
+				boutput(H, SPAN_NOTICE("You feel better."))
 				H.cure_disease(D)
 				return
-			if (prob(8)) H.emote(pick("pale", "shudder"))
-			if (prob(5))
-				boutput(H, "<span class='alert'>Your ribs hurt!</span>")
+			if (probmult(8)) H.emote(pick("pale", "shudder"))
+			if (probmult(5))
+				boutput(H, SPAN_ALERT("Your ribs hurt!"))
 		if (2)
-			if (prob(1) && prob(10))
-				boutput(H, "<span class='notice'>You feel better.</span>")
+			if (probmult(0.1))
+				boutput(H, SPAN_NOTICE("You feel better."))
 				H.resistances += src.type
 				H.ailments -= src
 				return
-			if (prob(8)) H.emote(pick("pale", "groan"))
-			if (prob(10))
-				boutput(H, "<span class='alert'>It hurts to breathe!</span>")
+			if (probmult(8)) H.emote(pick("pale", "groan"))
+			if (probmult(10))
+				boutput(H, SPAN_ALERT("It hurts to breathe!"))
 				H.losebreath++
 
-			if (prob(5)) H.emote(pick("faint", "collapse", "groan"))
+			if (probmult(5)) H.emote(pick("faint", "collapse", "groan"))
 		if (3)
-			if (prob(8)) H.emote(pick("twitch", "gasp"))
-				
-			if (prob(20)) 
+			if (probmult(8)) H.emote(pick("twitch", "gasp"))
+
+			if (probmult(20))
 				H.emote(pick("twitch", "gasp"))
-				boutput(H, "<span class='alert'>You can hardly breathe due to the pain!</span>")
+				boutput(H, SPAN_ALERT("You can hardly breathe due to the pain!"))
 
 				H.organHolder.damage_organs(0, 0, 3, 60, list("left_lung", "right_lung"))
 				H.losebreath+=3
 
-			H.take_oxygen_deprivation(1)
+			H.take_oxygen_deprivation(1 * mult)

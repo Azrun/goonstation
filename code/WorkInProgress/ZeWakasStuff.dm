@@ -1,29 +1,66 @@
-
 /*
  * 90 101 87 97 107 97 39 115 83 116 117 102 102
  */
 
-//foo 44: bodacious grandiose bargaloo mambo prime preceed wow github cdn sub jekyll docs rsc ci2 rename profile rat
+//foo 49: bodacious grandiose bargaloo mambo prime preceed wow github cdn sub jekyll docs rsc ci2 rename profile rat tgui guh mord map
 
 
 /* 514 checklist
 	?[] experimentation perhaps
 	make some lib animate stuff better with spaces? (better rainbow anyone?)
-	world.map_cpu hookin (fuck why i delete the old code)
-	enable TILE_MOVEMENT_MODE and see if break
-	time2text timezone stuff for external? wire?
 	particle abuse
 */
 
-// cat
+/*
+515 stuff
 
+world.Tick
+client.RenderIcon
+pragmas?
+noise_hash()
+get_steps_to
+refcount
+list.removeall
+animation delay?
+sound pitch, offset, sound end
+basic sound end example sound.params
+sound time adjustment, SOUND_UPDATE offset var, query with query
+atoms can be rendered by reference in browser
+*/
+
+// find lagging shitters
+// for\(var/([\w/]*)\)
+
+// /client/verb/grab_all_lists()
+//     set category = "Debug"
+//     set name = "Get all lists"
+
+//     var/list/all_lists_heap = list("No length" = 0)
+//     var/list/all_lists_joined = list()
+//     for(var/list/thing)
+//         if(!length(thing))
+//             all_lists_heap["No length"]++
+//         else if(all_lists_heap["[thing[1]]"])
+//             all_lists_heap["[thing[1]]"]++
+//         else
+//             all_lists_heap["[thing[1]]"] += 1
+
+//     sortList(all_lists_heap, cmp = GLOBAL_PROC_REF(cmp_numeric_asc), associative = TRUE)
+
+//     for(var/thing in all_lists_heap)
+//         all_lists_joined += "<br>[thing], count: [all_lists_heap[thing]]</br>\n"
+//     usr << browse(all_lists_joined.Join(), "window=listlog")
+
+
+// playsound\(([^,]*), "(sound/[^\[]+)"
+// playsound($1, '$2'
 // Greek Adventurezone Thingy
 
-/turf/unsimulated/greek/
+/turf/unsimulated/greek
 	name = "Greek Adventurezone Sprites"
 	icon = 'icons/turf/adventure_gannets.dmi'
 
-/turf/unsimulated/wall/greek/
+/turf/unsimulated/wall/greek
 	name = "Greek Adventurezone Sprites"
 	icon = 'icons/turf/adventure_gannets.dmi'
 
@@ -44,7 +81,7 @@
 	desc = "Some bright green grass on the ground."
 	icon_state = "grass"
 
-/obj/decal/fakeobjects/greekgrass
+/obj/fakeobject/greekgrass
 	name = "grass"
 	icon = 'icons/turf/adventure_gannets.dmi'
 	icon_state = "grass"
@@ -104,7 +141,7 @@
 	desc = "A sharp cliff face formed by rocks"
 	icon = 'icons/turf/adventure_gannets.dmi'
 	icon_state = "cave-wall"
-	anchored = 1
+	anchored = ANCHORED
 	density = 1
 	opacity = 1
 
@@ -123,7 +160,7 @@
 	bullet_act()
 		return
 
-/obj/decal/fakeobjects/rockpile //small rock pile decor
+/obj/fakeobject/rockpile //small rock pile decor
 	name = "rock pile"
 	desc = "Some rocks that tumbled off of the cliff walls."
 	icon = 'icons/turf/adventure_gannets.dmi'
@@ -136,8 +173,9 @@
 	name = "cyclops"
 	real_name = "cyclops"
 	desc = "The Eye stares straight into your soul. Creepy."
-	density = 1
+	icon = 'icons/mob/critter/humanoid/cyclops.dmi'
 	icon_state = "greek-cyclops"
+	density = 1
 	health = 70
 	wanderer = 0
 	aggressive = 1
@@ -146,7 +184,7 @@
 	atksilicon = 1
 
 	seek_target()
-		src.anchored = 0
+		src.anchored = UNANCHORED
 		for (var/mob/living/C in hearers(src.seekrange,src))
 			if ((C.name == src.oldtarget_name) && (world.time < src.last_found + 100)) continue
 			if (iscarbon(C) && !src.atkcarbon) continue
@@ -160,7 +198,7 @@
 			if (src.attack)
 				src.target = C
 				src.oldtarget_name = C.name
-				src.visible_message("<span class='combat'><b>[src]</b> charges at [C:name]!</span>")
+				src.visible_message(SPAN_COMBAT("<b>[src]</b> charges at [C:name]!"))
 				playsound(src.loc, 'sound/voice/MEraaargh.ogg', 40, 0)
 				src.task = "chasing"
 				break
@@ -168,15 +206,15 @@
 				continue
 
 	ChaseAttack(mob/M)
-		src.visible_message("<span class='combat'><B>[src]</B> viciously lunges at [M]!</span>")
+		src.visible_message(SPAN_COMBAT("<B>[src]</B> viciously lunges at [M]!"))
 		if (prob(20)) M.changeStatus("stunned", 2 SECONDS)
 		random_brute_damage(M, rand(5,20),1)
 
 	CritterAttack(mob/M)
 		src.attacking = 1
-		src.visible_message("<span class='combat'><B>[src]</B> bites [src.target] viciously!</span>")
+		src.visible_message(SPAN_COMBAT("<B>[src]</B> bites [src.target] viciously!"))
 		random_brute_damage(src.target, rand(5,15),1)
-		SPAWN_DBG(1 SECOND)
+		SPAWN(1 SECOND)
 			src.attacking = 0
 
 // Underworld Stuff
@@ -213,15 +251,12 @@
 	fullbright = 0
 	pathable = 0
 
-	Entered(atom/A as mob|obj) //stolen from ice moon abyss code
-		if (isobserver(A))
-			return ..()
-
-		var/turf/T = pick_landmark(LANDMARK_FALL_GREEK)
-		if(T)
-			fall_to(T, A)
-			return
-		else ..()
+	New()
+		. = ..()
+		src.AddComponent(/datum/component/pitfall/target_landmark,\
+			BruteDamageMax = 50,\
+			FallTime = 0 SECONDS,\
+			TargetLandmark = LANDMARK_FALL_GREEK)
 
 // Misc Stuff
 

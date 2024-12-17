@@ -1,158 +1,8 @@
-/obj/critter/floateye
-	name = "floating thing"
-	desc = "You have never seen something like this before."
-	icon_state = "floateye"
-	health = 10
-	aggressive = 0
-	defensive = 0
-	wanderer = 1
-	opensdoors = OBJ_CRITTER_OPENS_DOORS_NONE
-	atkcarbon = 0
-	atksilicon = 0
-	butcherable = 1
-	flying = 1
-	flags = FPRINT | CONDUCT | USEDELAY | TABLEPASS | FLUID_SUBMERGE
-
-/obj/critter/roach
-	name = "cockroach"
-	desc = "An unpleasant insect that lives in filthy places."
-	icon_state = "roach"
-	critter_family = BUG
-	density = 0
-	health = 10
-	aggressive = 0
-	defensive = 0
-	wanderer = 1
-	opensdoors = OBJ_CRITTER_OPENS_DOORS_NONE
-	atkcarbon = 0
-	atksilicon = 0
-	butcherable = 1
-	flags = FPRINT | CONDUCT | USEDELAY | TABLEPASS | FLUID_SUBMERGE | FLUID_SUBMERGE
-
-	attack_hand(mob/user as mob)
-		if (src.alive && (user.a_intent != INTENT_HARM))
-			src.visible_message("<span class='combat'><b>[user]</b> pets [src]!</span>")
-			return
-		if (prob(95))
-			if(src.alive)
-				src.visible_message("<span class='combat'><B>[user] stomps [src], killing it instantly!</B></span>")
-				CritterDeath()
-				return
-			else
-				src.visible_message("<span class='combat'><B>[user] squishes [src] a little more for good measure.</B></span>")
-				return
-		..()
-
-/obj/critter/mouse
-	name = "space mouse"
-	desc = "A mouse.  In space."
-	icon_state = "mouse"
-	density = 0
-	health = 2
-	aggressive = 1
-	defensive = 1
-	wanderer = 1
-	opensdoors = OBJ_CRITTER_OPENS_DOORS_NONE
-	atkcarbon = 0
-	atksilicon = 0
-	firevuln = 1
-	brutevuln = 1
-	butcherable = 1
-	chases_food = 1
-	health_gain_from_food = 2
-	feed_text = "squeaks happily!"
-	flags = FPRINT | CONDUCT | USEDELAY | TABLEPASS | FLUID_SUBMERGE | FLUID_SUBMERGE
-	//var/diseased = 0
-	atk_delay = 10
-
-	skinresult = /obj/item/material_piece/cloth/leather //YEP
-	max_skins = 1
-
-	New()
-		..()
-		if (prob(10))
-			//diseased = 1
-			src.atk_diseases = list(/datum/ailment/disease/berserker, /datum/ailment/disease/space_madness)
-			src.atk_disease_prob = 10
-			src.atkcarbon = 1
-
-/obj/critter/mouse/mad
-	name = "rabid space mouse"
-	desc = "A mouth-foaming cheese and flesh eating mouse. In space."
-	health = 10
-	chases_food = 0
-	feed_text = "squeaks viciously!"
-	atk_delay = 10
-	atk_diseases = list(/datum/ailment/disease/berserker, /datum/ailment/disease/space_madness)
-	atk_disease_prob = 35
-	atkcarbon = 1
-/*
-	CritterAttack(mob/living/M)
-		src.attacking = 1
-		src.visible_message("<span class='combat'><B>[src]</B> bites [src.target]!</span>")
-		random_brute_damage(src.target, 1)
-		SPAWN_DBG(1 SECOND)
-			src.attacking = 0
-		if(iscarbon(M))
-			if(diseased && prob(10))
-				if(prob(50))
-					M.contract_disease(/datum/ailment/disease/berserker, null, null, 1) // path, name, strain, bypass resist
-				else
-					M.contract_disease(/datum/ailment/disease/space_madness, null, null, 1) // path, name, strain, bypass resist
-*/
-/*	seek_target()
-		if(src.target)
-			src.task = "chasing"
-			return
-		var/list/visible = new()
-		for(var/obj/item/reagent_containers/food/snacks/S in view(src.seekrange,src))
-			visible.Add(S)
-		if(src.food_target && visible.Find(src.food_target))
-			src.task = "chasing food"
-			return
-		else src.task = "thinking"
-		if(visible.len)
-			src.food_target = visible[1]
-			src.task = "chasing food"
-		..()
-
-	ai_think()
-		if(task == "chasing food")
-			if(src.food_target == null)
-				src.task = "thinking"
-			else if(get_dist(src, src.food_target) <= src.attack_range)
-				src.task = "eating"
-			else
-				walk_to(src, src.food_target,1,4)
-		else if(task == "eating")
-			if (get_dist(src, src.food_target) > src.attack_range)
-				src.task = "chasing food"
-			else
-				src.visible_message("<b>[src]</b> nibbles at [src.food_target].")
-				playsound(src.loc,"sound/items/eatfood.ogg", rand(10,50), 1)
-				if (food_target.reagents.total_volume > 0 && src.reagents.total_volume < 30)
-					food_target.reagents.trans_to(src, 5)
-				src.food_target.amount--
-				SPAWN_DBG(2.5 SECONDS)
-				if(src.food_target != null && src.food_target.amount <= 0)
-					qdel(src.food_target)
-					src.task = "thinking"
-					src.food_target = null
-		return ..()
-*/
-/obj/critter/mouse/remy
-	name = "Remy"
-	desc = "A rat.  In space... wait, is it wearing a chef's hat?"
-	icon_state = "remy"
-	health = 33
-	aggressive = 0
-	generic = 0
-
 /obj/critter/opossum
 	name = "space opossum"
 	desc = "A possum that came from space. Or maybe went to space. Who knows how it got here?"
 	icon_state = "possum"
-	density = 1
+	density = FALSE
 	health = 15
 	aggressive = 1
 	defensive = 1
@@ -162,7 +12,7 @@
 	atksilicon = 0
 	firevuln = 1
 	brutevuln = 1
-	butcherable = 1
+	butcherable = BUTCHER_ALLOWED
 	pet_text = list("gently baps", "pets", "cuddles")
 	feed_text = "chatters happily!"
 
@@ -179,25 +29,22 @@
 
 	on_revive()
 		..()
-		src.visible_message("<span class='notice'><b>[src]</b> stops playing dead and gets back up!</span>")
-		src.alive = 1
-		src.set_density(1)
+		src.alive = TRUE
+		src.visible_message(SPAN_NOTICE("<b>[src]</b> stops playing dead and gets back up!"))
 		src.health = initial(src.health)
 		src.icon_state = src.living_state ? src.living_state : initial(src.icon_state)
 		src.target = null
 		src.task = "wandering"
-		return
 
 	CritterDeath()
 		..()
-		SPAWN_DBG(rand(200,800))
+		SPAWN(rand(20 SECONDS, 80 SECONDS))
 			if (src && !src.alive)
 				src.on_revive()
-		return
 
-	attackby(obj/item/W as obj, mob/living/user as mob)
+	attackby(obj/item/W, mob/living/user)
 		if (!src.alive)
-			if (istype(W, /obj/item/knife/butcher) || istype(W, /obj/item/circular_saw) || istype(W, /obj/item/kitchen/utensil/knife) || istype(W, /obj/item/scalpel) || istype(W, /obj/item/raw_material/shard) || istype(W, /obj/item/sword) || istype(W, /obj/item/saw) || issnippingtool(W))
+			if (iscuttingtool(W) || issawingtool(W) || issnippingtool(W))
 				src.on_revive()
 				. = ..()
 		else
@@ -206,622 +53,6 @@
 /obj/critter/opossum/morty
 	name = "Morty"
 	generic = 0
-
-// hi I added my childhood cats' names to the list cause I miss em, they aren't really funny names but they were great cats
-// remove em if you want I guess
-// - Haine
-
-/obj/critter/cat
-	name = "space cat"
-	desc = "A cat. In space."
-	icon_state = "cat1"
-	density = 0
-	health = 10
-	aggressive = 1
-	defensive = 1
-	wanderer = 1
-	opensdoors = OBJ_CRITTER_OPENS_DOORS_NONE
-	atkcarbon = 0
-	atksilicon = 0
-	firevuln = 1
-	brutevuln = 1
-	angertext = "hisses at"
-	chase_text = "pounces on"
-	feed_text = "purrs contentedly."
-	butcherable = 2
-	var/cattype = 1
-	var/randomize_cat = 1
-	var/catnip = 0
-	event_handler_flags = USE_HASENTERED | USE_PROXIMITY | USE_FLUID_ENTER
-
-	New()
-		if(src.name == "jons the catte")
-			src.is_pet = 1
-		..()
-		if (src.randomize_cat)
-			src.name = pick_string_autokey("names/cats.txt")
-
-#ifdef HALLOWEEN
-			src.cattype = 3 //Black cats for halloween.
-			icon_state = "cat3"
-#else
-			src.cattype = rand(2,9)
-			icon_state = "cat[cattype]"
-#endif
-
-	seek_target()
-		src.anchored = 0
-		//for (var/obj/critter/mouse/C in view(src.seekrange,src))
-		var/list/mice_in_area = list()
-		for (var/obj/critter/mouse/C in view(src.seekrange,src))
-			mice_in_area += C
-		for (var/mob/living/critter/small_animal/mouse/C in view(src.seekrange,src))
-			mice_in_area += C
-		for (var/atom/movable/C in mice_in_area)
-			if (src.target)
-				src.task = "chasing"
-				break
-			if ((C.name == src.oldtarget_name) && (world.time < src.last_found + 100))
-				continue
-			if (isobj(C))
-				var/obj/critter/mouse/OC = C
-				if (OC.health <= 0)
-					continue
-			else if (ismob(C))
-				var/mob/M = C
-				if (isdead(M))
-					continue
-
-			src.attack = 1
-
-			if (src.attack)
-				src.target = C
-				src.oldtarget_name = C.name
-				src.visible_message("<span class='combat'><b>[src]</b> [src.angertext] [C.name]!</span>")
-				src.task = "chasing"
-				break
-			else
-				continue
-
-	attackby(obj/item/W as obj, mob/living/user as mob)
-		if (src.alive && istype(W, /obj/item/plant/herb/catnip))
-			user.visible_message("<b>[user]</b> gives [src.name] the [W]!","You give [src.name] the [W].")
-			src.catnip_effect()
-			pool(W)
-		else
-			..()
-
-	CritterAttack(mob/M)
-		if(istype(M, /mob/living/critter/small_animal/mouse/weak/mentor) && prob(90))
-			src.visible_message("<span class='combat'><B>[src]</B> tries to bite [src.target] but \the [src.target] dodges nimbly!</span>")
-			return
-		src.attacking = 1
-		var/attackCount = (src.catnip ? rand(4,8) : 1)
-		while (attackCount-- > 0)
-			src.visible_message("<span class='combat'><B>[src]</B> bites [src.target]!</span>")
-			if (ismob(M))
-				random_brute_damage(src.target, 3,1)
-			else if (istype(M, /obj/critter)) //robust cat simulation.
-				var/obj/critter/C = src.target
-				C.health -= 2
-				if (C.health <= 0 && C.alive)
-					C.CritterDeath()
-					src.attacking = 0
-			sleep(0.2 SECONDS)
-		if (isliving(M))
-			var/mob/living/H = M
-			H.was_harmed(src)
-		SPAWN_DBG(1 SECOND)
-		src.attacking = 0
-		return
-
-	ChaseAttack(mob/M)
-		..()
-		playsound(src.loc, "sound/impact_sounds/Generic_Hit_1.ogg", 50, 1, -1)
-
-		if(ismob(M))
-			M.changeStatus("stunned", 2 SECONDS)
-			M.changeStatus("weakened", 2 SECONDS)
-
-	attack_hand(mob/user as mob)
-		if (src.alive && (user.a_intent != INTENT_HARM))
-			src.visible_message("<span class='combat'><b>[user]</b> pets [src]!</span>")
-			if(prob(10))
-				src.audible_message("[src] purrs!",2)
-			return
-		else
-			..()
-
-		return
-
-	CritterDeath()
-		..()
-		src.icon_state = "cat[cattype]-dead"
-		if(prob(5))
-			SPAWN_DBG(3 SECONDS)
-				src.visible_message("<b>[src]</b> comes back to life, good thing he has 9 lives!")
-				src.alive = 1
-				set_density(1)
-				src.health = 10
-				src.icon_state = "cat[cattype]"
-				return
-
-	process()
-		if(!..())
-			return 0
-		if (src.alive && src.catnip)
-
-			SPAWN_DBG(0)
-				var/x = rand(2,4)
-				while (x-- > 0)
-					src.pixel_x = rand(-6,6)
-					src.pixel_y = rand(-6,6)
-					sleep(0.2 SECONDS)
-
-			if (prob(10))
-				src.visible_message("[src.name] [pick("purrs","frolics","rolls about","does a cute cat thing of some sort")]!")
-
-			if (src.catnip-- < 1)
-				src.visible_message("[src.name] calms down.")
-
-	proc/catnip_effect()
-		if (src.catnip)
-			return
-		src.catnip = 45
-		src.visible_message("[src.name]'s eyes dilate.")
-
-	HasEntered(mob/living/carbon/M as mob)
-		..()
-		if (src.sleeping || !src.alive)
-			return
-		else if (ishuman(M) && prob(33))
-			src.visible_message("<span class='combat'>[src] weaves around [M]'s legs and trips [him_or_her(M)]!</span>")
-			M:changeStatus("weakened", 2 SECONDS)
-		return
-
-/obj/critter/cat/jones
-	name = "Jones"
-	desc = "Jones the cat."
-	icon_state = "cat1"
-	health = 30
-	randomize_cat = 0
-	generic = 0
-	is_pet = 2
-	var/swiped = 0
-
-	emag_act(var/mob/user, var/obj/item/card/emag/E)
-		if (!src.alive || cattype == "-emagged")
-			return 0
-		src.cattype = "-emagged"
-		src.icon_state = "cat-emagged"
-		if (user)
-			user.show_text("You swipe down [src]'s back in a petting motion...")
-		return 1
-
-	attackby(obj/item/W as obj, mob/living/user as mob)
-		if (istype(W, /obj/item/card/emag))
-			emag_act(usr, W)
-		else
-			..()
-
-/obj/critter/cat/goddamnittobba
-	aggressive = 1
-	New()
-		..()
-		src.catnip = rand(50,250)
-
-	CritterAttack(mob/M)
-		if(ismob(M))
-			src.attacking = 1
-			var/attackCount = (src.catnip ? rand(4,8) : 1)
-			while(attackCount-- > 0)
-				src.visible_message("<span class='combat'><B>[src]</B> claws at [src.target]!</span>")
-				random_brute_damage(src.target, 6,1)
-				sleep(0.2 SECONDS)
-
-			SPAWN_DBG(1 SECOND)
-				src.attacking = 0
-
-/obj/critter/cat/synth
-	icon_state = "catsynth"
-	cattype = "synth"
-	randomize_cat = 0
-	generic = 0
-	desc = "Although this cat is vegan, it's still a carnivore."
-
-	New()
-		name = pick_string_autokey("names/cats.txt")
-		..()
-
-/obj/critter/dog/george
-	name = "George"
-	desc = "Good dog."
-	icon_state = "george"
-	var/doggy = "george"
-	density = 1
-	health = 100
-	aggressive = 1
-	defensive = 1
-	wanderer = 1
-	opensdoors = OBJ_CRITTER_OPENS_DOORS_NONE
-	atkcarbon = 0
-	atksilicon = 0 //set to 1 for robots as space cars
-	firevuln = 1
-	brutevuln = 1
-	angertext = "growls at"
-	death_text = null // he's just asleep
-	atk_brute_amt = 2
-	crit_brute_amt = 4
-	chase_text = "jumps on"
-	butcherable = 0
-	generic = 0
-
-	New()
-		. = ..()
-		START_TRACKING
-
-	disposing()
-		. = ..()
-		STOP_TRACKING
-/*
-	seek_target()
-		src.anchored = 0
-		for (var/obj/critter/cat/C in view(src.seekrange,src))
-			if (src.target)
-				src.task = "chasing"
-				break
-			if ((C.name == src.oldtarget_name) && (world.time < src.last_found + 100)) continue
-			if (C.health < 0) continue
-
-			src.attack = 1
-
-			if (src.attack)
-				src.target = C
-				src.oldtarget_name = C.name
-				src.visible_message("<span class='combat'><b>[src]</b> [src.angertext] [C.name]!</span>")
-				src.task = "chasing"
-				break
-			else
-				continue
-*/
-	CritterAttack(mob/M)
-		..()
-
-	/*	else if(istype(M, /obj/critter/cat)) //uncomment for robust dog simulation.
-			src.attacking = 1
-			src.visible_message("<span class='combat'><b>[src]</b> bites [src.target]!</span>")
-			src.target:health -= 2
-			if(src.target:health <= 0 && src.target:alive)
-				src.target:CritterDeath()
-				src.attacking = 0 */
-
-		return
-
-	ChaseAttack(mob/M)
-		..()
-		playsound(src.loc, "sound/impact_sounds/Generic_Hit_1.ogg", 50, 1, -1)
-
-		if(ismob(M))
-			M.changeStatus("stunned", 2 SECONDS)
-			M.changeStatus("weakened", 2 SECONDS)
-
-	attack_hand(mob/user as mob)
-		if (src.alive && (user.a_intent != INTENT_HARM))
-			src.visible_message("<span class='combat'><b>[user]</b> pets [src]!</span>")
-			if(prob(30))
-				src.icon_state = "[src.doggy]-lying"
-				src.visible_message("<span class='notice'><B>[src]</B> flops on his back! Scratch that belly!</span>",2)
-				SPAWN_DBG(3 SECONDS)
-				src.icon_state = "[src.doggy]"
-			return
-		else
-			..()
-
-		return
-
-	CritterDeath()
-		..()
-		src.icon_state = "[src.doggy]-lying"
-		src.visible_message("<span class='combat'><b>[src]</b> [pick("tires","tuckers out","gets pooped")] and lies down!</span>")
-		SPAWN_DBG(1 MINUTE)
-			src.visible_message("<span class='notice'><b>[src]</b> wags his tail and gets back up!</span>")
-			src.alive = 1
-			set_density(1)
-			src.health = 100
-			src.icon_state = "[src.doggy]"
-		return
-
-	proc/howl()
-		src.audible_message("<span class='combat'><b>[src]</b> [pick("howls","bays","whines","barks","croons")] to the music! He thinks he's singing!</span>")
-		playsound(src, "sound/voice/animal/howl[rand(1,6)].ogg", 100, 0)
-
-/obj/critter/dog/george/blair
-	name = "Blair"
-	icon_state = "pug"
-	doggy = "pug"
-	is_pet = 2
-
-var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pecan", "Daikon", "Seaweed")
-
-// am bad at dog names
-
-/obj/critter/dog/george/shiba
-	name = "Shiba Inu"
-	icon_state = "shiba"
-	doggy = "shiba"
-	var/randomize_shiba = 1
-
-	New()
-		..()
-		if (src.randomize_shiba)
-			src.name = pick(shiba_names)
-
-/obj/critter/dog/illegal
-	name = "highly illegal dog"
-	icon_state = "illegal"
-	var/doggy = "illegal"
-
-/obj/critter/pig
-	name = "space pig"
-	desc = "A pig. In space."
-	icon_state = "pig"
-	density = 1
-	health = 15
-	aggressive = 1
-	defensive = 1
-	wanderer = 1
-	opensdoors = OBJ_CRITTER_OPENS_DOORS_NONE
-	atkcarbon = 0
-	atksilicon = 0
-	firevuln = 1
-	brutevuln = 1
-	angertext = "oinks at"
-	atk_brute_amt = 4
-	crit_brute_amt = 8
-	chase_text = "barrels into"
-	butcherable = 1
-	scavenger = 1 // pig-based body disposal services
-	meat_type = /obj/item/reagent_containers/food/snacks/ingredient/meat/bacon
-	name_the_meat = 0
-
-	skinresult = /obj/item/material_piece/cloth/leather
-	max_skins = 2
-
-	CritterDeath()
-		..()
-		src.reagents.add_reagent("beff", 50, null)
-		return
-
-	seek_target()
-		src.anchored = 0
-		for (var/obj/critter/mouse/C in view(src.seekrange,src))
-			if (src.target)
-				src.task = "chasing"
-				break
-			if ((C.name == src.oldtarget_name) && (world.time < src.last_found + 100)) continue
-			if (C.health < 0) continue
-
-			src.attack = 1
-
-			if (src.attack)
-				src.target = C
-				src.oldtarget_name = C.name
-				src.visible_message("<span class='combat'><b>[src]</b> [src.angertext] [C.name]!</span>")
-				src.task = "chasing"
-				break
-			else
-				continue
-
-	CritterAttack(mob/M)
-		..()
-
-	ChaseAttack(mob/M)
-		..()
-		playsound(src.loc, "sound/impact_sounds/Generic_Hit_1.ogg", 50, 1, -1)
-
-		if(ismob(M))
-			M.changeStatus("stunned", 4 SECONDS)
-			M.changeStatus("weakened", 4 SECONDS)
-
-	on_pet(mob/user)
-		..()
-		if(prob(10))
-			src.audible_message("[src] purrs!",2)
-
-/obj/critter/owl
-	name = "space owl"
-	desc = "Did you know? By 2063, it is expected that there will be more owls on Earth than human beings."
-	icon = 'icons/misc/bird.dmi'
-	icon_state = "smallowl"
-	density = 1
-	health = 10
-	aggressive = 1
-	defensive = 1
-	wanderer = 1
-	opensdoors = OBJ_CRITTER_OPENS_DOORS_NONE
-	atkcarbon = 0
-	atksilicon = 0
-	firevuln = 1
-	brutevuln = 1
-	angertext = "hoots at"
-	butcherable = 2
-	flying = 1
-	atk_text = "pecks at"
-	atk_brute_amt = 2
-	crit_text = "pecks really hard at"
-	crit_brute_amt = 4
-	chase_text = "swoops down upon"
-	var/feather_color = list("#803427","#7d5431")
-	var/last_feather_time = 0
-
-	attackby(obj/item/W as obj, mob/M as mob)
-		if(istype(W,/obj/item/clothing/head/void_crown))
-			/*
-			var/data[] = new()
-			data["ckey"] = M.ckey
-			data["compID"] = M.computer_id
-			data["ip"] = M.lastKnownIP
-			data["reason"] = "Get out you nerd. Also, stop abusing your access to the commit messages."
-			data["mins"] = 1440
-			data["akey"] = "NERDBANNER"
-			*/
-
-			src.visible_message("<span class='combat'><B>[src]</B> stares at [M], channeling its newfound power!</span>")
-			SPAWN_DBG(1 SECOND)
-				boutput(M, "<span class='alert'><BIG><B>[voidSpeak("WELP, GUESS YOU SHOULDN'T BELIEVE EVERYTHING YOU READ!")]</B></BIG></span>")
-				var/mob/dead/observer/O = M.ghostize()
-				if(O)
-					O.set_loc(M.loc)
-					del(O.client)
-				else
-					del(M.client)
-				M.owlgib()
-			//addBan(data)
-
-		if(istype(W, /obj/item/plutonium_core/hootonium_core))//Owls interestingly are capable of absorbing hootonium into their bodies harmlessly. This is the only safe method of removing it.
-			playsound(M.loc, "sound/items/eatfood.ogg", 100, 1)
-			boutput(M, "<span class='alert'><B>You feed the [src] the [W]. It looks [pick("confused", "annoyed", "worried", "satisfied", "upset", "a tad miffed", "at you and winks")].</B></span>")
-			M.drop_item()
-			W.set_loc(src)
-
-			SPAWN_DBG(1 MINUTE)
-				src.visible_message("<span class='alert'><B>The [src] suddenly regurgitates something!</B></span>")
-				playsound(src, pick('sound/impact_sounds/Slimy_Splat_1.ogg','sound/misc/meat_plop.ogg'), 100, 1)
-				make_cleanable( /obj/decal/cleanable/greenpuke,src.loc)
-
-				for(var/turf/T in range(src, 2))
-					if(prob(20))
-						playsound(src, pick('sound/impact_sounds/Slimy_Splat_1.ogg','sound/misc/meat_plop.ogg'), 100, 1)
-						make_cleanable( /obj/decal/cleanable/greenpuke,T)
-
-				new /obj/item/power_stones/Owl(src.loc)
-
-		else
-			return ..(W, M)
-
-	CritterAttack(mob/M)
-		..()
-
-	ChaseAttack(mob/M)
-		..()
-		playsound(src.loc, "sound/impact_sounds/Generic_Hit_1.ogg", 50, 1, -1)
-		random_brute_damage(src.target, 1)//peck peck
-
-		return
-
-	patrol_to(var/turf/towhat)
-		.=..()
-		if (prob(1) && prob(22) && (src.last_feather_time + 3000) <= world.time)
-			src.create_feather()
-
-	proc/create_feather(var/turf/T)
-		if (!T)
-			T = src.loc
-		var/obj/item/feather/F = new(T)
-		if (islist(src.feather_color))
-			F.color = pick(src.feather_color)
-		else
-			F.color = src.feather_color
-		src.visible_message("A feather falls off of [src].")
-		src.last_feather_time = world.time
-		return F
-
-/obj/item/reagent_containers/food/snacks/ingredient/egg/critter/owl
-	name = "owl egg"
-	critter_type = /obj/critter/owl
-
-/obj/critter/goose
-	name = "space goose"
-	desc = "An offshoot species of <i>branta canadensis</i> adapted for space."
-	icon = 'icons/misc/bird.dmi'
-	icon_state = "goose"
-	density = 1
-	health = 20
-	aggressive = 1
-	defensive = 1
-	wanderer = 1
-	opensdoors = OBJ_CRITTER_OPENS_DOORS_PUBLIC
-	atkcarbon = 0
-	atksilicon = 0
-	firevuln = 1
-	brutevuln = 1
-	angertext = "hisses angrily at"
-	atk_brute_amt = 2
-	butcherable = 1
-	death_text = "%src% collapses and stops moving!"
-	chase_text = "tackles"
-	var/feather_color = list("#393939","#f2ebd5","#68422a","#ffffff")
-	var/last_feather_time = 0
-
-	ai_think()
-		..()
-		if (task == "thinking" || task == "wandering")
-			if (prob(20))
-				if (!src.muted)
-					src.audible_message("<b>[src]</b> honks!")
-				playsound(src.loc, "sound/voice/animal/goose.ogg", 70, 1)
-		else
-			if (prob(20))
-				flick("[src.icon_state]-flap", src)
-				playsound(src.loc, "sound/voice/animal/cat_hiss.ogg", 50, 1)
-
-	seek_target()
-		..()
-		if (src.target)
-			flick("[src.icon_state]-flaploop", src)
-			src.visible_message("<span class='combat'><b>[src]</b> [src.angertext] [src.target]!</span>")
-			playsound(src.loc, "sound/voice/animal/cat_hiss.ogg", 50, 1)
-
-	CritterAttack(mob/M)
-		flick("[src.icon_state]-flap", src)
-		playsound(src.loc, "swing_hit", 30, 0)
-		..()
-
-	ChaseAttack(mob/M)
-		flick("[src.icon_state]-flaploop", src)
-		playsound(src.loc, "sound/impact_sounds/Generic_Hit_1.ogg", 50, 1, -1)
-		..()
-
-		if(ismob(M))
-			M.changeStatus("stunned", 2 SECONDS)
-			M.changeStatus("weakened", 2 SECONDS)
-
-	on_pet(mob/user)
-		..()
-		if(prob(10))
-			src.audible_message("<b>[src]</b> honks!",2)
-			playsound(src.loc, "sound/voice/animal/goose.ogg", 50, 1)
-
-	patrol_to(var/turf/towhat)
-		.=..()
-		if (prob(1) && prob(22) && (src.last_feather_time + 3000) <= world.time)
-			src.create_feather()
-
-	proc/create_feather(var/turf/T)
-		if (!T)
-			T = src.loc
-		var/obj/item/feather/F = new(T)
-		if (islist(src.feather_color))
-			F.color = pick(src.feather_color)
-		else
-			F.color = src.feather_color
-		src.visible_message("A feather falls off of [src].")
-		src.last_feather_time = world.time
-		return F
-
-/obj/item/reagent_containers/food/snacks/ingredient/egg/critter/goose
-	name = "goose egg"
-	critter_type = /obj/critter/goose
-
-/obj/critter/goose/swan
-	name = "space swan"
-	desc = "An offshoot species of <i>cygnus olor</i> adapted for space."
-	icon_state = "swan"
-	feather_color = "#FFFFFF"
-
-/obj/item/reagent_containers/food/snacks/ingredient/egg/critter/swan
-	name = "swan egg"
-	critter_type = /obj/critter/goose/swan
 
 #define PARROT_MAX_WORDS 64		// may as well try and be careful I guess
 #define PARROT_MAX_PHRASES 32	// doesn't hurt, does it?
@@ -845,11 +76,11 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 	angertext = "squawks angrily at"
 	death_text = "%src% lets out a final weak squawk and keels over."
 	chase_text = "flails into"
-	butcherable = 1
+	butcherable = BUTCHER_ALLOWED
 	flying = 1
 	health_gain_from_food = 2
 	feed_text = "chirps happily!"
-	flags = FPRINT | CONDUCT | USEDELAY | TABLEPASS | FLUID_SUBMERGE | FLUID_SUBMERGE
+	flags = CONDUCT | USEDELAY | TABLEPASS | FLUID_SUBMERGE
 	var/species = "parrot"						// the species, used to update icon
 	var/list/learned_words = null				// the single words that the bird knows
 	var/list/learned_phrases = null				// ^^^ for complete phrases
@@ -864,7 +95,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 	var/turf/treasure_loc = null				// location of sought item
 	var/find_treasure_chance = 2				// chance to look for items to hold
 	var/destroys_treasure = 0					// does the bird do excessive violence upon the thing it's holding and break it sometimes?  for keas atm
-	var/being_offered_treasure = 0				// is someone already trying to give the bird something?  this is used so you can't sit there and do weird shit with the SPAWN_DBG(0) that happens when trying to give the bird something  :v
+	var/being_offered_treasure = 0				// is someone already trying to give the bird something?  this is used so you can't sit there and do weird shit with the SPAWN(0) that happens when trying to give the bird something  :v
 	var/impatience = 0							// used when looking for items, so birds don't wander across the entire map trying to find a thing they saw ages ago
 	var/can_fussle = 1							// can they mess with items?
 	var/hops = 0								// bouncy bird
@@ -890,8 +121,8 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 		var/m_id = (lang_id == "english" || lang_id == "") ? 1 : 2
 		if (M.singing)
 			if (M.singing & BAD_SINGING || M.singing & LOUD_SINGING)
-				SPAWN_DBG(0.3 SECONDS)
-					if(get_dist(src,M) <= 1)
+				SPAWN(0.3 SECONDS)
+					if(BOUNDS_DIST(src, M) == 0)
 						src.CritterAttack(M)
 					else
 						flick("[src.species]-flaploop", src)
@@ -913,13 +144,13 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 		if (!islist(src.learned_phrases))
 			src.learned_phrases = list()
 
-		if (!learn_phrase && src.learn_words_max > 0 && src.learned_words.len >= src.learn_words_max)
+		if (!learn_phrase && src.learn_words_max > 0 && length(src.learned_words) >= src.learn_words_max)
 			if (prob(5))
 				var/dump_word = pick(src.learned_words)
 				src.learned_words -= dump_word
 			else
 				return
-		if (learn_phrase && src.learn_phrase_max > 0 && src.learned_phrases.len >= src.learn_phrase_max)
+		if (learn_phrase && src.learn_phrase_max > 0 && length(src.learned_phrases) >= src.learn_phrase_max)
 			if (prob(5))
 				var/dump_phrase = pick(src.learned_phrases)
 				src.learned_phrases -= dump_phrase
@@ -955,16 +186,16 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 			thing_to_say = pick(src.learned_words) // :monocle:
 			thing_to_say = "[capitalize(thing_to_say)][pick(".", "!", "?", "...")]"
 		// format
-		var/quote = "\""
+		var/quote = "'"
 		if (sing)
-			quote = "<img class=\"icon misc\" style=\"position: relative; bottom: -3px; \" src=\"[resource("images/radio_icons/note.png")]\">"
-			thing_to_say = "<span style=\"color: bisque; font-style: italic;\">[thing_to_say]</span>"
+			quote = "<img class='icon misc' style='position: relative; bottom: -3px;' src='[resource("images/radio_icons/note.png")]'>"
+			thing_to_say = "<span style='color: bisque; font-style: italic;'>[thing_to_say]</span>"
 		thing_to_say = "[quote][thing_to_say][quote]"
 		src.say(thing_to_say)
 
 	proc/say(var/text) // mehhh
 		var/my_verb = pick("chatters", "chirps", "squawks", "mutters", "cackles", "mumbles")
-		src.audible_message("<span class='game say'><span class='name'>[src]</span> [my_verb], [text]</span>")
+		src.audible_message(SPAN_SAY("[SPAN_NAME("[src]")] [my_verb], [text]"))
 
 	proc/take_stuff()
 		if (src.treasure)
@@ -977,7 +208,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 			else
 				return
 		if (src.new_treasure && src.treasure_loc)
-			if ((get_dist(src, src.treasure_loc) <= 1) && (src.new_treasure.loc == src.treasure_loc))
+			if ((BOUNDS_DIST(src, src.treasure_loc) == 0) && (src.new_treasure.loc == src.treasure_loc))
 				src.visible_message("\The [src] picks up [src.new_treasure]!")
 				src.new_treasure.set_loc(src)
 				src.treasure = src.new_treasure
@@ -987,7 +218,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 				walk_to(src, 0)
 				return
 			else if (src.new_treasure.loc == src.treasure_loc)
-				if (get_dist(src, src.treasure_loc) > 4 || src.impatience > 8)
+				if (GET_DIST(src, src.treasure_loc) > 4 || src.impatience > 8)
 					src.new_treasure = null
 					src.treasure_loc = null
 					src.impatience = 0
@@ -998,7 +229,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 					src.impatience ++
 
 			else if (src.new_treasure.loc != src.treasure_loc)
-				if (get_dist(src.new_treasure, src) > 4 || src.impatience > 8 || !isturf(src.new_treasure.loc))
+				if (GET_DIST(src.new_treasure, src) > 4 || src.impatience > 8 || !isturf(src.new_treasure.loc))
 					src.new_treasure = null
 					src.treasure_loc = null
 					src.impatience = 0
@@ -1035,7 +266,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 				src.treasure = null
 				return
 			else if (src.destroys_treasure && prob(1))
-				src.visible_message("<span class='combat'><b>\The [src.treasure] breaks!</b></span>")
+				src.visible_message(SPAN_COMBAT("<b>\The [src.treasure] breaks!</b>"))
 				make_cleanable( /obj/decal/cleanable/machine_debris,src.loc)
 				qdel(src.treasure)
 				src.treasure = null
@@ -1069,7 +300,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 		for (var/obj/critter/parrot/P in view(7,src))
 			if (P.alive && !P.sleeping)
 				P.aggressive = 1
-				SPAWN_DBG(0.7 SECONDS)
+				SPAWN(0.7 SECONDS)
 					if (P)
 						P.aggressive = 0
 
@@ -1085,7 +316,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 			if (prob(src.chatter_chance) && !src.muted)
 				src.chatter(rand(1))
 			if (prob(5) && !src.muted)
-				src.audible_message("<span class='notice'><b>[src]</b> [pick("chatters", "chirps", "squawks", "mutters", "cackles", "mumbles", "fusses", "preens", "clicks its beak", "fluffs up", "poofs up")]!</span>")
+				src.audible_message(SPAN_NOTICE("<b>[src]</b> [pick("chatters", "chirps", "squawks", "mutters", "cackles", "mumbles", "fusses", "preens", "clicks its beak", "fluffs up", "poofs up")]!"))
 			if (prob(15))
 				flick("[src.species]-flaploop", src)
 			//if (prob(1) && prob(22) && (src.last_feather_time + 3000) <= world.time)
@@ -1106,20 +337,20 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 			animate( src )
 			animate( src, pixel_y = 10, easing = SINE_EASING, time = ((towhat.y-y)>0)?3:1 )
 			animate( pixel_y = opy, easing = SINE_EASING, time = 3 )
-			playsound( get_turf(src), "sound/misc/boing/[rand(1,6)].ogg", 20, 1 )
+			playsound( get_turf(src), "sound/misc/boing/[rand(1,6)].ogg", 10, 1 )
 
 	CritterAttack(mob/M as mob)
 		src.attacking = 1
 		flick("[src.species]-flaploop", src)
 		if (iscarbon(M))
 			if (prob(60)) //Go for the eyes!
-				src.visible_message("<span class='combat'><B>[src]</B> pecks [M] in the eyes!</span>")
-				playsound(src.loc, "sound/impact_sounds/Flesh_Stab_2.ogg", 30, 1)
+				src.visible_message(SPAN_COMBAT("<B>[src]</B> pecks [M] in the eyes!"))
+				playsound(src.loc, 'sound/impact_sounds/Flesh_Stab_2.ogg', 30, 1)
 				M.take_eye_damage(rand(2,10)) //High variance because the bird might not hit well
 				if (prob(75) && !M.stat)
 					M.emote("scream")
 			else
-				src.visible_message("<span class='combat'><B>[src]</B> bites [M]!</span>")
+				src.visible_message(SPAN_COMBAT("<B>[src]</B> bites [M]!"))
 				playsound(src.loc, "swing_hit", 30, 0)
 				random_brute_damage(M, 3,1)
 			if (isliving(M))
@@ -1127,37 +358,37 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 				H.was_harmed(src)
 		else if (isrobot(M))
 			if (prob(10))
-				src.visible_message("<span class='combat'><B>[src]</B> bites [M] and snips an important-looking cable!</span>")
+				src.visible_message(SPAN_COMBAT("<B>[src]</B> bites [M] and snips an important-looking cable!"))
 				M:compborg_take_critter_damage(null, 0 ,rand(40,70))
 				M.emote("scream")
 			else
-				src.visible_message("<span class='combat'><B>[src]</B> bites [M]!</span>")
+				src.visible_message(SPAN_COMBAT("<B>[src]</B> bites [M]!"))
 				M:compborg_take_critter_damage(null, rand(1,5),0)
 
 		if (prob(3))
 			src.create_feather()
 
-		SPAWN_DBG (rand(1,10))
+		SPAWN(rand(1,10))
 			src.attacking = 0
 
 	ChaseAttack(mob/M)
 		..()
-		playsound(src.loc, "sound/impact_sounds/Generic_Hit_1.ogg", 50, 1, -1)
+		playsound(src.loc, 'sound/impact_sounds/Generic_Hit_1.ogg', 50, 1, -1)
 
 		if (prob(3))
 			src.create_feather()
 
 		if (ismob(M))
 			M.changeStatus("stunned", 2 SECONDS)
-			M.changeStatus("weakened", 2 SECONDS)
+			M.changeStatus("knockdown", 2 SECONDS)
 
 	attack_ai(mob/user as mob)
-		if (get_dist(user, src) < 2)
+		if (GET_DIST(user, src) < 2 && user.a_intent != INTENT_HARM)
 			return attack_hand(user)
 		else
 			return ..()
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if (src.alive)
 			if (user.a_intent == INTENT_HARM)
 				..()
@@ -1174,7 +405,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 					src.visible_message("[src] [pick("ignores","pays no attention to","warily eyes","turns away from")] [user]!")
 					return
 				else
-					user.pulling = src
+					user.set_pulling(src)
 					src.wanderer = 0
 					if (src.task == "wandering")
 						src.task = "thinking"
@@ -1182,25 +413,25 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 					src.visible_message("[src] steps onto [user]'s hand!")
 			else if (user.a_intent == "grab" && src.treasure)
 				if (prob(25))
-					src.visible_message("<span class='combat'><b>[user]</b> [pick("takes", "wrestles", "grabs")] [treasure] from [src]!</span>")
+					src.visible_message(SPAN_COMBAT("<b>[user]</b> [pick("takes", "wrestles", "grabs")] [treasure] from [src]!"))
 					user.put_in_hand_or_drop(src.treasure)
 					src.treasure = null
 				else
-					src.visible_message("<span class='combat'><b>[user]</b> tries to [pick("take", "wrestle", "grab")] [treasure] from [src], but [src] won't let go!</span>")
+					src.visible_message(SPAN_COMBAT("<b>[user]</b> tries to [pick("take", "wrestle", "grab")] [treasure] from [src], but [src] won't let go!"))
 				if (prob(3))
 					src.create_feather()
 			else
-				src.visible_message("<b>[user]</b> [pick("gives [src] a scritch", "pets [src]", "cuddles [src]", "snuggles [src]")]!")
+				src.visible_message("<b>[user]</b> [pick("gives [src] a scritch", "pets [src]", "cuddles [src]", "snuggles [src]")]!", group="animalhug")
 				if (prob(15))
-					src.visible_message("<span class='notice'><b>[src]</b> chirps happily!</span>")
+					src.visible_message(SPAN_NOTICE("<b>[src]</b> chirps happily!"))
 				return
 		else
 			..()
 		return
 
-	attackby(obj/item/W as obj, mob/user as mob)
-		if (src.sells_furniture && istype(W, /obj/item/spacecash)) // this is hella dumb
-			var/obj/item/spacecash/C = W
+	attackby(obj/item/W, mob/user)
+		if (src.sells_furniture && istype(W, /obj/item/currency/spacecash)) // this is hella dumb
+			var/obj/item/currency/spacecash/C = W
 			if (C.amount < 25)
 				user.visible_message("[src] stares blankly at [user]'s [C].",\
 				"[src] stares blankly at your [C]. Maybe it's not enough?")
@@ -1211,7 +442,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 
 			if (C.amount >= 3000) // coffins
 				FP = /obj/storage/closet/coffin
-				FP_name = "Slutstation"
+				FP_name = "Likkista"
 				C.amount -= 3000
 
 			else if (C.amount >= 1700) // segways
@@ -1280,7 +511,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 				C.amount -= 70
 
 			else if (C.amount >= 50) // wooden chairs
-				FP = /obj/item/furniture_parts/wood_chair
+				FP = /obj/item/furniture_parts/dining_chair/wood
 				FP_name = "Bredsjö"
 				C.amount -= 50
 
@@ -1311,9 +542,9 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 			src.say(pick("Ha en bra dag!", "Kom igen!"))
 			if (C.amount <= 0) // no mo monay
 				user.u_equip(C)
-				pool(C)
+				qdel(C)
 			else
-				C.update_stack_appearance()
+				C.UpdateStackAppearance()
 
 			FP = new FP(get_turf(src))
 			if (istype(FP, /atom))
@@ -1323,7 +554,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 				return
 			if (istype(FP, /obj/stool))
 				var/obj/stool/S = FP
-				S.anchored = 0
+				S.anchored = UNANCHORED
 			else if (istype(FP, /obj/item/chair/folded))
 				var/obj/item/chair/folded/F = FP
 				F.c_color = "chair[pick("","-b","-y","-r","-g")]"
@@ -1333,20 +564,20 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 
 		else if (user.a_intent != INTENT_HARM && !istype(W, /obj/item/reagent_containers/food/snacks) && !istype(W, /obj/item/seed))
 			if (src.being_offered_treasure)
-				src.visible_message("<span class='combat'>[src] is distracted by [src.being_offered_treasure] and ignores [user]!</span>")
+				src.visible_message(SPAN_COMBAT("[src] is distracted by [src.being_offered_treasure] and ignores [user]!"))
 				return
 			else
-				src.visible_message("<span class='notice'><b>[user]</b> offers [W] to [src]!</span>")
+				src.visible_message(SPAN_NOTICE("<b>[user]</b> offers [W] to [src]!"))
 				var/turf/T = get_turf(src) // we'll path back here to grab it if we have to
 				src.wanderer = 0
 				src.being_offered_treasure = "[user]'s [W]"
-				SPAWN_DBG(rand(10,30)) // 1-3 seconds
+				SPAWN(rand(10,30)) // 1-3 seconds
 					if (src)
 						src.wanderer = initial(src.wanderer)
 						src.being_offered_treasure = 0
 						if (src.alive && !src.sleeping && user && W && user.find_in_hand(W)) // we have to do so many checks for such a short wait
-							if (get_dist(user, T) > 2 || (src.treasure && prob(80)) || prob(50) || (src.loc != T && !step_to(src,T))) // too far, already has a thing and doesn't wanna switch, just doesn't like the thing offered, or we can't get to where we need to be
-								src.visible_message("<span class='combat'>[src] doesn't take [W] from [user]!</span>")
+							if (GET_DIST(user, T) > 2 || (src.treasure && prob(80)) || prob(50) || (src.loc != T && !step_to(src,T))) // too far, already has a thing and doesn't wanna switch, just doesn't like the thing offered, or we can't get to where we need to be
+								src.visible_message(SPAN_COMBAT("[src] doesn't take [W] from [user]!"))
 								return
 							else
 								if (src.treasure)
@@ -1357,7 +588,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 									src.treasure_loc = null
 									src.impatience = 0
 								walk_to(src, 0)
-								src.visible_message("<span class='notice'>\The [src] takes [W] from [user]!</span>")
+								src.visible_message(SPAN_NOTICE("\The [src] takes [W] from [user]!"))
 		else
 			return ..()
 
@@ -1365,10 +596,10 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 		if (!src.alive || src.sleeping)
 			return
 		if (prob(20))
-			src.visible_message("<span class='notice'>\The [src] responds with a dance of its own!</span>")
+			src.visible_message(SPAN_NOTICE("\The [src] responds with a dance of its own!"))
 			src.dance()
 		else
-			src.visible_message("<span class='notice'>\The [src] flaps and bobs [pick("to the beat", "in tune", "approvingly", "happily")].</span>")
+			src.visible_message(SPAN_NOTICE("\The [src] flaps and bobs [pick("to the beat", "in tune", "approvingly", "happily")]."))
 			flick("[src.species]-flaploop", src)
 		if (prob(3))
 			src.create_feather()
@@ -1377,13 +608,13 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 		if (!src.alive || src.sleeping)
 			return
 		src.icon_state = "[src.species]-flap"
-		SPAWN_DBG(3.8 SECONDS)
+		SPAWN(3.8 SECONDS)
 			src.icon_state = src.species
 		return
 
 	proc/apply_species(var/new_species = null)
 		if (!(istext(new_species) || ispath(new_species)) || !islist(parrot_species)) // farrrrrtttt
-			logTheThing("debug", null, null, "One of haine's stupid parrot things is broken, go whine at her until she fixes it (deets: type = [src.type], new_species = [isnull(new_species) ? "null" : new_species], parrot_species = [islist(parrot_species) ? "list" : "not list"])")
+			logTheThing(LOG_DEBUG, null, "One of haine's stupid parrot things is broken, go whine at her until she fixes it (deets: type = [src.type], new_species = [isnull(new_species) ? "null" : new_species], parrot_species = [islist(parrot_species) ? "list" : "not list"])")
 			return
 
 		var/datum/species_info/parrot/info = ispath(new_species) ? new_species : parrot_species[new_species]
@@ -1517,6 +748,16 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 		if (!src.species)
 			src.apply_species(pick("smacaw","bmacaw","mmacaw","hmacaw"))
 
+	pirate
+		name = "Sharkbait"
+		species = "smacaw"
+		learn_phrase_chance = 0
+		learn_words_chance = 0
+		learned_phrases = list("YARR!")
+		learned_words = list("YARR!")
+		icon_state = "smacaw"
+		dead_state = "smacaw"
+
 /obj/critter/parrot/lovebird
 	name = "space lovebird"
 	desc = "A spacefaring species of parrot from the <i>agapornis</i> genus."
@@ -1594,7 +835,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 	sealed = 1
 	info = {"<small<i>This looks quite tattered and ripped up. You can't read everything around the edges because of all the holes and tears in the paper.</i></small<br><br>
 <b><i>Produkt</i></b> - <i>Pris</i><br>
-<b>Slutstation</b> - 3000<small>SSEK</small><br>
+<b>Likkista</b> - 3000<small>SSEK</small><br>
 <b>Fart</b> - 1700<small>SSEK</small><br>
 <b>Arbetsplatsolycka</b> - 330<small>SSEK</small><br>
 <b>Fyllehund</b> - 320<small>SSEK</small><br>
@@ -1632,12 +873,12 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 	brutevuln = 1
 	angertext = "caws angrily at"
 	death_text = "%src% lets out a final weak caw and keels over."
-	butcherable = 1
+	butcherable = BUTCHER_ALLOWED
 	flying = 1
 	chases_food = 1
 	health_gain_from_food = 2
 	feed_text = "caws happily!"
-	flags = FPRINT | CONDUCT | USEDELAY | TABLEPASS | FLUID_SUBMERGE
+	flags = CONDUCT | USEDELAY | TABLEPASS | FLUID_SUBMERGE
 	var/feather_color = list("#ffffff","#949494","#353535")
 	var/last_feather_time = 0
 
@@ -1686,12 +927,12 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 	angertext = "caws angrily at"
 	death_text = "%src% lets out a final weak caw and keels over."
 	chase_text = "flails into"
-	butcherable = 1
+	butcherable = BUTCHER_ALLOWED
 	flying = 1
 	chases_food = 1
 	health_gain_from_food = 2
 	feed_text = "caws happily!"
-	flags = FPRINT | CONDUCT | USEDELAY | TABLEPASS | FLUID_SUBMERGE
+	flags = CONDUCT | USEDELAY | TABLEPASS | FLUID_SUBMERGE
 	var/feather_color = "#212121"
 	var/last_feather_time = 0
 
@@ -1705,8 +946,8 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 		flick("crow-flaploop", src)
 		if (iscarbon(M))
 			if (prob(60)) //Go for the eyes!
-				src.visible_message("<span class='combat'><B>[src]</B> pecks [M] in the eyes!</span>")
-				playsound(src.loc, "sound/impact_sounds/Flesh_Stab_2.ogg", 30, 1)
+				src.visible_message(SPAN_COMBAT("<B>[src]</B> pecks [M] in the eyes!"))
+				playsound(src.loc, 'sound/impact_sounds/Flesh_Stab_2.ogg', 30, 1)
 				M.take_eye_damage(rand(2,10)) //High variance because the bird might not hit well
 				if (prob(75) && !M.stat)
 					M.emote("scream")
@@ -1721,37 +962,37 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 							chosen_eye = "left_eye"
 						E = H.get_organ(chosen_eye)
 					if (E)
-						src.visible_message("<span class='combat'><B>[src] [pick("tears","yanks","rips")] [M]'s eye out! <i>Holy shit!!</i></B></span>")
+						src.visible_message(SPAN_COMBAT("<B>[src] [pick("tears","yanks","rips")] [M]'s eye out! <i>Holy shit!!</i></B>"))
 						E = H.drop_organ(chosen_eye)
-						playsound(M, "sound/impact_sounds/Flesh_Stab_1.ogg", 50, 1)
+						playsound(M, 'sound/impact_sounds/Flesh_Stab_1.ogg', 50, TRUE)
 						E.set_loc(src.loc)
 			if (isliving(M))
 				var/mob/living/H = M
 				H.was_harmed(src)
 			else
-				src.visible_message("<span class='combat'><B>[src]</B> bites [M]!</span>")
+				src.visible_message(SPAN_COMBAT("<B>[src]</B> bites [M]!"))
 				playsound(src.loc, "swing_hit", 30, 0)
 				random_brute_damage(M, 3,1)
 
 		else if (isrobot(M))
 			if (prob(10))
-				src.visible_message("<span class='combat'><B>[src]</B> bites [M] and snips an important-looking cable!</span>")
+				src.visible_message(SPAN_COMBAT("<B>[src]</B> bites [M] and snips an important-looking cable!"))
 				M:compborg_take_critter_damage(null, 0 ,rand(40,70))
 				M.emote("scream")
 			else
-				src.visible_message("<span class='combat'><B>[src]</B> bites [M]!</span>")
+				src.visible_message(SPAN_COMBAT("<B>[src]</B> bites [M]!"))
 				M:compborg_take_critter_damage(null, rand(1,5),0)
 
-		SPAWN_DBG (rand(1,10))
+		SPAWN(rand(1,10))
 			src.attacking = 0
 
 	ChaseAttack(mob/M)
 		..()
-		playsound(src.loc, "sound/impact_sounds/Generic_Hit_1.ogg", 50, 1, -1)
+		playsound(src.loc, 'sound/impact_sounds/Generic_Hit_1.ogg', 50, 1, -1)
 
 		if (ismob(M))
 			M.changeStatus("stunned", 2 SECONDS)
-			M.changeStatus("weakened", 2 SECONDS)
+			M.changeStatus("knockdown", 2 SECONDS)
 
 	patrol_to(var/turf/towhat)
 		.=..()
@@ -1770,88 +1011,6 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 		src.last_feather_time = world.time
 		return F
 
-/obj/critter/boogiebot
-	name = "boogiebot"
-	desc = "A robot that looks ready to get down at any moment."
-	icon_state = "boogie"
-	density = 1
-	health = 20
-	aggressive = 1
-	defensive = 1
-	wanderer = 1
-	opensdoors = OBJ_CRITTER_OPENS_DOORS_NONE
-	atkcarbon = 0
-	atksilicon = 0
-	firevuln = 1
-	brutevuln = 1
-	angertext = "wonks angrily at"
-	atk_text = "bashes into"
-	atk_brute_amt = 2
-	crit_text = "bashes really hard into"
-	chase_text = "boogies right into"
-	atk_brute_amt = 5
-	generic = 0
-	var/emagged = 0
-	var/dance_forever = 0
-	death_text = "%src% stops dancing forever."
-
-	proc/do_a_little_dance()
-		if (src.icon_state == "boogie")
-			if (!src.muted)
-				var/msg = pick("beeps and boops","does a little dance","gets down tonight","is feeling funky","is out of control","gets up to get down","busts a groove","begins clicking and whirring","emits an excited bloop","can't contain itself","can dance if it wants to")
-				src.visible_message("<b>[src]</b> [msg]!",2)
-			src.icon_state = pick("boogie-d1","boogie-d2","boogie-d3")
-			// maybe later make it ambient play a short chiptune here later or at least some new sound effect
-			if (emagged)
-				SPAWN_DBG(0.5 SECONDS)
-					for (var/mob/living/carbon/human/responseMonkey in orange(2, src)) // they don't have to be monkeys, but it's signifying monkey code
-						LAGCHECK(LAG_MED)
-						if (!can_act(responseMonkey, 0))
-							continue
-						responseMonkey.emote("dance")
-			SPAWN_DBG(20 SECONDS)
-				if (src) src.icon_state = "boogie"
-
-	ai_think()
-		..()
-		if(task == "thinking" || task == "wandering")
-			if(dance_forever || prob(2)) do_a_little_dance()
-
-	seek_target()
-		..()
-		if(src.target)
-			src.visible_message("<span class='combat'><b>[src]</b> [src.angertext] [src.target]!</span>")
-			playsound(src.loc, 'sound/vox/bizwarn.ogg', 50, 1)
-
-	CritterAttack(mob/M)
-		playsound(src.loc, "swing_hit", 30, 0)
-		..()
-
-	ChaseAttack(mob/M)
-		playsound(src.loc, "sound/impact_sounds/Generic_Hit_1.ogg", 50, 1, -1)
-		..()
-
-		if(ismob(M))
-			M.changeStatus("stunned", 2 SECONDS)
-			M.changeStatus("weakened", 2 SECONDS)
-
-	attack_hand(mob/user as mob)
-		if (src.alive && (user.a_intent != INTENT_HARM))
-			src.visible_message("<span class='combat'><b>[user]</b> pets [src]!</span>")
-			if(prob(10)) do_a_little_dance()
-			return
-		else
-			. = ..()
-
-	emag_act(mob/user, obj/item/card/emag/E)
-		if (!src.emagged)
-			if(user)
-				boutput(user, "<span class='alert'>You short out the [src]'s dancing intensity setting to 'flashmob'.</span>")
-			src.visible_message("<span class='alert'><b>[src] lights up with determination!</b></span>")
-			src.emagged = TRUE
-			return 1
-		return 0
-
 /obj/critter/meatslinky // ferrets for wire
 	name = "space ferret"
 	desc = "A ferret that came from space. Or maybe went to space. Who knows how it got here?"
@@ -1867,7 +1026,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 	atksilicon = 0
 	firevuln = 1
 	brutevuln = 1
-	butcherable = 2
+	butcherable = BUTCHER_YOU_MONSTER
 	angertext = "wigs out at"
 	atk_text = "flails itself into"
 	atk_brute_amt = 3
@@ -1896,7 +1055,7 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 			src.lying = 0
 			src.wanderer = initial(src.wanderer)
 		else if (src.alive && !src.sleeping && src.freakout)
-			SPAWN_DBG(0)
+			SPAWN(0)
 				var/x = rand(2,4)
 				while (x-- > 0)
 					src.pixel_x = rand(-6,6)
@@ -1932,19 +1091,19 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 						return
 
 	ChaseAttack(mob/M)
-		src.visible_message("<span class='combat'><B>[src]</B> weaves around [M]'s legs!</span>")
+		src.visible_message(SPAN_COMBAT("<B>[src]</B> weaves around [M]'s legs!"))
 		if (ismob(M))
 			var/tostun = rand(0,3)
 			var/toweak = rand(0,3)
 			if (toweak)
-				M.visible_message("<span class='combat'><B>[M]</B> trips!</span>")
+				M.visible_message(SPAN_COMBAT("<B>[M]</B> trips!"))
 			M.changeStatus("stunned", tostun SECONDS)
-			M.changeStatus("weakened", toweak SECONDS)
+			M.changeStatus("knockdown", toweak SECONDS)
 
 	CritterAttack(mob/M)
 		..()
 
-	attack_hand(mob/user as mob)
+	attack_hand(mob/user)
 		if (src.alive && (user.a_intent == INTENT_HARM)) // ferrets are quick so you might miss!!
 			if (prob(80))
 				..()
@@ -1959,8 +1118,8 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 				src.icon_state = src.base_state
 				src.lying = 0
 				src.wanderer = initial(src.wanderer)
-			src.visible_message("<span class='combat'><b>[user]</b> swings at [src], but misses!</span>")
-			playsound(src, "sound/impact_sounds/Generic_Swing_1.ogg", 50, 0)
+			src.visible_message(SPAN_COMBAT("<b>[user]</b> swings at [src], but misses!"))
+			playsound(src, 'sound/impact_sounds/Generic_Swing_1.ogg', 50, FALSE)
 			return
 		else
 			return ..()
@@ -1982,6 +1141,25 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 	generic = 0
 	lock_color = 1
 
+//Gerhazo: another special ferret per wire's request
+/obj/critter/meatslinky/alfredo
+	name = "Alfredo"
+	desc = "A ferret that came from space. Or maybe went to space. Who knows how it got here? This one has a friendlier vibe than you would've expected, how cute."
+	health = 50
+	generic = 0
+	lock_color = 1
+
+/obj/critter/meatslinky/gizmo
+	name = "Gizmo"
+	desc = "A ferret that came from space. Or maybe went to space. Who knows how it got here? This one is old and distinguished, but still has a playful glint in his eye."
+	health = 50
+	generic = 0
+	lock_color = 1
+	icon_state = "ferret-dark"
+	base_state = "ferret-dark"
+	dead_state = "ferret-dark-dead"
+	lazy_state = "ferret-dark-lazy"
+
 /obj/critter/raccoon
 	name = "space raccoon"
 	desc = "A raccoon that came from space. Or maybe went to space. Who knows how it got here?"
@@ -1997,11 +1175,11 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 	atksilicon = 0
 	firevuln = 1
 	brutevuln = 1
-	butcherable = 1
+	butcherable = BUTCHER_ALLOWED
 	health_gain_from_food = 2
 	feed_text = "happily begins washing its food!"
 	pet_text = list("pets", "cuddles", "pats", "snuggles")
-	flags = FPRINT | CONDUCT | USEDELAY | TABLEPASS | FLUID_SUBMERGE
+	flags = CONDUCT | USEDELAY | TABLEPASS | FLUID_SUBMERGE
 
 	skinresult = /obj/item/clothing/head/raccoon
 	max_skins = 1
@@ -2026,164 +1204,3 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 		..()
 		setProperty("coldprot", 10)
 		setProperty("heatprot", 10)
-
-/obj/critter/slug
-	name = "slug"
-	desc = "It doesn't have any arms or legs so it's kind of like a snake, but it's gross and unthreatening instead of cool and dangerous."
-	icon_state = "slug"
-	density = 0
-	health = 10
-	aggressive = 0
-	defensive = 0
-	wanderer = 1
-	opensdoors = OBJ_CRITTER_OPENS_DOORS_NONE
-	atkcarbon = 0
-	atksilicon = 0
-	butcherable = 1
-	flags = FPRINT | CONDUCT | USEDELAY | TABLEPASS | FLUID_SUBMERGE
-	var/slime_chance = 22
-
-	attack_hand(mob/user as mob)
-		if (src.alive && (user.a_intent != INTENT_HARM))
-			src.visible_message("<span class='combat'><b>[user]</b> pets [src]!</span>")
-			return
-		if (prob(95))
-			if(src.alive)
-				src.visible_message("<span class='combat'><B>[user] stomps [src], killing it instantly!</B></span>")
-				CritterDeath()
-				return
-			else
-				src.visible_message("<span class='combat'><B>[user] squishes [src] a little more for good measure.</B></span>")
-				return
-		..()
-
-	attackby(obj/item/W as obj, mob/user as mob)
-		if (istype(W, /obj/item/shaker))
-			var/obj/item/shaker/S = W
-			if (S.stuff == "salt" && S.shakes < 15)
-				src.visible_message("<span class='alert'>[src] shrivels up!</span>")
-				src.CritterDeath()
-				S.shakes ++
-				return
-		..()
-
-	Move(var/atom/NewLoc, direct)
-		.=..()
-		if (prob(src.slime_chance) && (istype(src.loc, /turf/simulated/floor) || istype(src.loc, /turf/unsimulated/floor)))
-			if (locate(/obj/decal/cleanable/slime) in src.loc)
-				return
-			else
-				make_cleanable( /obj/decal/cleanable/slime,src.loc)
-
-/obj/critter/slug/snail
-	name = "snail"
-	desc = "It's basically just a slug with a shell on it. This makes it less gross."
-	icon_state = "snail"
-	health = 20
-	slime_chance = 11
-
-
-
-// Urs party crabs
-/obj/critter/crab
-	name = "crab"
-	desc = "Snip Snip."
-	icon_state = "crab"
-	butcherable = 1
-	density = 0
-	health = 20
-	aggressive = 0
-	defensive = 1
-	wanderer = 1
-	opensdoors = OBJ_CRITTER_OPENS_DOORS_NONE
-	atkcarbon = 1
-	atksilicon = 1
-	firevuln = 1
-	brutevuln = 1
-	generic = 1
-	angertext = "snips angrily at"
-	death_text = "%src% dies."
-
-	attackby(obj/item/W as obj, mob/living/user as mob)
-		if (src.alive && istype(W, /obj/item/clothing/head/cowboy))
-			user.visible_message("<b>[user]</b> gives \the [src.name] \the [W]!","You give \the [src.name] \the [W].")
-			qdel(W)
-			src.visible_message("\The [src.name] starts dancing!")
-			new /obj/critter/crab/party(get_turf(src))
-			qdel(src)
-		else
-			..()
-
-	seek_target()
-		..()
-		if(src.target)
-			src.visible_message("<span class='combat'><b>[src]</b> [src.angertext] [src.target]!</span>")
-			playsound(src.loc, "sound/items/Scissor.ogg", 30, 0, -1)
-
-	CritterAttack(mob/M)
-		if(ismob(M))
-			src.attacking = 1
-			src.visible_message("<span class='combat'><B>[src]</B> snips [src.target] with its claws!</span>")
-			random_brute_damage(src.target, 2)
-			SPAWN_DBG(0)
-				playsound(src.loc, "sound/items/Wirecutter.ogg", 30, 0, -1)
-				sleep(0.3 SECONDS)
-				playsound(src.loc, "sound/items/Wirecutter.ogg", 30, 0, -1)
-			SPAWN_DBG(rand(1,10))
-				src.attacking = 0
-		return
-
-
-/obj/critter/crab/party
-	name = "party crab"
-	desc = "This crab is having way more fun than you."
-	icon_state = "crab_party"
-	generic = 0
-	var/dance_forever = 0
-	death_text = "%src% stops dancing forever."
-
-	proc/do_a_little_dance()
-		if (!src.muted)
-			var/msg = pick("gets down","yee claws", "is feelin' it now", "dances to that song! The one that goes \"beep boo boo bop boo boo beep\"", "does a little dance","dances like no one's watching")
-			src.visible_message("<b>[src]</b> [msg]!",2)
-		flick(pick("crab_party-getdown","crab_party-hop","crab_party-partyhard"),src)
-
-	ai_think()
-		..()
-		if(task == "thinking" || task == "wandering")
-			if(dance_forever || prob(2)) do_a_little_dance()
-
-	ChaseAttack(mob/M)
-		src.visible_message("<span class='combat'><B>[src]</B> parties hard into [M]!</span>")
-		playsound(src.loc, pick(sounds_hit), 50, 1, -1)
-
-		if(ismob(M))
-			M.changeStatus("stunned", 2 SECONDS)
-			M.changeStatus("weakened", 1 SECOND)
-
-	proc/dance_response()
-		if (!src.alive || src.sleeping)
-			return
-		SPAWN_DBG(rand(0, 10))
-			src.do_a_little_dance()
-
-obj/critter/frog
-	name = "frog"
-	desc = "Ribbit."
-	icon_state = "frog"
-	death_text = "%src% croaks."
-	butcherable = 1
-	density = 0
-	health = 20
-	aggressive = 0
-	defensive = 1
-	wanderer = 1
-	opensdoors = OBJ_CRITTER_OPENS_DOORS_NONE
-	atkcarbon = 1
-	atksilicon = 1
-	firevuln = 1
-	brutevuln = 1
-	generic = 1
-	atk_text = "hops into"
-	angertext = "croaks angrily at"
-	chase_text = "hops after"

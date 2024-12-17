@@ -3,10 +3,14 @@
 	var/turf/location
 	var/list/carried_reagents	// the IDs of reagents present when the foam was mixed
 	var/metal = 0				// 0=foam, 1=metalfoam, 2=ironfoam,
+	var/lube = 0 				//! 1 = normal lube, 2 = harmlube
 	var/temperature = T0C
-	var/list/banned_reagents = list("smokepowder", "propellant", "thalmerite", "fluorosurfactant", "salt", "poor_concrete", "okay_concrete", "good_concrete", "perfect_concrete")
+	var/list/banned_reagents = list("smokepowder", "propellant", "pyrosium", "fluorosurfactant", "salt", "poor_concrete", "okay_concrete", "good_concrete", "perfect_concrete")
 
 /datum/effects/system/foam_spread/proc/set_up(amt=5, loca, var/datum/reagents/carry = null, var/metalfoam = 0, var/carry_volume = 0)
+	var/list/lubelist = list("superlube" = 2,"invislube" = 2, "lube" = 1) //! a list of lubes and their strenght
+	var/lube_treshhold = 0.25 //! if 25% of the amount of reagents left is lube, we gonna make the foam slippery
+
 	if (!carry)
 		return
 	amount = round(amt/5, 1)
@@ -32,9 +36,13 @@
 		for(var/reagent_id in carry.reagent_list)
 			var/datum/reagent/current_reagent = carry.reagent_list[reagent_id]
 			carried_reagents[reagent_id] = current_reagent.volume * carrymult
+			//For lubes, we check if enough lube is in the non-metal-foam to make it slippery
+			if (!src.metal && (reagent_id in lubelist) && ((current_reagent.volume / carry.total_volume) >= lube_treshhold))
+				var/lube_level = lubelist[reagent_id]
+				src.lube = max(src.lube, lube_level)
 
 /datum/effects/system/foam_spread/proc/start()
-	SPAWN_DBG(0)
+	SPAWN(0)
 		var/obj/effects/foam/F = locate() in location
 		if(F)
 			DEBUG_MESSAGE("Located [F] in [location]")
@@ -47,12 +55,12 @@
 			F.amount = min(F.amount, 27)
 			return
 
-		F = unpool(/obj/effects/foam)
+		F = new /obj/effects/foam
 		F.foam_id = "\ref[src][world.time]"
-		F.set_up(src.location, metal)
+		F.set_up(src.location, src.metal, src.lube)
 		F.amount = amount
 
-		playsound(F.loc, "sound/effects/bubbles2.ogg", 80, 1, -3) //let's not play this from every single foam obj
+		playsound(F.loc, 'sound/effects/bubbles2.ogg', 80, 1, -3) //let's not play this from every single foam obj
 
 		if(!metal)			// don't carry other chemicals if a metal foam
 			F.create_reagents(15)

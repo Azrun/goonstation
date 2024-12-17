@@ -45,9 +45,9 @@
 				if (master.controller)
 					if (master.cell)
 						var/perc = round(100*master.cell.charge/master.cell.maxcharge)
-						boutput(master.controller, "<span class='notice'>Current cell charge level is [perc]%.</span>")
+						boutput(master.controller, SPAN_NOTICE("Current cell charge level is [perc]%."))
 					else
-						boutput(master.controller, "<span class='alert'>No power cell installed. Only basic systems will be available.</span>")
+						boutput(master.controller, SPAN_ALERT("No power cell installed. Only basic systems will be available."))
 			if ("disconnect")
 				master.disconnect_user()
 
@@ -127,7 +127,7 @@
 
 			for(var/datum/statusEffect/S as anything in src.statusUiElements) //Remove stray effects.
 				if(!master.statusEffects || !(S in master.statusEffects) )
-					pool(statusUiElements[S])
+					qdel(statusUiElements[S])
 					src.statusUiElements.Remove(S)
 					qdel(S)
 
@@ -146,7 +146,7 @@
 						pos_x -= spacing
 					else
 						if(S.visible)
-							var/atom/movable/screen/statusEffect/U = unpool(/atom/movable/screen/statusEffect)
+							var/atom/movable/screen/statusEffect/U = new /atom/movable/screen/statusEffect
 							U.init(master,S)
 							U.icon = icon_hud
 							statusUiElements.Add(S)

@@ -3,7 +3,7 @@
 /turf/space,
 /area/space)
 "ab" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 1;
 	icon_state = "alt_heater"
 	},
@@ -35,7 +35,7 @@
 /turf/space,
 /area/space)
 "af" = (
-/obj/decal/fakeobjects/shuttlethruster{
+/obj/fakeobject/shuttlethruster{
 	dir = 5;
 	icon_state = "alt_propulsion"
 	},
@@ -51,8 +51,6 @@
 "ah" = (
 /obj/lattice,
 /obj/cable{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /turf/space,
@@ -63,24 +61,24 @@
 	},
 /area/space)
 "aj" = (
-/obj/wingrille_spawn/bulletproof,
-/obj/decal/fakeobjects/shuttleengine{
+/obj/mapping_helper/wingrille_spawn/bulletproof,
+/obj/fakeobject/shuttleengine{
 	dir = 1;
 	icon_state = "alt_heater-R"
 	},
 /turf/simulated/floor/plating,
 /area/space)
 "ak" = (
-/obj/wingrille_spawn/bulletproof,
-/obj/decal/fakeobjects/shuttleengine{
+/obj/mapping_helper/wingrille_spawn/bulletproof,
+/obj/fakeobject/shuttleengine{
 	dir = 1;
 	icon_state = "alt_heater-M"
 	},
 /turf/simulated/floor/plating,
 /area/space)
 "al" = (
-/obj/wingrille_spawn/bulletproof,
-/obj/decal/fakeobjects/shuttleengine{
+/obj/mapping_helper/wingrille_spawn/bulletproof,
+/obj/fakeobject/shuttleengine{
 	dir = 1;
 	icon_state = "alt_heater-L"
 	},
@@ -92,11 +90,9 @@
 	},
 /obj/lattice,
 /obj/cable{
-	d2 = 8;
 	icon_state = "0-8"
 	},
 /obj/cable{
-	d2 = 4;
 	icon_state = "0-4";
 	pixel_y = 0
 	},
@@ -108,8 +104,8 @@
 	},
 /area/space)
 "ao" = (
-/obj/wingrille_spawn/bulletproof,
-/obj/decal/fakeobjects/shuttleengine{
+/obj/mapping_helper/wingrille_spawn/bulletproof,
+/obj/fakeobject/shuttleengine{
 	dir = 1;
 	icon_state = "alt_heater"
 	},
@@ -152,7 +148,6 @@
 /obj/decal/cleanable/blood/tracks{
 	dir = 9
 	},
-/turf/space,
 /turf/simulated/floor/airless/plating/damaged2,
 /area/space)
 "ax" = (
@@ -190,7 +185,7 @@
 /turf/simulated/floor/black,
 /area/space)
 "aB" = (
-/obj/wingrille_spawn/bulletproof,
+/obj/mapping_helper/wingrille_spawn/bulletproof,
 /turf/simulated/floor/plating,
 /area/space)
 "aC" = (
@@ -203,7 +198,6 @@
 "aD" = (
 /obj/decal/cleanable/robot_debris,
 /obj/machinery/bot/medbot/terrifying,
-/turf/simulated/floor/plating/airless,
 /turf/simulated/floor/airless/plating/damaged2,
 /area/space)
 "aE" = (
@@ -224,7 +218,6 @@
 	},
 /obj/decal/cleanable/blood/tracks,
 /obj/item/raw_material/shard/glass,
-/turf/space,
 /turf/simulated/floor/airless/plating/damaged2,
 /area/space)
 "aH" = (
@@ -243,7 +236,7 @@
 /turf/space,
 /area/space)
 "aJ" = (
-/obj/machinery/door/airlock/pyro/syndicate{
+/obj/machinery/door/airlock/pyro/reinforced/syndicate{
 	dir = 4;
 	icon_state = "airlock_closed"
 	},
@@ -268,7 +261,6 @@
 "aM" = (
 /obj/decal/cleanable/cobweb2,
 /obj/item/device/transfer_valve/briefcase,
-/turf/simulated/floor/plating/airless,
 /turf/simulated/floor/airless/plating/damaged2,
 /area/space)
 "aN" = (
@@ -288,7 +280,6 @@
 	layer = 9;
 	name = "MEDICAL SHIP"
 	},
-/turf/space,
 /turf/simulated/shuttle/wall/cockpit{
 	icon_state = "shuttlecock_busted"
 	},
@@ -304,7 +295,7 @@
 /area/space)
 "aR" = (
 /obj/decal/cleanable/dirt,
-/obj/decal/skeleton{
+/obj/fakeobject/skeleton{
 	desc = "Gross.";
 	icon = 'icons/mob/human.dmi';
 	icon_state = "husk_l";
@@ -312,7 +303,6 @@
 	},
 /obj/table/reinforced/auto,
 /obj/item/clothing/gloves/latex,
-/turf/simulated/floor/airless/plating/scorched,
 /turf/simulated/floor/airless/plating/damaged2,
 /area/space)
 "aS" = (
@@ -330,37 +320,14 @@
 /area/space)
 "aT" = (
 /obj/table/auto,
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "An old computer that is obviously very broken.  It might actually not even be plugged in.  BROKEN.";
 	icon = 'icons/obj/computer.dmi';
 	icon_state = "old0";
 	name = "broken computer"
 	},
-/turf/space,
 /turf/simulated/floor/airless/plating/damaged2,
-/area/space)
-"aU" = (
-/obj/decal/tile_edge/stripe/big{
-	dir = 8
-	},
-/obj/decal/tile_edge/stripe/big{
-	dir = 4;
-	icon_state = "bigstripe-edge"
-	},
-/turf/unsimulated/floor/plating/random,
-/turf/simulated/wall/target,
-/area/space)
-"aV" = (
-/obj/lattice{
-	icon_state = "lattice-dir"
-	},
-/obj/cable{
-	d1 = 1;
-	d2 = 2;
-	icon_state = "1-2"
-	},
-/turf/space,
 /area/space)
 "aW" = (
 /turf/simulated/shuttle/wall{
@@ -418,8 +385,8 @@
 /turf/space,
 /area/space)
 "bh" = (
-/obj/wingrille_spawn/bulletproof,
-/obj/decal/fakeobjects/shuttleweapon/base{
+/obj/mapping_helper/wingrille_spawn/bulletproof,
+/obj/fakeobject/shuttleweapon/base{
 	dir = 8;
 	icon_state = "alt_heater"
 	},
@@ -477,8 +444,6 @@
 "bt" = (
 /obj/lattice,
 /obj/cable{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/space,
@@ -506,7 +471,7 @@
 /turf/simulated/floor/stairs/dark,
 /area/space)
 "bx" = (
-/obj/decal/fakeobjects/broadcastcomputer,
+/obj/fakeobject/broadcastcomputer,
 /turf/simulated/floor/shuttle{
 	icon_state = "floor4"
 	},
@@ -535,8 +500,8 @@
 /turf/simulated/floor/circuit/red,
 /area/space)
 "bB" = (
-/obj/wingrille_spawn/auto,
-/obj/decal/fakeobjects/shuttleweapon/base,
+/obj/mapping_helper/wingrille_spawn/auto,
+/obj/fakeobject/shuttleweapon/base,
 /turf/simulated/floor/plating,
 /area/space)
 "bC" = (
@@ -553,20 +518,13 @@
 	},
 /area/space)
 "bE" = (
-/obj/wingrille_spawn/auto,
-/obj/decal/fakeobjects/shuttleweapon/base,
+/obj/mapping_helper/wingrille_spawn/auto,
+/obj/fakeobject/shuttleweapon/base,
 /turf/space,
 /area/space)
 "bF" = (
-/obj/decal/fakeobjects/shuttleweapon,
+/obj/fakeobject/shuttleweapon,
 /turf/space,
-/area/space)
-"bG" = (
-/turf/space,
-/turf/simulated/shuttle/wall/cockpit{
-	dir = 2;
-	icon_state = "shuttlecock_syndie"
-	},
 /area/space)
 "bH" = (
 /obj/indestructible/shuttle_corner{
@@ -611,7 +569,7 @@
 	},
 /area/space)
 "bM" = (
-/obj/decal/fakeobjects/shuttleweapon{
+/obj/fakeobject/shuttleweapon{
 	dir = 4;
 	icon_state = "shuttle_laser"
 	},
@@ -631,12 +589,6 @@
 "bP" = (
 /turf/simulated/shuttle/wall/cockpit{
 	dir = 8
-	},
-/area/space)
-"bQ" = (
-/turf/unsimulated/wall{
-	icon = 'icons/misc/worlds.dmi';
-	icon_state = "leadcap"
 	},
 /area/space)
 "bR" = (
@@ -712,7 +664,7 @@
 	},
 /area/space)
 "cd" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /turf/unsimulated/floor/shuttle,
 /area/space)
 "ce" = (
@@ -792,7 +744,7 @@
 	},
 /area/space)
 "cr" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /obj/machinery/shuttle/engine/heater{
 	dir = 4;
 	icon_state = "alt_heater-R"
@@ -843,7 +795,7 @@
 	},
 /area/space)
 "cx" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /turf/unsimulated/floor/shuttle{
 	icon_state = "floor2"
 	},
@@ -869,7 +821,7 @@
 	},
 /area/space)
 "cB" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /obj/machinery/shuttle/engine/heater{
 	dir = 4;
 	icon_state = "alt_heater-M"
@@ -917,7 +869,7 @@
 	},
 /area/space)
 "cJ" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /obj/machinery/shuttle/engine/heater{
 	dir = 4;
 	icon_state = "alt_heater-L"
@@ -944,7 +896,6 @@
 	},
 /area/space)
 "cN" = (
-/turf/space,
 /turf/simulated/shuttle/wall/cockpit{
 	dir = 4;
 	layer = 50
@@ -1010,7 +961,7 @@
 /turf/unsimulated/floor/plating,
 /area/space)
 "cX" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /obj/machinery/shuttle/engine/heater{
 	dir = 8;
 	icon_state = "alt_heater-L"
@@ -1070,7 +1021,7 @@
 /turf/unsimulated/floor/plating,
 /area/space)
 "dg" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /obj/machinery/shuttle/engine/heater{
 	dir = 8;
 	icon_state = "alt_heater-M"
@@ -1114,7 +1065,7 @@
 /turf/unsimulated/floor/plating,
 /area/space)
 "dn" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /obj/machinery/shuttle/engine/heater{
 	dir = 8;
 	icon_state = "alt_heater-R"
@@ -1171,17 +1122,10 @@
 	icon_state = "floor2"
 	},
 /area/space)
-"dv" = (
-/turf/unsimulated/wall{
-	dir = 1;
-	icon = 'icons/misc/worlds.dmi';
-	icon_state = "leadcap"
-	},
-/area/space)
 "dw" = (
-/obj/grille/steel,
+/obj/mesh/grille/steel,
 /obj/window/reinforced,
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 1;
 	icon_state = "alt_heater"
 	},
@@ -1328,28 +1272,28 @@
 	},
 /area/space)
 "dQ" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /obj/machinery/shuttle/engine/heater{
 	icon_state = "alt_heater-L"
 	},
 /turf/unsimulated/floor/plating,
 /area/space)
 "dR" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /obj/machinery/shuttle/engine/heater{
 	icon_state = "alt_heater-M"
 	},
 /turf/unsimulated/floor/plating,
 /area/space)
 "dS" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /obj/machinery/shuttle/engine/heater{
 	icon_state = "alt_heater-R"
 	},
 /turf/unsimulated/floor/plating,
 /area/space)
 "dT" = (
-/obj/grille/steel,
+/obj/mesh/grille/steel,
 /obj/window/auto/reinforced,
 /obj/machinery/shuttle/engine/heater{
 	dir = 8;
@@ -1375,7 +1319,7 @@
 	},
 /area/space)
 "dW" = (
-/obj/grille/steel,
+/obj/mesh/grille/steel,
 /obj/window/auto/reinforced,
 /obj/machinery/shuttle/engine/heater{
 	dir = 8;
@@ -1384,7 +1328,7 @@
 /turf/unsimulated/floor/plating,
 /area/space)
 "dX" = (
-/obj/grille/steel,
+/obj/mesh/grille/steel,
 /obj/window/auto/reinforced,
 /obj/machinery/shuttle/engine/heater{
 	dir = 8;
@@ -1408,13 +1352,6 @@
 /obj/machinery/computer/shuttle/embedded/east,
 /turf/unsimulated/floor/shuttle{
 	icon_state = "floor2"
-	},
-/area/space)
-"ea" = (
-/turf/space,
-/turf/simulated/shuttle/wall{
-	dir = 8;
-	icon_state = "diagonalWall3"
 	},
 /area/space)
 "eb" = (
@@ -1474,13 +1411,13 @@
 	},
 /area/space)
 "ej" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /turf/unsimulated/floor/shuttle{
 	icon_state = "floor4"
 	},
 /area/space)
 "ek" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /turf/unsimulated/floor/shuttle{
 	icon_state = "floor3"
 	},
@@ -1504,10 +1441,9 @@
 	},
 /area/space)
 "eo" = (
-/turf/space,
 /turf/simulated/shuttle/wall{
 	dir = 8;
-	icon_state = "diagonalWall3"
+	icon_state = "wall_3_trans"
 	},
 /area/noGenerate)
 "ep" = (
@@ -1544,7 +1480,6 @@
 	},
 /area/space)
 "et" = (
-/turf/space,
 /turf/simulated/shuttle/wall/cockpit{
 	dir = 1
 	},
@@ -1578,7 +1513,7 @@
 	},
 /area/diner/tug)
 "ex" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 4;
 	icon_state = "alt_heater"
 	},
@@ -1591,15 +1526,15 @@
 	},
 /area/diner/tug)
 "ez" = (
-/turf/space,
 /turf/simulated/shuttle/wall{
 	dir = 6;
-	icon_state = "diagonalWall3"
+	icon_state = "wall_3_trans"
 	},
 /area/diner/tug)
 "eA" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 6
+/obj/fakeobject/pipe{
+	dir = 6;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
@@ -1616,7 +1551,7 @@
 	},
 /area/space)
 "eE" = (
-/obj/grille/steel,
+/obj/mesh/grille/steel,
 /obj/window/reinforced/west,
 /obj/window/reinforced/east,
 /obj/window/reinforced/north,
@@ -1642,7 +1577,7 @@
 	},
 /area/diner/tug)
 "eH" = (
-/obj/decal/fakeobjects/shuttlethruster{
+/obj/fakeobject/shuttlethruster{
 	dir = 4;
 	icon_state = "alt_propulsion"
 	},
@@ -1663,7 +1598,7 @@
 	},
 /area/diner/tug)
 "eJ" = (
-/obj/grille/steel,
+/obj/mesh/grille/steel,
 /obj/window/reinforced/east,
 /obj/window/reinforced/north,
 /obj/window/reinforced/west,
@@ -1682,14 +1617,13 @@
 /turf/simulated/floor/shuttlebay,
 /area/diner/tug)
 "eM" = (
-/turf/simulated/floor/shuttlebay,
 /turf/simulated/shuttle/wall{
 	dir = 2;
-	icon_state = "diagonalWall3"
+	icon_state = "wall_3_trans"
 	},
 /area/diner/tug)
 "eN" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 4
 	},
 /obj/indestructible/shuttle_corner{
@@ -1706,33 +1640,34 @@
 	},
 /area/diner/tug)
 "eP" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 10
+/obj/fakeobject/pipe{
+	dir = 10;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
 "eQ" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 4
 	},
 /obj/decal/cleanable/dirt,
 /turf/space,
 /area/space)
 "eR" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 4
 	},
 /turf/space,
 /area/space)
 "eS" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 4;
 	icon_state = "alt_heater-R"
 	},
 /turf/space,
 /area/space)
 "eT" = (
-/obj/decal/fakeobjects/shuttlethruster{
+/obj/fakeobject/shuttlethruster{
 	dir = 4;
 	icon_state = "alt_propulsion"
 	},
@@ -1767,14 +1702,14 @@
 /turf/space,
 /area/space)
 "eY" = (
-/obj/decal/fakeobjects/shuttlethruster{
+/obj/fakeobject/shuttlethruster{
 	dir = 8;
 	icon_state = "alt_propulsion"
 	},
 /turf/space,
 /area/space)
 "eZ" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 8;
 	icon_state = "alt_heater"
 	},
@@ -1813,9 +1748,7 @@
 "fd" = (
 /obj/stool/bed,
 /obj/item/clothing/suit/bedsheet/pink,
-/obj/landmark/start{
-	name = "wizard"
-	},
+/obj/landmark/antagonist/wizard,
 /turf/unsimulated/floor/carpet{
 	dir = 1;
 	icon_state = "green2"
@@ -1829,7 +1762,7 @@
 	},
 /area/space)
 "ff" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 8;
 	icon_state = "alt_heater"
 	},
@@ -1846,7 +1779,7 @@
 	},
 /area/space)
 "fh" = (
-/obj/critter/cat,
+/mob/living/critter/small_animal/cat,
 /turf/unsimulated/floor/carpet{
 	dir = 3;
 	icon_state = "green2"
@@ -1896,9 +1829,7 @@
 /obj/window/south,
 /obj/stool/bed,
 /obj/item/clothing/suit/bedsheet/blue,
-/obj/landmark/start{
-	name = "wizard"
-	},
+/obj/landmark/antagonist/wizard,
 /turf/unsimulated/floor/carpet{
 	icon_state = "green2"
 	},
@@ -1953,7 +1884,7 @@
 /turf/unsimulated/floor/shuttlebay,
 /area/space)
 "fx" = (
-/obj/grille/steel,
+/obj/mesh/grille/steel,
 /obj/window/reinforced/north,
 /obj/window/reinforced/west,
 /obj/window/reinforced/south,
@@ -1969,10 +1900,10 @@
 /area/space)
 "fz" = (
 /obj/table/wood/auto,
-/obj/item/clothing/shoes/sandal,
-/obj/item/clothing/shoes/sandal,
-/obj/item/clothing/shoes/sandal,
-/obj/item/clothing/shoes/sandal,
+/obj/item/clothing/shoes/sandal/magic/wizard,
+/obj/item/clothing/shoes/sandal/magic/wizard,
+/obj/item/clothing/shoes/sandal/magic/wizard,
+/obj/item/clothing/shoes/sandal/magic/wizard,
 /turf/unsimulated/floor/shuttle{
 	icon_state = "floor5"
 	},
@@ -2007,7 +1938,7 @@
 	},
 /area/space)
 "fF" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /turf/unsimulated/floor/plating,
 /area/space)
 "fG" = (
@@ -2024,7 +1955,7 @@
 /turf/simulated/floor/shuttlebay,
 /area/space)
 "fI" = (
-/obj/grille/steel,
+/obj/mesh/grille/steel,
 /obj/window/reinforced/north,
 /obj/window/reinforced/west,
 /obj/window/reinforced/south,
@@ -2033,7 +1964,7 @@
 	},
 /area/space)
 "fJ" = (
-/obj/grille/steel,
+/obj/mesh/grille/steel,
 /obj/window/reinforced/north,
 /obj/window/reinforced/south,
 /obj/window/reinforced/east,
@@ -2087,7 +2018,7 @@
 	},
 /area/space)
 "fR" = (
-/obj/decal/fakeobjects/teleport_pad,
+/obj/fakeobject/teleport_pad,
 /turf/unsimulated/floor/shuttle{
 	icon_state = "floor2"
 	},
@@ -2102,9 +2033,7 @@
 	},
 /area/space)
 "fT" = (
-/obj/npc/trader/random{
-	trader_area = "/area/shuttle/merchant_shuttle/left_station"
-	},
+/obj/landmark/spawner/random_trader,
 /obj/stool/chair/comfy,
 /turf/unsimulated/floor/shuttle{
 	icon_state = "floor2"
@@ -2142,14 +2071,12 @@
 	},
 /area/space)
 "fZ" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /turf/unsimulated/floor/engine,
 /area/space)
 "ga" = (
 /obj/stool/chair/comfy,
-/obj/npc/trader/random{
-	trader_area = "/area/shuttle/merchant_shuttle/right_station"
-	},
+/obj/landmark/spawner/random_trader,
 /turf/unsimulated/floor/shuttle{
 	icon_state = "floor2"
 	},
@@ -2229,7 +2156,7 @@
 	},
 /area/space)
 "gl" = (
-/obj/grille/steel,
+/obj/mesh/grille/steel,
 /obj/window/reinforced/north,
 /obj/window/reinforced/west,
 /obj/window/reinforced/south,
@@ -2239,7 +2166,7 @@
 	},
 /area/space)
 "gm" = (
-/obj/decal/fakeobjects/teleport_pad,
+/obj/fakeobject/teleport_pad,
 /obj/marker/supplymarker,
 /turf/unsimulated/floor/shuttle{
 	icon_state = "floor2"
@@ -2256,9 +2183,7 @@
 /area/space)
 "go" = (
 /obj/stool/chair/comfy,
-/obj/landmark/start{
-	name = "wizard"
-	},
+/obj/landmark/antagonist/wizard,
 /turf/unsimulated/floor/carpet{
 	dir = 1;
 	icon_state = "blue2"
@@ -2316,7 +2241,7 @@
 	},
 /area/space)
 "gw" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	icon_state = "alt_heater"
 	},
 /turf/simulated/shuttle/wall{
@@ -2348,7 +2273,7 @@
 /area/space)
 "gz" = (
 /obj/table/wood/auto,
-/obj/machinery/light/lamp,
+/obj/machinery/light/lamp/black,
 /turf/unsimulated/floor/carpet{
 	icon_state = "blue2"
 	},
@@ -2397,7 +2322,6 @@
 	icon_state = "lattice-dir-b"
 	},
 /obj/cable{
-	d2 = 2;
 	icon_state = "0-2"
 	},
 /obj/warp_beacon{
@@ -2433,7 +2357,7 @@
 /turf/space,
 /area/space)
 "gI" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /turf/simulated/floor/black,
 /area/space)
 "gJ" = (
@@ -2646,7 +2570,8 @@
 /turf/space/no_replace,
 /area/space)
 "ho" = (
-/turf/simulated/floor/delivery,
+/obj/decal/stripe_delivery,
+/turf/simulated/floor,
 /area/space)
 "hp" = (
 /obj/table/auto,
@@ -2831,11 +2756,13 @@
 /obj/machinery/light_switch/north{
 	pixel_y = 30
 	},
-/turf/simulated/floor/bot,
+/obj/decal/stripe_caution,
+/turf/simulated/floor,
 /area/space)
 "hR" = (
 /obj/machinery/vending/cigarette,
-/turf/simulated/floor/delivery,
+/obj/decal/stripe_delivery,
+/turf/simulated/floor,
 /area/space)
 "hS" = (
 /turf/simulated/floor/blue/side{
@@ -2857,11 +2784,13 @@
 /area/space)
 "hU" = (
 /obj/machinery/vending/snack,
-/turf/simulated/floor/delivery,
+/obj/decal/stripe_delivery,
+/turf/simulated/floor,
 /area/space)
 "hV" = (
 /obj/machinery/vending/cola/blue,
-/turf/simulated/floor/bot,
+/obj/decal/stripe_caution,
+/turf/simulated/floor,
 /area/space)
 "hW" = (
 /turf/simulated/floor/shuttlebay,
@@ -2876,7 +2805,8 @@
 /area/space)
 "hZ" = (
 /obj/machinery/door/unpowered/wood,
-/turf/unsimulated/floor/delivery,
+/obj/decal/stripe_delivery,
+/turf/unsimulated/floor,
 /area/space)
 "ia" = (
 /turf/unsimulated/floor/specialroom/chapel{
@@ -2920,12 +2850,11 @@
 /area/space)
 "ih" = (
 /obj/machinery/communications_dish,
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 1;
 	icon_state = "catwalk_cross"
 	},
 /obj/cable{
-	d2 = 4;
 	icon_state = "0-4"
 	},
 /turf/space,
@@ -2936,8 +2865,6 @@
 	icon_state = "lattice-dir"
 	},
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/space,
@@ -2949,8 +2876,6 @@
 	},
 /obj/machinery/light/runway_light/delay3,
 /obj/cable{
-	d1 = 2;
-	d2 = 8;
 	icon_state = "2-8"
 	},
 /turf/space,
@@ -2971,20 +2896,17 @@
 	},
 /obj/machinery/light/runway_light/delay3,
 /obj/cable{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /turf/space,
 /area/space)
 "io" = (
 /obj/machinery/communications_dish,
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 1;
 	icon_state = "catwalk_cross"
 	},
 /obj/cable{
-	d2 = 8;
 	icon_state = "0-8"
 	},
 /turf/space,
@@ -3057,7 +2979,7 @@
 /turf/simulated/floor/stairs,
 /area/space)
 "iA" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /obj/window_blinds/cog2/right,
 /turf/simulated/floor/black,
 /area/space)
@@ -3068,7 +2990,7 @@
 /turf/simulated/floor/wood/two,
 /area/space)
 "iC" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /obj/window_blinds/cog2/right,
 /obj/machinery/light/small{
 	base_state = "radio";
@@ -3131,8 +3053,6 @@
 "iK" = (
 /obj/lattice,
 /obj/cable{
-	d1 = 2;
-	d2 = 8;
 	icon_state = "2-8"
 	},
 /obj/cable{
@@ -3145,7 +3065,7 @@
 /turf/simulated/floor/grime,
 /area/space)
 "iM" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /obj/window_blinds/cog2/right{
 	dir = 4
 	},
@@ -3153,7 +3073,7 @@
 /area/space)
 "iN" = (
 /obj/table/wood/auto,
-/obj/machinery/light/lamp{
+/obj/machinery/light/lamp/black{
 	on = 1
 	},
 /turf/simulated/floor/wood/two,
@@ -3185,7 +3105,7 @@
 /turf/simulated/floor/wood/two,
 /area/space)
 "iS" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /obj/window_blinds/cog2/right{
 	dir = 8
 	},
@@ -3194,20 +3114,16 @@
 "iT" = (
 /obj/lattice,
 /obj/cable{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /obj/cable{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /obj/machinery/light/runway_light/delay3,
 /turf/space,
 /area/space)
 "iU" = (
-/obj/decal/fakeobjects/teleport_pad,
+/obj/fakeobject/teleport_pad,
 /obj/item/device/gps,
 /obj/landmark{
 	name = "telesci"
@@ -3261,7 +3177,7 @@
 /area/space)
 "jc" = (
 /obj/table/reinforced/auto,
-/obj/deskclutter,
+/obj/decal/cleanable/desk_clutter,
 /obj/item/paper_bin,
 /obj/item/pen/odd,
 /turf/unsimulated/floor/setpieces/oldfloor,
@@ -3309,8 +3225,6 @@
 	icon_state = "lattice-dir"
 	},
 /obj/cable{
-	d1 = 1;
-	d2 = 8;
 	icon_state = "1-8"
 	},
 /turf/space,
@@ -3404,7 +3318,6 @@
 /obj/machinery/light{
 	dir = 4
 	},
-/obj/item/radio_tape/advertisement/dans_tickets,
 /obj/item/radio_tape/advertisement/grones{
 	pixel_x = 6;
 	pixel_y = 4
@@ -3416,10 +3329,6 @@
 /obj/item/radio_tape/advertisement/quik_noodles{
 	pixel_x = 2;
 	pixel_y = -6
-	},
-/obj/item/radio_tape/advertisement/pope_crunch{
-	pixel_x = -3;
-	pixel_y = 4
 	},
 /turf/simulated/floor/carpet/grime,
 /area/space)
@@ -3462,13 +3371,7 @@
 /area/space)
 "jz" = (
 /obj/table/wood/auto,
-/obj/item/device/radio/intercom{
-	desc = "A powerful radio transmitter. Enable the microphone to begin broadcasting your radio show.";
-	device_color = "#E52780";
-	icon = 'icons/obj/radiostation.dmi';
-	icon_state = "mixtable-1";
-	name = "broadcast radio"
-	},
+/obj/item/device/radio/intercom/radiostation,
 /turf/simulated/floor/carpet/grime,
 /area/space)
 "jA" = (
@@ -3624,7 +3527,7 @@
 /obj/machinery/door/airlock/pyro{
 	name = "Server"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 1;
@@ -3696,7 +3599,7 @@
 /turf/simulated/floor/black,
 /area/space)
 "kg" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 1;
@@ -3724,7 +3627,7 @@
 /turf/simulated/wall/auto/reinforced/supernorn,
 /area/space)
 "kl" = (
-/obj/wingrille_spawn/auto,
+/obj/mapping_helper/wingrille_spawn/auto,
 /turf/simulated/floor,
 /area/space)
 "km" = (
@@ -3740,13 +3643,14 @@
 /obj/machinery/light_switch/north{
 	pixel_y = 30
 	},
-/turf/simulated/floor/delivery,
+/obj/decal/stripe_delivery,
+/turf/simulated/floor,
 /area/space)
 "kp" = (
 /obj/stool/chair{
 	dir = 1
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 10;
@@ -3758,7 +3662,7 @@
 /turf/simulated/floor/black,
 /area/space)
 "kq" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 9;
@@ -3767,7 +3671,7 @@
 	layer = 2.5;
 	name = "power conduit"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 8;
@@ -3776,7 +3680,7 @@
 	layer = 2.5;
 	name = "power conduit"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 5;
@@ -3788,7 +3692,7 @@
 /area/space)
 "kr" = (
 /obj/machinery/light_switch/east,
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 6;
@@ -3820,13 +3724,15 @@
 "ky" = (
 /obj/decal/cleanable/dirt,
 /obj/item/storage/toolbox/mechanical,
-/turf/simulated/floor/bot,
+/obj/decal/stripe_caution,
+/turf/simulated/floor,
 /area/space)
 "kz" = (
-/turf/simulated/floor/bot,
+/obj/decal/stripe_caution,
+/turf/simulated/floor,
 /area/space)
 "kA" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 1;
@@ -3868,7 +3774,7 @@
 /area/space)
 "kF" = (
 /obj/decal/cleanable/dirt,
-/obj/decal/fakeobjects/tapedeck,
+/obj/fakeobject/tapedeck,
 /obj/machinery/light{
 	dir = 8
 	},
@@ -3881,11 +3787,12 @@
 /turf/simulated/floor/black,
 /area/space)
 "kH" = (
-/obj/decal/fakeobjects/vacuumtape,
-/turf/simulated/floor/delivery,
+/obj/fakeobject/vacuumtape,
+/obj/decal/stripe_delivery,
+/turf/simulated/floor,
 /area/space)
 "kI" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 6;
@@ -3893,7 +3800,7 @@
 	icon_state = "conduit";
 	name = "power conduit"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 10;
@@ -3902,7 +3809,7 @@
 	layer = 2.5;
 	name = "power conduit"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 1;
@@ -3915,7 +3822,7 @@
 /area/space)
 "kJ" = (
 /obj/storage/secure/closet/personal,
-/obj/item/clothing/under/gimmick/cosby,
+/obj/item/clothing/under/gimmick/sweater,
 /obj/item/device/microphone,
 /turf/simulated/floor/carpet{
 	dir = 8;
@@ -3945,7 +3852,7 @@
 /obj/storage/closet,
 /obj/item/storage/box/trash_bags,
 /obj/item/clothing/head/bio_hood,
-/obj/item/clothing/suit/bio_suit,
+/obj/item/clothing/suit/hazard/bio_suit,
 /obj/item/reagent_containers/glass/bottle/cleaner,
 /obj/item/caution,
 /obj/item/caution,
@@ -3955,7 +3862,7 @@
 /turf/simulated/floor/purple,
 /area/space)
 "kN" = (
-/obj/decal/fakeobjects/broadcastcomputer,
+/obj/fakeobject/broadcastcomputer,
 /turf/simulated/floor/black,
 /area/space)
 "kO" = (
@@ -3969,7 +3876,7 @@
 /turf/simulated/floor/black,
 /area/space)
 "kP" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 6;
@@ -3977,7 +3884,7 @@
 	icon_state = "conduit";
 	name = "power conduit"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 10;
@@ -3986,7 +3893,7 @@
 	layer = 2.5;
 	name = "power conduit"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	icon = 'icons/obj/power_cond.dmi';
@@ -4015,12 +3922,14 @@
 /turf/simulated/floor/sanitary,
 /area/space)
 "kT" = (
-/obj/decal/fakeobjects/operatorconsole,
-/turf/simulated/floor/bot,
+/obj/fakeobject/operatorconsole,
+/obj/decal/stripe_caution,
+/turf/simulated/floor,
 /area/space)
 "kU" = (
-/obj/decal/fakeobjects/cpucontroller,
-/turf/simulated/floor/delivery,
+/obj/fakeobject/cpucontroller,
+/obj/decal/stripe_delivery,
+/turf/simulated/floor,
 /area/space)
 "kV" = (
 /obj/decal/tile_edge/stripe/extra_big{
@@ -4038,7 +3947,7 @@
 /turf/simulated/floor/shuttlebay,
 /area/diner/tug)
 "kX" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 4
 	},
 /obj/map/light/screen,
@@ -4046,7 +3955,7 @@
 /turf/space,
 /area/space)
 "kY" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 4;
 	icon_state = "alt_heater-M"
 	},
@@ -4114,8 +4023,6 @@
 	icon_state = "lattice-dir-b"
 	},
 /obj/cable{
-	d1 = 1;
-	d2 = 4;
 	icon_state = "1-4"
 	},
 /turf/space,
@@ -4123,18 +4030,16 @@
 "lj" = (
 /obj/lattice,
 /obj/cable{
-	d1 = 2;
-	d2 = 8;
 	icon_state = "2-8"
 	},
 /turf/space,
 /area/space)
 "lk" = (
-/obj/decal/fakeobjects/cargopad,
+/obj/fakeobject/cargopad,
 /turf/simulated/floor/shuttlebay,
 /area/diner/tug)
 "ll" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 4
 	},
 /obj/machinery/door/airlock/external,
@@ -4166,7 +4071,7 @@
 /turf/space,
 /area/space)
 "lp" = (
-/obj/grille/steel,
+/obj/mesh/grille/steel,
 /obj/window/reinforced/east,
 /obj/window/reinforced/north,
 /obj/window/reinforced/west,
@@ -4180,7 +4085,7 @@
 /turf/simulated/floor/shuttlebay,
 /area/diner/tug)
 "lr" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 4;
 	icon_state = "alt_heater-L"
 	},
@@ -4197,7 +4102,7 @@
 "lt" = (
 /obj/lattice,
 /obj/machinery/communications_dish,
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 1;
 	icon_state = "catwalk_cross"
 	},
@@ -4216,16 +4121,15 @@
 /turf/simulated/shuttle/wall/cockpit/window,
 /area/space)
 "lw" = (
-/obj/decal/fakeobjects/shuttlethruster{
+/obj/fakeobject/shuttlethruster{
 	icon_state = "alt_propulsion"
 	},
 /turf/space,
 /area/space)
 "lx" = (
-/turf/space,
 /turf/simulated/shuttle/wall{
 	dir = 5;
-	icon_state = "diagonalWall3"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "ly" = (
@@ -4236,12 +4140,12 @@
 /turf/space,
 /area/space)
 "lA" = (
-/obj/decal/skeleton,
+/obj/fakeobject/skeleton,
 /obj/item/paper/printout/emerg1,
 /turf/simulated/floor/airless/plating/damaged3,
 /area/space)
 "lB" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	desc = "A robotic claw, it might still work.";
 	dir = 4;
 	name = "robotic claw"
@@ -4249,32 +4153,35 @@
 /turf/space,
 /area/space)
 "lC" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
 "lD" = (
 /turf/simulated/shuttle/wall{
 	dir = 1;
-	icon_state = "wall3_space"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "lE" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 5
+/obj/fakeobject/pipe{
+	dir = 5;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
 "lF" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 9
+/obj/fakeobject/pipe{
+	dir = 9;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
 "lG" = (
 /turf/simulated/shuttle/wall{
-	icon_state = "wall3_space"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "lH" = (
@@ -4282,54 +4189,58 @@
 	dir = 8;
 	icon_state = "lattice-dir"
 	},
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
 "lI" = (
 /turf/simulated/shuttle/wall{
 	dir = 8;
-	icon_state = "wall3_space"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "lJ" = (
-/obj/decal/fakeobjects/shuttlethruster{
+/obj/fakeobject/shuttlethruster{
 	dir = 8
 	},
 /turf/space,
 /area/space)
 "lK" = (
-/obj/decal/fakeobjects/shuttlethruster{
+/obj/fakeobject/shuttlethruster{
 	dir = 1;
 	icon_state = "alt_propulsion"
 	},
 /turf/space,
 /area/space)
 "lL" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 6
+/obj/fakeobject/pipe{
+	dir = 6;
+	color = "b4b4b4"
 	},
 /turf/simulated/shuttle/wall{
 	icon_state = "wall3"
 	},
 /area/space)
 "lM" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /turf/simulated/shuttle/wall{
 	icon_state = "wall3"
 	},
 /area/space)
 "lN" = (
-/obj/machinery/crusher,
+/obj/machinery/crusher/slow,
 /obj/map/light/white,
 /turf/simulated/floor/plating/scorched,
 /area/space)
 "lO" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 10
+/obj/fakeobject/pipe{
+	dir = 10;
+	color = "b4b4b4"
 	},
 /turf/simulated/shuttle/wall{
 	icon_state = "wall3"
@@ -4338,7 +4249,7 @@
 "lP" = (
 /turf/simulated/shuttle/wall{
 	dir = 4;
-	icon_state = "wall3_space"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "lQ" = (
@@ -4346,8 +4257,9 @@
 	dir = 4;
 	icon_state = "lattice-dir"
 	},
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
@@ -4362,8 +4274,9 @@
 	dir = 6;
 	icon_state = "lattice-dir-b"
 	},
-/obj/decal/fakeobjects/pipe{
-	dir = 6
+/obj/fakeobject/pipe{
+	dir = 6;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
@@ -4372,23 +4285,26 @@
 	dir = 10;
 	icon_state = "lattice-dir-b"
 	},
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
 "lU" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /turf/simulated/shuttle/wall{
 	dir = 8;
-	icon_state = "wall3_space"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "lV" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 9
+/obj/fakeobject/pipe{
+	dir = 9;
+	color = "b4b4b4"
 	},
 /turf/simulated/shuttle/wall{
 	icon_state = "wall3"
@@ -4408,8 +4324,9 @@
 /turf/simulated/floor/plating/scorched,
 /area/space)
 "lZ" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 5
+/obj/fakeobject/pipe{
+	dir = 5;
+	color = "b4b4b4"
 	},
 /turf/simulated/shuttle/wall{
 	icon_state = "wall3"
@@ -4417,24 +4334,24 @@
 /area/space)
 "ma" = (
 /obj/lattice,
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
 "mb" = (
-/obj/critter/roach,
+/mob/living/critter/small_animal/cockroach,
 /turf/simulated/floor/shuttlebay,
 /area/diner/tug)
 "mc" = (
-/turf/simulated/floor/shuttlebay,
 /turf/simulated/shuttle/wall{
 	dir = 9;
 	icon_state = "wall3"
 	},
 /area/diner/tug)
 "md" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 4
 	},
 /obj/indestructible/shuttle_corner{
@@ -4463,7 +4380,7 @@
 /turf/simulated/floor/circuit/off,
 /area/space)
 "mg" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	desc = "Looks like shuttle thruster tech, but with some unusual modifications.";
 	dir = 1;
 	icon_state = "alt_heater";
@@ -4472,7 +4389,7 @@
 /turf/simulated/floor/circuit/off,
 /area/space)
 "mh" = (
-/obj/decal/fakeobjects/brokenportal{
+/obj/fakeobject/brokenportal{
 	desc = "This portal ring has been used recently.";
 	name = "portal ring"
 	},
@@ -4486,16 +4403,14 @@
 /turf/space,
 /area/space)
 "mj" = (
-/obj/machinery/conveyor{
-	dir = 4;
+/obj/machinery/conveyor/WE{
 	name = "salvage belt - east";
 	operating = 1
 	},
 /turf/simulated/floor/plating/airless,
 /area/space)
 "mk" = (
-/obj/machinery/conveyor{
-	dir = 4;
+/obj/machinery/conveyor/WE{
 	name = "salvage belt - east";
 	operating = 1
 	},
@@ -4503,8 +4418,7 @@
 /turf/simulated/floor/plating/airless,
 /area/space)
 "ml" = (
-/obj/machinery/conveyor{
-	dir = 4;
+/obj/machinery/conveyor/WE{
 	name = "salvage belt - east";
 	operating = 1
 	},
@@ -4516,8 +4430,7 @@
 /turf/simulated/floor/plating/airless,
 /area/space)
 "mm" = (
-/obj/machinery/conveyor{
-	dir = 4;
+/obj/machinery/conveyor/WE{
 	name = "salvage belt - east";
 	operating = 1
 	},
@@ -4529,8 +4442,7 @@
 /turf/simulated/floor/plating/scorched,
 /area/space)
 "mn" = (
-/obj/machinery/conveyor{
-	dir = 4;
+/obj/machinery/conveyor/WE{
 	name = "salvage belt - east";
 	operating = 1
 	},
@@ -4541,12 +4453,11 @@
 /turf/simulated/floor/plating/scorched,
 /area/space)
 "mo" = (
-/obj/machinery/conveyor{
-	dir = 4;
+/obj/machinery/conveyor/WE{
 	name = "salvage belt - east";
 	operating = 1
 	},
-/obj/machinery/crusher,
+/obj/machinery/crusher/slow,
 /obj/map/light/white,
 /turf/simulated/floor/plating/scorched,
 /area/space)
@@ -4569,7 +4480,7 @@
 	},
 /area/noGenerate)
 "ms" = (
-/obj/decal/fakeobjects/shuttlethruster{
+/obj/fakeobject/shuttlethruster{
 	dir = 4;
 	icon_state = "alt_propulsion"
 	},
@@ -4585,14 +4496,14 @@
 	},
 /area/space)
 "mu" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	icon = 'icons/obj/power_cond.dmi';
 	icon_state = "conduit";
 	name = "power conduit"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	icon = 'icons/obj/power_cond.dmi';
 	icon_state = "1-6";
 	name = "power cable"
@@ -4603,14 +4514,14 @@
 /turf/simulated/floor/circuit/off,
 /area/space)
 "mw" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	icon = 'icons/obj/power_cond.dmi';
 	icon_state = "conduit";
 	name = "power conduit"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	icon = 'icons/obj/power_cond.dmi';
 	icon_state = "1-10";
 	name = "power cable"
@@ -4625,20 +4536,17 @@
 /obj/storage/crate{
 	name = "Dented Crate"
 	},
-/turf/space,
 /turf/simulated/floor/airless/plating/damaged2,
 /area/space)
 "my" = (
 /obj/lattice,
-/obj/decal/fakeobjects/pipe,
+/obj/fakeobject/pipe{
+	color = "b4b4b4"
+	},
 /turf/space,
 /area/space)
 "mz" = (
-/obj/npc/trader/robot{
-	name = "Thrifty B.O.B.";
-	picture = "loungebuddy.png";
-	trader_area = "/area/evilreaver/storage/engineering"
-	},
+/obj/npc/trader/robot/robuddy/salvage,
 /obj/map/light/white,
 /turf/simulated/floor/plating/scorched,
 /area/space)
@@ -4650,14 +4558,13 @@
 /turf/simulated/floor/plating/airless,
 /area/space)
 "mC" = (
-/turf/space,
 /turf/simulated/shuttle/wall{
 	dir = 6;
 	icon_state = "wall3"
 	},
 /area/space)
 "mD" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	icon = 'icons/obj/power_cond.dmi';
@@ -4667,7 +4574,7 @@
 /turf/simulated/floor/circuit/off,
 /area/space)
 "mE" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	icon = 'icons/obj/power_cond.dmi';
 	icon_state = "9-10";
 	name = "power cable"
@@ -4675,7 +4582,7 @@
 /turf/simulated/floor/circuit/off,
 /area/space)
 "mF" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "It seems to be a targeting console, but the system is offline.";
 	icon = 'icons/misc/worlds.dmi';
@@ -4688,7 +4595,7 @@
 /turf/simulated/floor/circuit/off,
 /area/space)
 "mG" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	icon = 'icons/obj/power_cond.dmi';
 	icon_state = "5-6";
 	name = "power cable"
@@ -4708,8 +4615,7 @@
 /turf/simulated/floor/plating/scorched,
 /area/space)
 "mI" = (
-/obj/machinery/conveyor{
-	dir = 8;
+/obj/machinery/conveyor/EW{
 	name = "salvage belt - west";
 	operating = 1
 	},
@@ -4721,8 +4627,7 @@
 /turf/simulated/floor/plating/scorched,
 /area/space)
 "mJ" = (
-/obj/machinery/conveyor{
-	dir = 8;
+/obj/machinery/conveyor/EW{
 	name = "salvage belt - west";
 	operating = 1
 	},
@@ -4730,8 +4635,7 @@
 /turf/simulated/floor/plating/scorched,
 /area/space)
 "mK" = (
-/obj/machinery/conveyor{
-	dir = 8;
+/obj/machinery/conveyor/EW{
 	name = "salvage belt - west";
 	operating = 1
 	},
@@ -4744,21 +4648,14 @@
 "mM" = (
 /turf/simulated/floor/plating/damaged2,
 /area/space)
-"mN" = (
-/turf/simulated/floor/circuit/off,
-/turf/simulated/shuttle/wall{
-	icon_state = "platform";
-	name = "command console";
-	opacity = 0
-	},
-/area/space)
 "mO" = (
 /obj/lattice{
 	dir = 9;
 	icon_state = "lattice-dir-b"
 	},
-/obj/decal/fakeobjects/pipe{
-	dir = 5
+/obj/fakeobject/pipe{
+	dir = 5;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
@@ -4767,8 +4664,9 @@
 	dir = 10;
 	icon_state = "lattice-dir"
 	},
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
@@ -4777,25 +4675,27 @@
 	dir = 5;
 	icon_state = "lattice-dir-b"
 	},
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
 "mR" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /turf/simulated/shuttle/wall{
-	icon_state = "wall3_space"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "mS" = (
-/obj/landmark/artifact,
+/obj/landmark/spawner/artifact,
 /turf/simulated/floor/plating/damaged2,
 /area/space)
 "mT" = (
-/obj/landmark/artifact,
+/obj/landmark/spawner/artifact,
 /turf/simulated/floor/plating/scorched,
 /area/space)
 "mU" = (
@@ -4829,7 +4729,7 @@
 /turf/space,
 /area/space)
 "mY" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 10;
@@ -4839,7 +4739,7 @@
 	name = "power conduit";
 	tag = "icon-conduit (SOUTHWEST)"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "A security camera that is not on but, instead, off.";
 	dir = 8;
@@ -4848,11 +4748,11 @@
 	name = "security camera"
 	},
 /turf/simulated/shuttle/wall{
-	icon_state = "wall3_space"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "mZ" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 4;
@@ -4868,7 +4768,6 @@
 	},
 /area/space)
 "na" = (
-/turf/space,
 /turf/simulated/shuttle/wall{
 	desc = "This looks pretty dangerous.";
 	icon_state = "alt_heater";
@@ -4876,7 +4775,7 @@
 	},
 /area/space)
 "nb" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 6;
@@ -4884,7 +4783,7 @@
 	icon_state = "conduit";
 	name = "power conduit"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "A security camera that is not on but, instead, off.";
 	dir = 4;
@@ -4894,7 +4793,7 @@
 	},
 /turf/simulated/shuttle/wall{
 	dir = 4;
-	icon_state = "wall3_space"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "nc" = (
@@ -4906,13 +4805,14 @@
 	},
 /area/space)
 "nd" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 1
+/obj/fakeobject/pipe{
+	dir = 1;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
 "ne" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	desc = "A robotic claw, it might still work.";
 	name = "robotic claw"
 	},
@@ -4926,7 +4826,7 @@
 /obj/item/storage/secure/ssafe/pilot_cargo1{
 	pixel_y = 32
 	},
-/obj/decal/skeleton{
+/obj/fakeobject/skeleton{
 	desc = "Rest in peace.";
 	icon = 'icons/misc/hstation.dmi';
 	icon_state = "body8";
@@ -4940,20 +4840,22 @@
 /turf/simulated/floor/airless/plating/damaged1,
 /area/space)
 "ni" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	desc = "Part of a system for hauling oversized crates.";
 	dir = 6;
-	name = "actuating frame"
+	name = "actuating frame";
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
 "nj" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	desc = "Part of a system for hauling oversized crates.";
 	dir = 5;
-	name = "actuating frame"
+	name = "actuating frame";
+	color = "b4b4b4"
 	},
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	desc = "An electromagnetic clamping mechanism for hauling large cargo containers.";
 	name = "mag-clamps"
 	},
@@ -4970,12 +4872,13 @@
 /turf/simulated/floor/airless/damaged3,
 /area/space)
 "nm" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	desc = "Part of a system for hauling oversized crates.";
 	dir = 9;
-	name = "actuating frame"
+	name = "actuating frame";
+	color = "b4b4b4"
 	},
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	desc = "An electromagnetic clamping mechanism for hauling large cargo containers.";
 	name = "mag-clamps"
 	},
@@ -4985,18 +4888,20 @@
 /turf/space,
 /area/space)
 "nn" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	desc = "Part of a system for hauling oversized crates.";
 	dir = 10;
-	name = "actuating frame"
+	name = "actuating frame";
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
 "no" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	desc = "Part of a system for hauling oversized crates.";
 	dir = 9;
-	name = "actuating frame"
+	name = "actuating frame";
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
@@ -5020,10 +4925,11 @@
 /turf/space,
 /area/space)
 "ns" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	desc = "Part of a system for hauling oversized crates.";
 	dir = 5;
-	name = "actuating frame"
+	name = "actuating frame";
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
@@ -5050,32 +4956,35 @@
 /area/space)
 "nw" = (
 /obj/item/electronics/capacitor,
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	desc = "Part of a system for hauling oversized crates.";
 	dir = 10;
-	name = "actuating frame"
+	name = "actuating frame";
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
 "nx" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	desc = "Part of a system for hauling oversized crates.";
 	dir = 9;
-	name = "actuating frame"
+	name = "actuating frame";
+	color = "b4b4b4"
 	},
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	desc = "Part of a system for hauling oversized crates.";
 	dir = 9;
-	name = "actuating frame"
+	name = "actuating frame";
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
 "ny" = (
-/obj/decal/fakeobjects/shuttlethruster,
+/obj/fakeobject/shuttlethruster,
 /turf/space,
 /area/space)
 "nz" = (
-/obj/decal/fakeobjects/shuttlethruster{
+/obj/fakeobject/shuttlethruster{
 	dir = 4
 	},
 /turf/space,
@@ -5086,10 +4995,11 @@
 	icon_state = "lattice-dir"
 	},
 /obj/item/cable_coil/cut,
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 8
 	},
 /turf/space,
@@ -5101,14 +5011,16 @@
 	},
 /turf/simulated/shuttle/wall{
 	dir = 1;
-	icon_state = "wall3_space"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "nC" = (
 /obj/lattice{
 	icon_state = "lattice-dir"
 	},
-/obj/decal/fakeobjects/pipe,
+/obj/fakeobject/pipe{
+	color = "b4b4b4"
+	},
 /turf/space,
 /area/space)
 "nD" = (
@@ -5209,7 +5121,7 @@
 /turf/simulated/floor/airless/plating/scorched,
 /area/space)
 "nO" = (
-/obj/decal/fakeobjects/firelock_broken{
+/obj/fakeobject/airlock_broken/firelock{
 	desc = "Rust has rendered this airlock useless.";
 	icon = 'icons/misc/hstation.dmi';
 	icon_state = "bloodydoor";
@@ -5225,13 +5137,13 @@
 	},
 /turf/simulated/shuttle/wall{
 	dir = 4;
-	icon_state = "wall3_space"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "nQ" = (
 /turf/simulated/shuttle/wall{
 	dir = 8;
-	icon_state = "wall_space"
+	icon_state = "wall_trans"
 	},
 /area/space)
 "nR" = (
@@ -5248,7 +5160,7 @@
 "nT" = (
 /turf/simulated/shuttle/wall{
 	dir = 1;
-	icon_state = "wall_space"
+	icon_state = "wall_trans"
 	},
 /area/space)
 "nU" = (
@@ -5256,7 +5168,7 @@
 	dir = 10;
 	icon_state = "lattice-dir"
 	},
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 8
 	},
 /turf/space,
@@ -5272,7 +5184,7 @@
 	dir = 4
 	},
 /obj/decal/cleanable/blood,
-/obj/decal/fakeobjects/lighttube_broken{
+/obj/fakeobject/lighttube_broken{
 	dir = 8
 	},
 /obj/item/cell/cerenkite,
@@ -5310,7 +5222,7 @@
 /area/space)
 "oa" = (
 /obj/decal/cleanable/dirt,
-/obj/landmark/artifact,
+/obj/landmark/spawner/artifact,
 /turf/simulated/floor/airless/plating/damaged3,
 /area/space)
 "ob" = (
@@ -5322,7 +5234,7 @@
 /turf/simulated/shuttle/wall,
 /area/space)
 "od" = (
-/obj/grille/steel,
+/obj/mesh/grille/steel,
 /obj/window/crystal/reinforced,
 /obj/window/crystal/reinforced/west,
 /obj/window/crystal/reinforced/north,
@@ -5330,7 +5242,7 @@
 /turf/simulated/floor/plating,
 /area/space)
 "oe" = (
-/obj/grille/steel,
+/obj/mesh/grille/steel,
 /obj/window/crystal/reinforced,
 /obj/window/crystal/reinforced/east,
 /obj/window/crystal/reinforced/north,
@@ -5338,10 +5250,9 @@
 /turf/simulated/floor/plating,
 /area/space)
 "of" = (
-/turf/space,
 /turf/simulated/shuttle/wall{
 	dir = 6;
-	icon_state = "diagonalWall3"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "og" = (
@@ -5353,8 +5264,9 @@
 	dir = 6;
 	icon_state = "lattice-dir"
 	},
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
@@ -5380,8 +5292,9 @@
 	dir = 8;
 	icon_state = "lattice-dir"
 	},
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /obj/critter/gunbot/drone/buzzdrone,
 /turf/space,
@@ -5447,7 +5360,7 @@
 /turf/simulated/floor/plating/airless/asteroid,
 /area/space)
 "ou" = (
-/turf/simulated/wall/asteroid,
+/turf/simulated/wall/auto/asteroid,
 /area/space)
 "ov" = (
 /obj/stocking{
@@ -5471,7 +5384,7 @@
 /obj/stool/chair{
 	dir = 4
 	},
-/obj/critter/mouse{
+/mob/living/critter/small_animal/mouse{
 	name = "Sgt. Pepper"
 	},
 /turf/simulated/floor/carpet/grime,
@@ -5481,7 +5394,7 @@
 /turf/simulated/floor/airless/grime,
 /area/space)
 "oA" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 8
 	},
 /obj/lattice{
@@ -5494,7 +5407,7 @@
 /obj/decal/floatingtiles{
 	dir = 8
 	},
-/obj/decal/fakeobjects/lighttube_broken{
+/obj/fakeobject/lighttube_broken{
 	dir = 8
 	},
 /obj/decal/cleanable/machine_debris,
@@ -5573,7 +5486,7 @@
 /area/space)
 "oO" = (
 /turf/simulated/shuttle/wall{
-	icon_state = "wall_space"
+	icon_state = "wall_trans"
 	},
 /area/space)
 "oP" = (
@@ -5583,7 +5496,7 @@
 "oQ" = (
 /turf/simulated/shuttle/wall{
 	dir = 4;
-	icon_state = "wall_space"
+	icon_state = "wall_trans"
 	},
 /area/space)
 "oR" = (
@@ -5591,7 +5504,8 @@
 	name = "Prisoner Transfer Ship";
 	req_access_txt = "1"
 	},
-/turf/simulated/floor/delivery,
+/obj/decal/stripe_delivery,
+/turf/simulated/floor,
 /area/space)
 "oS" = (
 /obj/decal/cleanable/robot_debris{
@@ -5616,7 +5530,7 @@
 	},
 /area/space)
 "oW" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 8
 	},
 /turf/simulated/shuttle/wall,
@@ -5624,7 +5538,7 @@
 "oX" = (
 /obj/decal/cleanable/machine_debris,
 /obj/decal/cleanable/dirt,
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	desc = "It appears to be a part of a very old robotic arm.";
 	icon = 'icons/obj/machines/nuclear.dmi';
 	icon_state = "engineoff";
@@ -5633,13 +5547,13 @@
 /turf/simulated/floor/airless/plating/damaged1,
 /area/space)
 "oY" = (
-/obj/decal/fakeobjects/lightbulb_broken{
+/obj/fakeobject/lightbulb_broken{
 	dir = 1
 	},
 /turf/simulated/floor/airless/plating/damaged1,
 /area/space)
 "oZ" = (
-/obj/decal/fakeobjects/apc_broken,
+/obj/fakeobject/apc_broken,
 /turf/simulated/shuttle/wall,
 /area/space)
 "pa" = (
@@ -5647,7 +5561,7 @@
 /area/space)
 "pb" = (
 /obj/decal/cleanable/dirt,
-/obj/decal/skeleton{
+/obj/fakeobject/skeleton{
 	desc = "Gross.";
 	icon = 'icons/mob/human.dmi';
 	icon_state = "husk_l";
@@ -5677,10 +5591,10 @@
 	},
 /area/space)
 "pf" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	dir = 8;
 	icon = 'icons/obj/atmospherics/pipes/manifold_pipe.dmi';
-	icon_state = "manifold"
+	icon_state = "manifold-map"
 	},
 /obj/decal/cleanable/dirt,
 /turf/simulated/floor/shuttle{
@@ -5699,13 +5613,6 @@
 /obj/machinery/telejam/active,
 /turf/space,
 /area/space)
-"pi" = (
-/obj/decal/cleanable/robot_debris{
-	icon_state = "gib5"
-	},
-/obj/critter/zombie/scientist,
-/turf/space,
-/area/space)
 "pj" = (
 /obj/decal/cleanable/dirt,
 /obj/decal/cleanable/dirt,
@@ -5717,8 +5624,9 @@
 /turf/simulated/floor/airless/plating/damaged1,
 /area/space)
 "pl" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /obj/decal/cleanable/dirt,
 /turf/simulated/floor/shuttle{
@@ -5729,7 +5637,7 @@
 /obj/decal/cleanable/oil,
 /obj/decal/cleanable/dirt,
 /obj/machinery/optable,
-/obj/decal/skeleton{
+/obj/fakeobject/skeleton{
 	desc = "Gross.";
 	icon = 'icons/mob/human.dmi';
 	icon_state = "husk_l";
@@ -5745,10 +5653,11 @@
 /turf/simulated/floor/airless/scorched,
 /area/space)
 "po" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	density = 1;
 	desc = "A large rack of server modules.  It appears to be in a low-power idle state.";
@@ -5791,7 +5700,7 @@
 /turf/simulated/floor/airless/plating/damaged2,
 /area/space)
 "pt" = (
-/obj/decal/fakeobjects/firelock_broken{
+/obj/fakeobject/airlock_broken/firelock{
 	density = 1;
 	desc = "This airlock seems to be badly damaged.";
 	icon = 'icons/obj/doors/Doorext.dmi';
@@ -5801,7 +5710,7 @@
 /turf/simulated/floor/airless/scorched,
 /area/space)
 "pu" = (
-/obj/machinery/vending/pathology,
+/obj/fakeobject/pathology_vendor,
 /turf/simulated/floor/airless/scorched,
 /area/space)
 "pv" = (
@@ -5819,7 +5728,7 @@
 /area/space)
 "px" = (
 /obj/decal/cleanable/dirt,
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	desc = "It appears to be a part of a very old robotic arm.";
 	icon = 'icons/obj/machines/nuclear.dmi';
 	icon_state = "engineoff";
@@ -5829,12 +5738,13 @@
 /area/space)
 "py" = (
 /obj/item/cable_coil/cut,
-/obj/landmark/artifact,
+/obj/landmark/spawner/artifact,
 /turf/simulated/floor/airless/plating/damaged1,
 /area/space)
 "pz" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /obj/decal/tile_edge/stripe/extra_big,
 /obj/indestructible/shuttle_corner{
@@ -5844,7 +5754,7 @@
 /turf/simulated/floor/plating,
 /area/space)
 "pA" = (
-/obj/decal/fakeobjects/lightbulb_broken{
+/obj/fakeobject/lightbulb_broken{
 	dir = 4
 	},
 /turf/simulated/floor/airless/damaged4,
@@ -5908,7 +5818,6 @@
 /area/space)
 "pL" = (
 /obj/table/auto,
-/obj/item/synthmodule/assistant,
 /turf/simulated/floor/airless/damaged4,
 /area/space)
 "pM" = (
@@ -5930,7 +5839,6 @@
 /turf/simulated/floor/airless/plating/damaged1,
 /area/space)
 "pO" = (
-/turf/simulated/floor/plating/airless,
 /turf/simulated/floor/airless/plating/damaged2,
 /area/space)
 "pP" = (
@@ -5994,7 +5902,7 @@
 "pU" = (
 /obj/decal/cleanable/dirt,
 /obj/table/auto,
-/obj/decal/fakeobjects/lightbulb_broken{
+/obj/fakeobject/lightbulb_broken{
 	dir = 1
 	},
 /obj/item/cloner_upgrade,
@@ -6009,7 +5917,7 @@
 "pW" = (
 /turf/simulated/shuttle/wall{
 	dir = 1;
-	icon_state = "wall_space";
+	icon_state = "wall_trans";
 	name = "window";
 	opacity = 0
 	},
@@ -6029,7 +5937,7 @@
 /turf/simulated/floor/airless/damaged2,
 /area/space)
 "qa" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "An old computer that doesn't appear to be plugged in.  Do you see the cord anywhere? No? Dang.";
 	icon = 'icons/obj/computer.dmi';
@@ -6060,7 +5968,7 @@
 /area/space)
 "qg" = (
 /obj/decal/cleanable/dirt,
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	density = 1;
 	desc = "It is still kinda warm.";
@@ -6113,9 +6021,7 @@
 "qo" = (
 /obj/stool/bed,
 /obj/decal/cleanable/cobweb,
-/obj/item/clothing/glasses/vr{
-	network = "arcadevr"
-	},
+/obj/item/clothing/glasses/vr/arcade,
 /turf/simulated/floor/airless/grime,
 /area/space)
 "qp" = (
@@ -6151,7 +6057,7 @@
 /turf/simulated/floor/airless/white,
 /area/space)
 "qv" = (
-/obj/decal/fakeobjects/firealarm_broken{
+/obj/fakeobject/firealarm_broken{
 	dir = 8;
 	pixel_x = -24
 	},
@@ -6191,7 +6097,7 @@
 	},
 /area/space)
 "qB" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	desc = "It won't budge.";
 	dir = 4;
 	icon = 'icons/obj/pipe-item.dmi';
@@ -6215,7 +6121,7 @@
 /turf/simulated/floor/airless/plating/damaged1,
 /area/space)
 "qF" = (
-/obj/decal/skeleton{
+/obj/fakeobject/skeleton{
 	desc = "The remains of a human. The skull has a hole in it.  An extra one, I mean.";
 	layer = 2.5;
 	pixel_y = 8
@@ -6247,7 +6153,7 @@
 /turf/simulated/floor/airless/plating/damaged2,
 /area/space)
 "qJ" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	density = 1;
 	desc = "An engine part.  Looks like it's cooling down!";
@@ -6278,7 +6184,7 @@
 /obj/decal/cleanable/blood/splatter{
 	icon_state = "floor4"
 	},
-/obj/decal/fakeobjects/lightbulb_broken,
+/obj/fakeobject/lightbulb_broken,
 /obj/item/storage/firstaid/brain,
 /turf/simulated/floor/airless/white,
 /area/space)
@@ -6318,8 +6224,8 @@
 "qS" = (
 /obj/window/reinforced/west,
 /obj/window/reinforced/east,
-/obj/grille/steel,
-/obj/decal/fakeobjects/shuttleengine{
+/obj/mesh/grille/steel,
+/obj/fakeobject/shuttleengine{
 	dir = 4
 	},
 /turf/simulated/floor/shuttlebay,
@@ -6328,7 +6234,7 @@
 /obj/decal/cleanable/dirt,
 /obj/map/light/white,
 /obj/table/reinforced/auto,
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "An old computer that doesn't appear to be plugged in.  Do you see the cord anywhere? No? Dang.";
 	icon = 'icons/obj/computer.dmi';
@@ -6341,14 +6247,14 @@
 "qU" = (
 /turf/simulated/shuttle/wall{
 	dir = 4;
-	icon_state = "wall_space";
+	icon_state = "wall_trans";
 	name = "window";
 	opacity = 0
 	},
 /area/space)
 "qV" = (
 /obj/stool/bed,
-/obj/decal/skeleton{
+/obj/fakeobject/skeleton{
 	desc = "Eugh, the stench is horrible!";
 	icon = 'icons/misc/hstation.dmi';
 	icon_state = "body6";
@@ -6401,13 +6307,14 @@
 /area/space)
 "ra" = (
 /obj/decal/cleanable/blood/splatter,
-/obj/decal/fakeobjects/airmonitor_broken,
+/obj/fakeobject/airmonitor_broken,
 /turf/simulated/shuttle/wall,
 /area/space)
 "rb" = (
 /obj/lattice,
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /obj/decal/floatingtiles{
 	dir = 1
@@ -6416,8 +6323,9 @@
 /area/space)
 "rc" = (
 /obj/lattice,
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /obj/decal/floatingtiles{
 	dir = 8;
@@ -6433,8 +6341,9 @@
 "re" = (
 /obj/lattice,
 /obj/decal/cleanable/machine_debris,
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /obj/decal/floatingtiles{
 	icon_state = "floattiles4"
@@ -6443,12 +6352,12 @@
 /area/space)
 "rf" = (
 /obj/table/reinforced/auto,
-/obj/deskclutter,
+/obj/decal/cleanable/desk_clutter,
 /turf/simulated/floor/airless/plating/scorched,
 /area/space)
 "rg" = (
 /obj/decal/cleanable/dirt,
-/obj/decal/fakeobjects/lightbulb_broken,
+/obj/fakeobject/lightbulb_broken,
 /obj/table/reinforced/auto,
 /obj/item/implantcase/robust,
 /obj/item/implantcase/robust,
@@ -6462,7 +6371,7 @@
 /turf/simulated/floor/airless/circuit,
 /area/space)
 "ri" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 8
 	},
 /obj/decal/cleanable/blood/splatter{
@@ -6471,7 +6380,7 @@
 /turf/simulated/shuttle/wall,
 /area/space)
 "rj" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	desc = "It appears to be a part of a very old robotic arm.";
 	icon = 'icons/obj/machines/nuclear.dmi';
 	icon_state = "engineoff";
@@ -6494,16 +6403,18 @@
 "rm" = (
 /obj/lattice,
 /obj/decal/cleanable/machine_debris,
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
 "rn" = (
 /obj/lattice,
 /obj/decal/cleanable/machine_debris,
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /obj/item/raw_material/shard/glass,
 /turf/space,
@@ -6522,7 +6433,7 @@
 /turf/simulated/floor/airless/plating/scorched,
 /area/space)
 "rr" = (
-/obj/decal/fakeobjects/lightbulb_broken,
+/obj/fakeobject/lightbulb_broken,
 /turf/simulated/floor/airless/grime,
 /area/space)
 "rs" = (
@@ -6539,7 +6450,7 @@
 	},
 /area/space)
 "ru" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 8
 	},
 /obj/decal/cleanable/blood/splatter{
@@ -6548,7 +6459,7 @@
 /turf/simulated/shuttle/wall,
 /area/space)
 "rv" = (
-/obj/decal/fakeobjects/lightbulb_broken,
+/obj/fakeobject/lightbulb_broken,
 /obj/decal/cleanable/robot_debris/gib,
 /obj/lattice,
 /obj/decal/floatingtiles{
@@ -6562,18 +6473,20 @@
 /turf/simulated/floor/plating/airless,
 /area/space)
 "rx" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	dir = 1;
-	tag = "icon-intact (NORTH)"
+	tag = "icon-intact (NORTH)";
+	color = "b4b4b4"
 	},
 /obj/decal/cleanable/dirt,
 /turf/unsimulated/floor/shuttlebay,
 /area/space)
 "ry" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	desc = "It won't budge.";
 	dir = 4;
 	icon = 'icons/obj/pipe-item.dmi';
@@ -6584,7 +6497,7 @@
 /turf/unsimulated/floor/shuttlebay,
 /area/space)
 "rz" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	density = 1;
 	desc = "An engine part.  Looks like it's cooling down!";
@@ -6607,8 +6520,8 @@
 "rB" = (
 /obj/window/reinforced/west,
 /obj/window/reinforced/east,
-/obj/grille/steel,
-/obj/decal/fakeobjects/shuttleengine{
+/obj/mesh/grille/steel,
+/obj/fakeobject/shuttleengine{
 	dir = 4
 	},
 /turf/unsimulated/floor/shuttlebay,
@@ -6648,19 +6561,8 @@
 	icon_state = "floor2"
 	},
 /area/space)
-"rG" = (
-/obj/stool/chair/comfy{
-	dir = 8
-	},
-/obj/landmark/spawner{
-	name = "big_yank"
-	},
-/turf/simulated/floor/shuttle{
-	icon_state = "floor2"
-	},
-/area/space)
 "rH" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	desc = "It won't budge.";
 	icon = 'icons/obj/pipe-item.dmi';
 	icon_state = "valve";
@@ -6677,7 +6579,7 @@
 	},
 /area/space)
 "rJ" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 10;
@@ -6693,7 +6595,7 @@
 	},
 /area/space)
 "rK" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 4;
@@ -6709,7 +6611,7 @@
 	},
 /area/space)
 "rL" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 4;
@@ -6732,7 +6634,7 @@
 /obj/machinery/door/airlock/external{
 	name = "Compartment Hatch"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 4;
@@ -6750,10 +6652,12 @@
 	},
 /area/space)
 "rN" = (
-/obj/decal/fakeobjects/pipe{
-	icon = 'icons/obj/atmospherics/pipe_vent.dmi'
+/obj/fakeobject/pipe{
+	icon = 'icons/obj/atmospherics/pipe_vent.dmi';
+	color = "b4b4b4";
+	icon_state = "vent-map"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 4;
@@ -6767,13 +6671,13 @@
 /turf/simulated/floor/shuttlebay,
 /area/space)
 "rO" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	desc = "It won't budge.";
 	icon = 'icons/obj/pipe-item.dmi';
 	icon_state = "valve";
 	name = "rusted valve"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 4;
@@ -6786,7 +6690,7 @@
 /turf/simulated/floor/shuttlebay,
 /area/space)
 "rP" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	desc = "Like conventional cables, but more burly.";
 	dir = 4;
@@ -6799,15 +6703,15 @@
 /turf/simulated/floor/shuttlebay,
 /area/space)
 "rQ" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject/pipe{
 	anchored = 1;
 	desc = "A vent.  A rather decrepit one, at that.";
 	dir = 2;
 	icon = 'icons/obj/atmospherics/pipe_vent.dmi';
-	icon_state = "intact";
+	icon_state = "vent-map";
 	name = "crusty vent"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	density = 1;
 	desc = "It's some sort of command repeater.";
@@ -6830,12 +6734,12 @@
 /turf/unsimulated/floor/shuttlebay,
 /area/space)
 "rS" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject/pipe{
 	anchored = 1;
 	desc = "A vent.  A rather decrepit one, at that.";
 	dir = 1;
 	icon = 'icons/obj/atmospherics/pipe_vent.dmi';
-	icon_state = "intact-f";
+	icon_state = "vent-map";
 	name = "crusty vent"
 	},
 /obj/decal/cleanable/dirt,
@@ -6845,36 +6749,38 @@
 /turf/unsimulated/floor/shuttlebay,
 /area/space)
 "rT" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	dir = 4;
 	icon = 'icons/obj/atmospherics/pipe_vent.dmi';
-	name = "rusted vent"
+	name = "rusted vent";
+	icon_state = "tank-map"
 	},
 /turf/unsimulated/floor/shuttlebay,
 /area/space)
 "rU" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	icon = 'icons/obj/atmospherics/pipes/manifold_pipe.dmi';
-	icon_state = "manifold"
+	icon_state = "manifold-map"
 	},
 /obj/decal/cleanable/dirt,
 /turf/unsimulated/floor/shuttlebay,
 /area/space)
 "rV" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	dir = 10;
-	tag = "icon-intact (SOUTHWEST)"
+	tag = "icon-intact (SOUTHWEST)";
+	color = "b4b4b4"
 	},
 /obj/decal/cleanable/dirt,
 /turf/unsimulated/floor/shuttlebay,
 /area/space)
 "rW" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject/pipe{
 	anchored = 1;
 	desc = "A vent.  A rather decrepit one, at that.";
 	dir = 2;
 	icon = 'icons/obj/atmospherics/pipe_vent.dmi';
-	icon_state = "intact";
+	icon_state = "vent-map";
 	name = "crusty vent"
 	},
 /obj/decal/cleanable/dirt,
@@ -6903,10 +6809,9 @@
 /turf/space,
 /area/space)
 "sa" = (
-/turf/space,
 /turf/simulated/shuttle/wall{
 	dir = 10;
-	icon_state = "diagonalWall3"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "sb" = (
@@ -6916,9 +6821,10 @@
 	},
 /area/space)
 "sc" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	dir = 1;
-	tag = "icon-intact (NORTH)"
+	tag = "icon-intact (NORTH)";
+	color = "b4b4b4"
 	},
 /obj/decal/cleanable/dirt,
 /turf/simulated/floor/shuttle{
@@ -6960,12 +6866,13 @@
 	},
 /area/space)
 "sg" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	icon = 'icons/obj/atmospherics/pipes/manifold_pipe.dmi';
-	icon_state = "manifold"
+	icon_state = "manifold-map"
 	},
 /turf/simulated/floor/shuttlebay,
 /area/space)
@@ -6991,7 +6898,7 @@
 	},
 /area/space)
 "sk" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	desc = "It won't budge.";
 	dir = 4;
 	icon = 'icons/obj/pipe-item.dmi';
@@ -7037,7 +6944,7 @@
 /obj/item/raw_material/shard/glass{
 	icon_state = "medium"
 	},
-/obj/grille/steel/broken,
+/obj/mesh/grille/steel/broken,
 /turf/space,
 /area/space)
 "sr" = (
@@ -7096,7 +7003,7 @@
 /turf/space,
 /area/space)
 "sw" = (
-/obj/decal/fakeobjects/shuttleengine,
+/obj/fakeobject/shuttleengine,
 /obj/lattice,
 /turf/space,
 /area/space)
@@ -7233,7 +7140,7 @@
 /turf/simulated/floor/white,
 /area/space)
 "sM" = (
-/obj/wingrille_spawn,
+/obj/mapping_helper/wingrille_spawn,
 /turf/simulated/floor/shuttle{
 	icon_state = "floor2"
 	},
@@ -7249,11 +7156,7 @@
 	name = "weird meat"
 	},
 /obj/item/reagent_containers/food/snacks/ingredient/meat/monkeymeat,
-/obj/item/reagent_containers/food/snacks/ingredient/meat/mysterymeat{
-	icon = 'icons/effects/blood.dmi';
-	icon_state = "gibtorso";
-	name = "meaty bit"
-	},
+/obj/item/reagent_containers/food/snacks/ingredient/meat/mysterymeat/grody,
 /obj/item/reagent_containers/food/snacks/ingredient/meat/mysterymeat,
 /obj/item/reagent_containers/food/snacks/ingredient/meat,
 /obj/item/reagent_containers/food/snacks/ingredient/meat/mysterymeat/nugget,
@@ -7383,18 +7286,6 @@
 	icon_state = "floor2"
 	},
 /area/space)
-"td" = (
-/obj/stool/chair/comfy/shuttle/brown,
-/obj/machinery/computer/shuttle_bus/embedded/south{
-	plane = 6
-	},
-/obj/landmark/spawner{
-	name = "john_bill"
-	},
-/turf/simulated/floor/shuttle{
-	icon_state = "floor2"
-	},
-/area/space)
 "te" = (
 /obj/stool/chair/comfy/shuttle/brown,
 /obj/item/shaker/mustard,
@@ -7410,22 +7301,20 @@
 /turf/space/no_replace,
 /area/space)
 "tg" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	dir = 4;
 	icon_state = "alt_heater"
 	},
 /turf/space,
 /area/noGenerate)
 "th" = (
-/obj/wingrille_spawn/auto/crystal,
+/obj/mapping_helper/wingrille_spawn/auto/crystal,
 /turf/unsimulated/floor/plating/random,
 /area/space)
 "ti" = (
-/turf/space,
 /turf/simulated/shuttle/wall/cockpit{
 	dir = 2;
-	icon_state = "shuttlecock_mining";
-	plane = 5
+	icon_state = "shuttlecock_mining"
 	},
 /area/space)
 "tj" = (
@@ -7442,7 +7331,7 @@
 /turf/unsimulated/floor/black,
 /area/space)
 "tl" = (
-/obj/machinery/computer/announcement/syndie,
+/obj/machinery/computer/announcement/syndicate/console,
 /turf/unsimulated/floor/black,
 /area/space)
 "tm" = (
@@ -7489,11 +7378,11 @@
 	dir = 6;
 	icon_state = "lattice-dir"
 	},
-/obj/decal/fakeobjects/shuttleweapon{
+/obj/fakeobject/shuttleweapon{
 	dir = 1;
 	icon_state = "shuttle_laser"
 	},
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 9;
 	icon_state = "catwalk_cross"
 	},
@@ -7547,11 +7436,11 @@
 	dir = 1;
 	icon_state = "lattice-dir"
 	},
-/obj/decal/fakeobjects/shuttleweapon{
+/obj/fakeobject/shuttleweapon{
 	dir = 1;
 	icon_state = "shuttle_laser"
 	},
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 5;
 	icon_state = "catwalk_cross"
 	},
@@ -7570,11 +7459,11 @@
 	dir = 6;
 	icon_state = "lattice-dir"
 	},
-/obj/decal/fakeobjects/shuttleweapon/base{
+/obj/fakeobject/shuttleweapon/base{
 	dir = 1;
 	icon_state = "alt_heater"
 	},
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 10;
 	icon_state = "catwalk_cross"
 	},
@@ -7604,11 +7493,11 @@
 	dir = 1;
 	icon_state = "lattice-dir"
 	},
-/obj/decal/fakeobjects/shuttleweapon/base{
+/obj/fakeobject/shuttleweapon/base{
 	dir = 1;
 	icon_state = "alt_heater"
 	},
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 6;
 	icon_state = "catwalk_cross"
 	},
@@ -7757,7 +7646,7 @@
 /area/space)
 "ud" = (
 /obj/table/reinforced/auto,
-/obj/machinery/light/lamp,
+/obj/machinery/light/lamp/black,
 /turf/unsimulated/floor/red,
 /area/space)
 "ue" = (
@@ -7812,7 +7701,6 @@
 	},
 /obj/map/light/dimred,
 /obj/cable{
-	d2 = 4;
 	icon_state = "0-4";
 	pixel_y = 0
 	},
@@ -7865,8 +7753,6 @@
 /area/space)
 "ut" = (
 /obj/cable{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /turf/unsimulated/floor/redblack{
@@ -7880,7 +7766,6 @@
 	},
 /obj/map/light/dimred,
 /obj/cable{
-	d2 = 8;
 	icon_state = "0-8"
 	},
 /obj/machinery/power/data_terminal,
@@ -7951,7 +7836,6 @@
 	icon_state = "datasec"
 	},
 /obj/cable{
-	d2 = 4;
 	icon_state = "0-4";
 	pixel_y = 0
 	},
@@ -7995,8 +7879,6 @@
 /area/space)
 "uF" = (
 /obj/cable{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /obj/cable{
@@ -8012,7 +7894,6 @@
 	name = "Security Records"
 	},
 /obj/cable{
-	d2 = 8;
 	icon_state = "0-8"
 	},
 /obj/machinery/power/data_terminal,
@@ -8050,7 +7931,6 @@
 	},
 /obj/map/light/dimred,
 /obj/cable{
-	d2 = 4;
 	icon_state = "0-4";
 	pixel_y = 0
 	},
@@ -8079,7 +7959,6 @@
 	},
 /obj/map/light/dimred,
 /obj/cable{
-	d2 = 8;
 	icon_state = "0-8"
 	},
 /obj/machinery/power/data_terminal,
@@ -8152,7 +8031,6 @@
 	},
 /obj/machinery/power/data_terminal,
 /obj/cable{
-	d2 = 4;
 	icon_state = "0-4";
 	pixel_y = 0
 	},
@@ -8166,13 +8044,9 @@
 	icon_state = "1-4"
 	},
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /obj/cable{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /turf/unsimulated/floor/redblack{
@@ -8182,29 +8056,21 @@
 /area/space)
 "va" = (
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/unsimulated/floor/redblack,
 /area/space)
 "vb" = (
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/unsimulated/floor/darkpurple,
 /area/space)
 "vc" = (
 /obj/cable{
-	d1 = 2;
-	d2 = 8;
 	icon_state = "2-8"
 	},
 /obj/cable{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /obj/machinery/light/small/floor,
@@ -8212,8 +8078,6 @@
 /area/space)
 "vd" = (
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/unsimulated/floor/darkblue,
@@ -8224,13 +8088,9 @@
 	dir = 4
 	},
 /obj/cable{
-	d1 = 1;
-	d2 = 8;
 	icon_state = "1-8"
 	},
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /obj/cable{
@@ -8248,7 +8108,6 @@
 	},
 /obj/machinery/power/data_terminal,
 /obj/cable{
-	d2 = 8;
 	icon_state = "0-8"
 	},
 /turf/unsimulated/floor/circuit/red,
@@ -8293,8 +8152,6 @@
 	dir = 8
 	},
 /obj/cable{
-	d1 = 1;
-	d2 = 8;
 	icon_state = "1-8"
 	},
 /turf/unsimulated/floor/red,
@@ -8315,8 +8172,6 @@
 	dir = 4
 	},
 /obj/cable{
-	d1 = 1;
-	d2 = 4;
 	icon_state = "1-4"
 	},
 /turf/unsimulated/floor/red,
@@ -8410,7 +8265,8 @@
 	layer = 9.1;
 	pixel_x = 10
 	},
-/turf/unsimulated/floor/bot/darkpurple,
+/obj/decal/stripe_caution,
+/turf/unsimulated/floor/darkpurple,
 /area/space)
 "vA" = (
 /obj/indestructible/shuttle_corner{
@@ -8422,7 +8278,6 @@
 "vB" = (
 /obj/machinery/power/apc/autoname_north,
 /obj/cable{
-	d2 = 2;
 	icon_state = "0-2"
 	},
 /turf/unsimulated/floor/darkblue,
@@ -8488,7 +8343,8 @@
 /area/space)
 "vM" = (
 /obj/machinery/portable_atmospherics/canister/oxygen,
-/turf/unsimulated/floor/bot/darkpurple,
+/obj/decal/stripe_caution,
+/turf/unsimulated/floor/darkpurple,
 /area/space)
 "vN" = (
 /obj/machinery/light{
@@ -8500,16 +8356,12 @@
 /area/space)
 "vO" = (
 /obj/cable{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /turf/unsimulated/floor/black,
 /area/space)
 "vP" = (
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/unsimulated/floor/black{
@@ -8521,8 +8373,6 @@
 	icon_state = "1-4"
 	},
 /obj/cable{
-	d1 = 1;
-	d2 = 8;
 	icon_state = "1-8"
 	},
 /turf/unsimulated/floor/black{
@@ -8531,8 +8381,6 @@
 /area/space)
 "vR" = (
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/unsimulated/floor/black{
@@ -8544,8 +8392,6 @@
 	icon_state = "1-2"
 	},
 /obj/cable{
-	d1 = 2;
-	d2 = 8;
 	icon_state = "2-8"
 	},
 /turf/unsimulated/floor/black,
@@ -8594,7 +8440,7 @@
 /turf/unsimulated/floor/darkpurple,
 /area/space)
 "vZ" = (
-/obj/machinery/door/airlock/pyro/syndicate{
+/obj/machinery/door/airlock/pyro/reinforced/syndicate{
 	dir = 8;
 	icon_state = "airlock_closed";
 	name = "launch bay"
@@ -8660,7 +8506,8 @@
 /obj/item/tank/emergency_oxygen,
 /obj/item/tank/emergency_oxygen,
 /obj/item/tank/emergency_oxygen,
-/turf/unsimulated/floor/bot/darkpurple,
+/obj/decal/stripe_caution,
+/turf/unsimulated/floor/darkpurple,
 /area/space)
 "wj" = (
 /obj/cable{
@@ -8750,7 +8597,7 @@
 	dir = 8;
 	icon_state = "line-broken1"
 	},
-/obj/machinery/air_vendor,
+/obj/machinery/vending/air_vendor,
 /turf/unsimulated/floor/plating/random,
 /area/space)
 "wu" = (
@@ -8823,21 +8670,15 @@
 /area/space)
 "wF" = (
 /obj/cable{
-	d1 = 1;
-	d2 = 4;
 	icon_state = "1-4"
 	},
 /obj/cable{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/unsimulated/floor/black,
 /area/space)
 "wG" = (
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/unsimulated/floor/black{
@@ -8846,13 +8687,9 @@
 /area/space)
 "wH" = (
 /obj/cable{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /obj/cable{
-	d1 = 2;
-	d2 = 8;
 	icon_state = "2-8"
 	},
 /turf/unsimulated/floor/black{
@@ -8861,8 +8698,6 @@
 /area/space)
 "wI" = (
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/unsimulated/floor/black{
@@ -8874,8 +8709,6 @@
 	icon_state = "1-8"
 	},
 /obj/cable{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/unsimulated/floor/black,
@@ -8954,14 +8787,6 @@
 	},
 /turf/unsimulated/floor/red,
 /area/space)
-"wU" = (
-/obj/cable{
-	d1 = 1;
-	d2 = 2;
-	icon_state = "1-2"
-	},
-/turf/unsimulated/floor/red,
-/area/space)
 "wV" = (
 /obj/indestructible/shuttle_corner{
 	dir = 8;
@@ -9017,8 +8842,6 @@
 /area/space)
 "xe" = (
 /obj/cable{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /obj/machinery/door/airlock/pyro/glass{
@@ -9112,14 +8935,14 @@
 /turf/simulated/floor/black,
 /area/space)
 "xo" = (
-/obj/decal/fakeobjects/shuttleweapon/base{
+/obj/fakeobject/shuttleweapon/base{
 	dir = 4;
 	icon_state = "alt_heater"
 	},
 /turf/simulated/floor/plating,
 /area/space)
 "xp" = (
-/obj/decal/fakeobjects/shuttleweapon/base,
+/obj/fakeobject/shuttleweapon/base,
 /turf/simulated/shuttle/wall{
 	icon_state = "wall3"
 	},
@@ -9276,7 +9099,7 @@
 	},
 /area/space)
 "xF" = (
-/obj/decal/fakeobjects/shuttleweapon{
+/obj/fakeobject/shuttleweapon{
 	dir = 8;
 	icon_state = "shuttle_laser"
 	},
@@ -9320,10 +9143,10 @@
 /turf/unsimulated/floor/white,
 /area/space)
 "xI" = (
-/obj/item/parts/robot_parts/arm/left,
-/obj/item/parts/robot_parts/arm/right,
-/obj/item/parts/robot_parts/leg/left,
-/obj/item/parts/robot_parts/leg/right,
+/obj/item/parts/robot_parts/arm/left/standard,
+/obj/item/parts/robot_parts/arm/right/standard,
+/obj/item/parts/robot_parts/leg/left/standard,
+/obj/item/parts/robot_parts/leg/right/standard,
 /obj/storage/crate{
 	name = "Robotic limbs"
 	},
@@ -9425,7 +9248,7 @@
 	dir = 8;
 	icon_state = "shuttle_chair-red"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	density = 0;
 	desc = "It displays a variety of radio signals.'";
@@ -9443,7 +9266,7 @@
 	dir = 4;
 	icon_state = "shuttle_chair-red"
 	},
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	density = 0;
 	desc = "It displays a variety of radio signals.'";
@@ -9499,30 +9322,12 @@
 /area/space)
 "ya" = (
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
-	},
-/turf/unsimulated/floor/red,
-/area/space)
-"yb" = (
-/obj/landmark/spawner{
-	name = "monkeyspawn_syndicate"
-	},
-/obj/cable{
-	icon_state = "2-8"
-	},
-/obj/cable{
-	d1 = 2;
-	d2 = 4;
-	icon_state = "2-4"
 	},
 /turf/unsimulated/floor/red,
 /area/space)
 "yc" = (
 /obj/cable{
-	d1 = 1;
-	d2 = 8;
 	icon_state = "1-8"
 	},
 /turf/unsimulated/floor/red,
@@ -9627,7 +9432,7 @@
 /turf/unsimulated/floor/redwhite,
 /area/space)
 "yt" = (
-/obj/machinery/door/airlock/pyro/syndicate{
+/obj/machinery/door/airlock/pyro/reinforced/syndicate{
 	name = "reinforced internal airlock"
 	},
 /obj/cable{
@@ -9748,7 +9553,6 @@
 "yH" = (
 /obj/machinery/power/smes/magical,
 /obj/cable{
-	d2 = 2;
 	icon_state = "0-2"
 	},
 /obj/cable{
@@ -9762,7 +9566,6 @@
 	icon_state = "term"
 	},
 /obj/cable{
-	d2 = 4;
 	icon_state = "0-4";
 	pixel_y = 0
 	},
@@ -9770,8 +9573,6 @@
 /area/space)
 "yJ" = (
 /obj/cable{
-	d1 = 2;
-	d2 = 8;
 	icon_state = "2-8"
 	},
 /turf/unsimulated/floor/plating/random,
@@ -9791,8 +9592,6 @@
 /area/space)
 "yM" = (
 /obj/cable{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /obj/machinery/light{
@@ -9804,8 +9603,6 @@
 /area/space)
 "yN" = (
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/unsimulated/floor/stairs/dark/wide{
@@ -9815,8 +9612,6 @@
 /area/space)
 "yO" = (
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/unsimulated/floor/black,
@@ -9886,8 +9681,6 @@
 /area/space)
 "yX" = (
 /obj/cable{
-	d1 = 1;
-	d2 = 4;
 	icon_state = "1-4"
 	},
 /turf/unsimulated/floor/plating/random,
@@ -9898,8 +9691,6 @@
 	name = "power substation"
 	},
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/unsimulated/floor/black,
@@ -9910,8 +9701,6 @@
 	tag = "icon-xtra_bigstripe-edge (WEST)"
 	},
 /obj/cable{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/unsimulated/floor/black/grime,
@@ -9964,20 +9753,20 @@
 /turf/unsimulated/floor/plating/random,
 /area/space)
 "zi" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 10;
 	icon_state = "catwalk_cross"
 	},
 /turf/space,
 /area/space)
 "zj" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 6
 	},
 /turf/space,
 /area/space)
 "zk" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 6;
 	icon_state = "catwalk_cross"
 	},
@@ -10004,19 +9793,19 @@
 /turf/simulated/floor/circuit/red,
 /area/space)
 "zn" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	icon_state = "alt_heater-L"
 	},
 /turf/unsimulated/floor/plating,
 /area/space)
 "zo" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	icon_state = "alt_heater-M"
 	},
 /turf/unsimulated/floor/plating,
 /area/space)
 "zp" = (
-/obj/decal/fakeobjects/shuttleengine{
+/obj/fakeobject/shuttleengine{
 	icon_state = "alt_heater-R"
 	},
 /turf/unsimulated/floor/plating,
@@ -10090,7 +9879,7 @@
 /turf/simulated/floor/black,
 /area/space)
 "zA" = (
-/obj/machinery/door/airlock/pyro/syndicate,
+/obj/machinery/door/airlock/pyro/reinforced/syndicate,
 /turf/simulated/floor/black,
 /area/space)
 "zB" = (
@@ -10115,10 +9904,11 @@
 /turf/simulated/floor/caution/north,
 /area/space)
 "zF" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	dir = 4;
 	name = "pipe";
-	pixel_y = 0
+	pixel_y = 0;
+	color = "b4b4b4"
 	},
 /turf/space,
 /area/space)
@@ -10130,14 +9920,14 @@
 /turf/simulated/floor/black,
 /area/space)
 "zH" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /obj/indestructible/shuttle_corner{
 	dir = 4;
 	icon_state = "wall3_trans"
 	},
-/turf/simulated/floor/shuttlebay,
 /turf/simulated/shuttle/wall{
 	dir = 6;
 	icon_state = "wall3"
@@ -10166,15 +9956,15 @@
 /turf/space,
 /area/space)
 "zM" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /obj/indestructible/shuttle_corner{
 	dir = 4;
 	icon_state = "wall3_trans"
 	},
 /obj/decal/cleanable/dirt,
-/turf/unsimulated/floor/shuttlebay,
 /turf/simulated/shuttle/wall{
 	dir = 6;
 	icon_state = "wall3"
@@ -10186,7 +9976,6 @@
 	icon_state = "lattice-dir-b";
 	tag = "icon-lattice-dir-b (EAST)"
 	},
-/turf/space,
 /turf/simulated/shuttle/wall/cockpit{
 	dir = 8;
 	icon_state = "shuttlecock_mining"
@@ -10212,7 +10001,10 @@
 /turf/simulated/wall/auto/shuttle,
 /area/space)
 "zQ" = (
-/obj/machinery/atmospherics/unary/vent_pump/south,
+/obj/machinery/atmospherics/unary/vent_pump{
+	dir = 2;
+	
+	},
 /turf/simulated/floor/caution/north,
 /area/space)
 "zR" = (
@@ -10223,14 +10015,13 @@
 /turf/space,
 /area/space)
 "zS" = (
-/obj/decal/fakeobjects/pipe{
+/obj/fakeobject/pipe{
 	icon = 'icons/obj/atmospherics/pipes/manifold_pipe.dmi';
-	icon_state = "manifold"
+	icon_state = "manifold-map"
 	},
-/turf/simulated/floor/shuttlebay,
 /turf/simulated/shuttle/wall{
 	dir = 6;
-	icon_state = "diagonalWall3"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "zT" = (
@@ -10249,34 +10040,32 @@
 /turf/space,
 /area/space)
 "zU" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
 	},
 /obj/indestructible/shuttle_corner{
 	dir = 1;
 	icon_state = "wall3_trans"
 	},
-/turf/unsimulated/floor/shuttlebay,
 /turf/simulated/shuttle/wall{
 	dir = 6;
-	icon_state = "diagonalWall3"
+	icon_state = "wall_3_trans"
 	},
 /area/space)
 "zV" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 9;
 	icon_state = "catwalk_cross"
 	},
-/turf/space,
 /turf/simulated/floor/airless/plating/catwalk{
 	dir = 9
 	},
 /area/space)
 "zW" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 10
 	},
-/turf/space,
 /turf/simulated/floor/airless/plating/catwalk{
 	dir = 1;
 	icon_state = "catwalk_cross"
@@ -10306,7 +10095,7 @@
 /turf/space,
 /area/space)
 "Ab" = (
-/obj/wingrille_spawn/reinforced/full,
+/obj/mapping_helper/wingrille_spawn/reinforced/full,
 /turf/simulated/floor/black,
 /area/space)
 "Ac" = (
@@ -10314,21 +10103,20 @@
 /turf/simulated/grimycarpet,
 /area/space)
 "Ad" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 5;
 	icon_state = "catwalk_cross"
 	},
-/turf/space,
 /turf/simulated/floor/airless/plating/catwalk{
 	dir = 5
 	},
 /area/space)
 "Ae" = (
-/obj/grille/catwalk,
+/obj/mesh/catwalk,
 /turf/simulated/floor/airless/plating,
 /area/space)
 "Af" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 4
 	},
 /turf/simulated/floor/airless/engine/vacuum,
@@ -10338,28 +10126,26 @@
 /turf/simulated/floor/yellowblack,
 /area/space)
 "Ah" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 9
 	},
-/turf/space,
 /turf/simulated/floor/airless/plating/catwalk{
 	dir = 8;
 	icon_state = "catwalk_cross"
 	},
 /area/space)
 "Ai" = (
-/obj/decal/fakeobjects/mantacontainer/upwards/yellow,
+/obj/fakeobject/mantacontainer/upwards/yellow,
 /turf/simulated/floor/airless/engine/vacuum,
 /area/space)
 "Aj" = (
 /turf/simulated/floor/yellowblack,
 /area/space)
 "Ak" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 1;
 	icon_state = "catwalk_cross"
 	},
-/turf/space,
 /turf/simulated/floor/airless/plating/catwalk{
 	dir = 5;
 	icon_state = "catwalk_cross"
@@ -10375,7 +10161,7 @@
 /turf/simulated/floor/yellow,
 /area/space)
 "An" = (
-/obj/decal/fakeobjects/mantacontainer/upwards/yellow{
+/obj/fakeobject/mantacontainer/upwards/yellow{
 	dir = 4;
 	icon_state = "mantayellow"
 	},
@@ -10395,7 +10181,7 @@
 	},
 /area/space)
 "Aq" = (
-/obj/decal/fakeobjects/mantacontainer/upwards,
+/obj/fakeobject/mantacontainer/upwards,
 /turf/simulated/floor/airless/engine/vacuum,
 /area/space)
 "Ar" = (
@@ -10409,10 +10195,9 @@
 /turf/simulated/floor/airless/plating,
 /area/space)
 "At" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 5
 	},
-/turf/space,
 /turf/simulated/floor/airless/plating/catwalk{
 	dir = 4;
 	icon_state = "catwalk_cross"
@@ -10508,20 +10293,20 @@
 /turf/simulated/grimycarpet,
 /area/space)
 "AG" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 4
 	},
 /turf/simulated/floor/airless/plating,
 /area/space)
 "AH" = (
-/obj/decal/fakeobjects/mantacontainer/upwards{
+/obj/fakeobject/mantacontainer/upwards{
 	dir = 1;
 	icon_state = "manta"
 	},
 /turf/simulated/floor/airless/engine/vacuum,
 /area/space)
 "AI" = (
-/obj/decal/fakeobjects/mantacontainer/upwards/yellow{
+/obj/fakeobject/mantacontainer/upwards/yellow{
 	dir = 1;
 	icon_state = "mantayellow"
 	},
@@ -10529,7 +10314,7 @@
 /area/space)
 "AJ" = (
 /obj/table/reinforced/auto,
-/obj/deskclutter,
+/obj/decal/cleanable/desk_clutter,
 /turf/simulated/floor/yellowblack,
 /area/space)
 "AK" = (
@@ -10600,7 +10385,10 @@
 /turf/simulated/floor/shuttlebay,
 /area/space)
 "AT" = (
-/obj/machinery/atmospherics/unary/vent_pump/west,
+/obj/machinery/atmospherics/unary/vent_pump{
+	dir = 8;
+	
+	},
 /obj/decal/tile_edge/stripe/extra_big{
 	dir = 4;
 	icon_state = "xtra_bigstripe-edge"
@@ -10625,10 +10413,9 @@
 /turf/space,
 /area/space)
 "AW" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 4
 	},
-/turf/space,
 /turf/simulated/floor/airless/plating/catwalk{
 	dir = 4
 	},
@@ -10671,20 +10458,18 @@
 /turf/space,
 /area/space)
 "Ba" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 10;
 	icon_state = "catwalk_cross"
 	},
-/turf/space,
 /turf/simulated/floor/airless/plating/catwalk{
 	dir = 10
 	},
 /area/space)
 "Bb" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 6
 	},
-/turf/space,
 /turf/simulated/floor/airless/plating/catwalk{
 	icon_state = "catwalk_cross"
 	},
@@ -10701,11 +10486,10 @@
 /turf/space,
 /area/space)
 "Bd" = (
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 6;
 	icon_state = "catwalk_cross"
 	},
-/turf/space,
 /turf/simulated/floor/airless/plating/catwalk{
 	dir = 6
 	},
@@ -10745,7 +10529,6 @@
 	icon_state = "lattice-dir-b";
 	tag = "icon-lattice-dir-b (EAST)"
 	},
-/turf/space,
 /turf/simulated/shuttle/wall/cockpit{
 	dir = 4;
 	layer = 50
@@ -10792,36 +10575,21 @@
 /obj/decal/floatingtiles{
 	icon_state = "floattiles2"
 	},
-/obj/decal/fakeobjects/firelock_broken{
+/obj/fakeobject/airlock_broken/firelock{
 	desc = "Rust has rendered this airlock useless.";
 	icon = 'icons/misc/hstation.dmi';
 	icon_state = "bloodydoor";
 	name = "broken airlock"
 	},
-/turf/space,
 /turf/simulated/floor/airless/plating/damaged2,
 /area/space)
 "Bq" = (
 /obj/decal/cleanable/dirt,
-/turf/space,
-/turf/simulated/floor/airless/plating/damaged2,
-/area/space)
-"Br" = (
-/obj/item/storage/belt/hunter,
-/obj/item/clothing/under/misc/tourist,
-/turf/space,
 /turf/simulated/floor/airless/plating/damaged2,
 /area/space)
 "Bs" = (
 /obj/machinery/portable_atmospherics/canister/oxygen,
 /turf/simulated/floor,
-/area/space)
-"Bt" = (
-/obj/decal/floatingtiles{
-	icon_state = "floattiles2"
-	},
-/turf/space,
-/turf/simulated/floor/airless/plating/damaged2,
 /area/space)
 "Bu" = (
 /obj/indestructible/shuttle_corner{
@@ -10854,16 +10622,11 @@
 /area/space)
 "Bx" = (
 /obj/structure/girder/displaced,
-/turf/simulated/shuttle/wall{
-	icon_state = "wall3"
-	},
 /turf/simulated/floor/airless/plating/damaged2,
 /area/space)
 "Bz" = (
 /obj/stool/bed,
-/obj/item/clothing/glasses/vr{
-	network = "arcadevr"
-	},
+/obj/item/clothing/glasses/vr/arcade,
 /obj/item/clothing/suit/bedsheet{
 	bcolor = "yellow";
 	icon_state = "bedsheet-yellow"
@@ -10893,14 +10656,13 @@
 /obj/table/auto,
 /obj/item/plate,
 /obj/item/reagent_containers/food/snacks/burger/moldy,
-/turf/simulated/floor/airless/grime,
 /turf/simulated/floor/airless/plating/damaged2,
 /area/space)
 "BE" = (
 /obj/decal/tile_edge/line/black{
 	icon_state = "line1"
 	},
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 4
 	},
 /turf/simulated/floor/airless/plating,
@@ -10910,7 +10672,6 @@
 	dir = 8;
 	tag = "icon-xtra_bigstripe-edge (WEST)"
 	},
-/turf/simulated/floor/plating/airless,
 /turf/simulated/shuttle/wall{
 	dir = 4;
 	icon_state = "platform"
@@ -10921,7 +10682,6 @@
 	dir = 4;
 	icon_state = "xtra_bigstripe-edge"
 	},
-/turf/simulated/floor/plating/airless,
 /turf/simulated/shuttle/wall{
 	dir = 8;
 	icon_state = "platform"
@@ -10932,7 +10692,7 @@
 	dir = 1;
 	icon_state = "line1"
 	},
-/obj/grille/catwalk{
+/obj/mesh/catwalk{
 	dir = 4
 	},
 /turf/simulated/floor/airless/plating,
@@ -10944,23 +10704,41 @@
 	icon_state = "floor4"
 	},
 /area/space)
-"Jv" = (
-/obj/decal/fakeobjects/pipe{
-	dir = 4
+"EI" = (
+/obj/stool/chair/comfy{
+	dir = 8
 	},
-/obj/decal/fakeobjects/pipe{
-	dir = 1
+/mob/living/carbon/human/big_yank,
+/turf/simulated/floor/shuttle{
+	icon_state = "floor2"
+	},
+/area/space)
+"Gy" = (
+/obj/decal/cleanable/robot_debris{
+	icon_state = "gib5"
+	},
+/mob/living/critter/zombie/scientist,
+/turf/space,
+/area/space)
+"Jv" = (
+/obj/fakeobject/pipe{
+	dir = 4;
+	color = "b4b4b4"
+	},
+/obj/fakeobject/pipe{
+	dir = 1;
+	color = "b4b4b4"
 	},
 /obj/decal/cleanable/dirt,
 /obj/storage/crate{
-	desc = "A small, cuboid object with a hinged top and empty interior. It smells kinda bad and seems to have an odd stain on it.";
+	desc = "A big metal box that you can put things into. It smells kinda bad and seems to have an odd stain on it.";
 	icon = 'icons/misc/halloween.dmi';
 	name = "dented crate"
 	},
 /obj/item/paper/tug/invoice,
 /obj/item/card_group/stg,
 /obj/item/pen/fancy,
-/obj/item/raw_material/fabric,
+/obj/item/material_piece/cloth,
 /obj/item/raw_material/fibrilith,
 /obj/item/raw_material/fibrilith,
 /obj/item/raw_material/fibrilith,
@@ -10968,6 +10746,42 @@
 /obj/item/reagent_containers/food/drinks/cola/random,
 /obj/item/reagent_containers/food/drinks/fueltank,
 /turf/simulated/floor/shuttlebay,
+/area/space)
+"Lu" = (
+/obj/item/storage/belt/utility,
+/obj/item/clothing/under/misc/tourist,
+/turf/simulated/floor/airless/plating/damaged2,
+/area/space)
+"NE" = (
+/obj/stool/chair/comfy/shuttle/brown,
+/obj/machinery/computer/shuttle_bus/embedded/south,
+/mob/living/carbon/human/john,
+/turf/simulated/floor/shuttle{
+	icon_state = "floor2"
+	},
+/area/space)
+"SN" = (
+/turf/unsimulated/wall/generic{
+	icon = 'icons/misc/worlds.dmi';
+	icon_state = "leadcap"
+	},
+/area/space)
+"SP" = (
+/turf/unsimulated/wall/generic{
+	dir = 1;
+	icon = 'icons/misc/worlds.dmi';
+	icon_state = "leadcap"
+	},
+/area/space)
+"Va" = (
+/mob/living/carbon/human/npc/monkey/oppenheimer,
+/obj/cable{
+	icon_state = "2-8"
+	},
+/obj/cable{
+	icon_state = "2-4"
+	},
+/turf/unsimulated/floor/red,
 /area/space)
 
 (1,1,1) = {"
@@ -11686,7 +11500,7 @@ aa
 aa
 aa
 aa
-ea
+lI
 zN
 sa
 aa
@@ -11837,7 +11651,7 @@ aa
 aa
 aa
 aa
-ea
+lI
 ee
 ee
 ee
@@ -11991,7 +11805,7 @@ aa
 aa
 aW
 ee
-rG
+EI
 sb
 aW
 aa
@@ -12890,7 +12704,7 @@ aa
 aa
 aa
 aa
-ea
+lI
 eE
 fH
 eE
@@ -13053,7 +12867,7 @@ aa
 aa
 aa
 aa
-ea
+lI
 zH
 rN
 zS
@@ -13585,11 +13399,11 @@ wa
 wj
 wx
 wF
-wU
+ym
 xe
-wU
-wU
-wU
+ym
+ym
+ym
 xZ
 yl
 ai
@@ -13713,9 +13527,9 @@ aa
 aa
 ae
 ah
-aV
-aV
-aV
+lo
+lo
+lo
 bt
 th
 tm
@@ -13894,7 +13708,7 @@ xf
 xr
 ai
 xO
-yb
+Va
 ym
 yt
 ym
@@ -14017,9 +13831,9 @@ aa
 aa
 ae
 lj
-aV
-aV
-aV
+lo
+lo
+lo
 bt
 th
 to
@@ -14193,11 +14007,11 @@ we
 wn
 wB
 wJ
-wU
+ym
 xe
-wU
-wU
-wU
+ym
+ym
+ym
 yc
 yn
 ai
@@ -14422,7 +14236,7 @@ aa
 aa
 aa
 aa
-ea
+lI
 rR
 sa
 aa
@@ -14788,7 +14602,7 @@ aa
 aa
 aa
 ai
-aU
+uw
 uw
 uw
 uw
@@ -14877,7 +14691,7 @@ aa
 aa
 aa
 aa
-ea
+lI
 zM
 rT
 zU
@@ -14942,7 +14756,7 @@ tX
 ai
 uw
 uH
-aU
+uw
 uH
 uw
 vq
@@ -15093,7 +14907,7 @@ fK
 tQ
 ai
 uw
-aU
+uw
 uw
 uw
 uw
@@ -15248,7 +15062,7 @@ uw
 uw
 uw
 uw
-aU
+uw
 vp
 vx
 vF
@@ -15399,7 +15213,7 @@ ai
 uw
 uw
 uw
-aU
+uw
 uw
 vp
 vx
@@ -15548,7 +15362,7 @@ aa
 aa
 tY
 ai
-aU
+uw
 uH
 uw
 uH
@@ -15701,7 +15515,7 @@ aa
 aa
 ai
 uw
-aU
+uw
 uw
 uw
 uw
@@ -16123,7 +15937,7 @@ aa
 aa
 ai
 nE
-Br
+Lu
 ai
 ny
 aa
@@ -18158,7 +17972,7 @@ aE
 aF
 bD
 aa
-bG
+yV
 aa
 aa
 aa
@@ -19397,7 +19211,7 @@ aa
 aa
 aa
 aa
-bQ
+SN
 dO
 cK
 cn
@@ -19407,7 +19221,7 @@ cR
 cn
 cK
 bZ
-dv
+SP
 aa
 aa
 aa
@@ -19773,7 +19587,7 @@ ot
 oc
 oJ
 oU
-pi
+Gy
 pw
 pM
 qc
@@ -19853,7 +19667,7 @@ aa
 aa
 aa
 aa
-bQ
+SN
 ca
 cK
 cK
@@ -19863,7 +19677,7 @@ cn
 cK
 cK
 bZ
-dv
+SP
 aa
 aa
 aa
@@ -23709,7 +23523,7 @@ lR
 mf
 mv
 mE
-mN
+mv
 mZ
 aa
 aa
@@ -23848,7 +23662,7 @@ sK
 sR
 sW
 ee
-td
+NE
 sM
 ti
 aa
@@ -23861,7 +23675,7 @@ aW
 mh
 mv
 mF
-mN
+mv
 na
 aa
 aa
@@ -24013,7 +23827,7 @@ lR
 mf
 mv
 mG
-mN
+mv
 mZ
 aa
 aa
@@ -24787,7 +24601,7 @@ oo
 jm
 oI
 ai
-Bt
+qI
 pr
 pH
 ai

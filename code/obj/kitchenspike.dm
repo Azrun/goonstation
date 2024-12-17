@@ -1,51 +1,74 @@
+TYPEINFO(/obj/kitchenspike)
+	mats = 10
+
 /obj/kitchenspike
 	name = "a meat spike"
 	icon = 'icons/obj/kitchen.dmi'
 	icon_state = "spike"
 	desc = "A spike for collecting meat from animals"
 	density = 1
-	anchored = 1
+	anchored = ANCHORED
 	var/meat = 0
-	var/occupied = 0
+	var/occupied = FALSE
 	deconstruct_flags = DECON_SCREWDRIVER | DECON_WRENCH | DECON_CROWBAR
 
-/obj/kitchenspike/attackby(obj/item/grab/G as obj, mob/user as mob)
-	if(!istype(G, /obj/item/grab))
+/obj/kitchenspike/attackby(obj/item/W, mob/user)
+	if(istype(W, /obj/item/grab))
+		var/obj/item/grab/G = W
+		if(!src.spike(user, G.affecting))
+			return ..()
+	if(iscuttingtool(W))
+		src.get_meat(user)
 		return
-	if(!ismonkey(G.affecting))
-		boutput(user, "<span class='alert'>[G.affecting] is too big for the spike, try something smaller!</span>")
+	. = ..()
+
+/obj/kitchenspike/hitby(atom/movable/A, datum/thrown_thing/thr)
+	if (!src.spike(null, A))
+		return ..()
+
+/obj/kitchenspike/proc/spike(mob/user, mob/victim)
+	. = FALSE
+	if(!ismonkey(victim))
+		boutput(user, SPAN_ALERT("[victim] is too big for the spike, try something smaller!"))
 		return
-	if((!isnpcmonkey(G.affecting) || G.affecting.client) && !isdead(G.affecting))
-		boutput(user, "<span class='alert'>[G.affecting] looks sentient and is struggling too much!</span>")
+	if((!isnpcmonkey(victim) || victim.client) && !isdead(victim))
+		boutput(user, SPAN_ALERT("[victim] looks sentient and is struggling too much!"))
 		return
-	if(src.occupied == 0)
-		src.icon_state = "spikebloody"
-		src.occupied = 1
+	if(!src.occupied)
+		src.occupied = TRUE
+		src.UpdateIcon()
 		src.meat = 5
-		var/mob/dead/observer/newmob
-		src.visible_message("<span class='alert'>[user] has forced [G.affecting] onto the spike, killing them instantly!</span>")
-		if (G.affecting.client)
-			newmob = new/mob/dead/observer(G.affecting)
-			G.affecting:client:mob = newmob
-		G.affecting.unequip_all()
-		qdel(G.affecting)
-		qdel(G)
+		if (user)
+			src.visible_message(SPAN_ALERT("[user] forces [victim] onto the spike, killing [him_or_her(victim)] instantly!"))
+		else
+			src.visible_message(SPAN_ALERT("[victim] is impaled on the spikes, instantly killing [him_or_her(victim)]!"))
+		victim.unequip_all()
+		qdel(victim)
 		JOB_XP(user, "Chef", 2)
-
+		return TRUE
 	else
-		boutput(user, "<span class='alert'>The spike already has a monkey on it, finish collecting his meat first!</span>")
+		boutput(user, SPAN_ALERT("The spike already has a monkey on it, finish collecting their meat first!"))
 
-/obj/kitchenspike/attack_hand(mob/user as mob)
-	if(..())
+/obj/kitchenspike/attack_hand(mob/user)
+	. = ..()
+	src.get_meat(user)
+
+/obj/kitchenspike/proc/get_meat(mob/user)
+	if(!src.occupied)
 		return
-	if(src.occupied)
-		if(src.meat > 1)
-			src.meat--
-			new /obj/item/reagent_containers/food/snacks/ingredient/meat/monkeymeat( src.loc )
+	if(src.meat >= 1)
+		src.meat--
+		new /obj/item/reagent_containers/food/snacks/ingredient/meat/monkeymeat(src.loc)
+		if (src.meat >= 1)
 			boutput(user, "You remove some meat from the monkey.")
-		else if(src.meat == 1)
-			src.meat--
-			new /obj/item/reagent_containers/food/snacks/ingredient/meat/monkeymeat(src.loc)
+		else
 			boutput(user, "You remove the last piece of meat from the monkey!")
-			src.icon_state = "spike"
-			src.occupied = 0
+			src.occupied = FALSE
+			src.UpdateIcon()
+
+/obj/kitchenspike/update_icon()
+	. = ..()
+	if (src.occupied)
+		src.icon_state = "spikebloody"
+	else
+		src.icon_state = "spike"

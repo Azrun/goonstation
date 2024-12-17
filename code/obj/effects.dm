@@ -9,11 +9,9 @@ would spawn and follow the beaker, even if it is carried or thrown.
 	icon = 'icons/effects/effects.dmi'
 	mouse_opacity = 0
 	flags = TABLEPASS
+	event_handler_flags = IMMUNE_TRENCH_WARP | IMMUNE_SINGULARITY
+	pass_unstable = FALSE
 	desc = null
-
-	pooled()
-		..()
-		color = initial(color)
 
 	track_blood()
 		src.tracked_blood = null

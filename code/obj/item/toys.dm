@@ -27,9 +27,10 @@
 		icon_state = "sword1-[bladecolor]"
 		item_state = "sword1-[bladecolor]"
 		src.setItemSpecial(/datum/item_special/swipe)
+		AddComponent(/datum/component/itemblock/reflect/toyswordblock, TRUE, PROC_REF(get_reflect_color))
 		BLOCK_SETUP(BLOCK_SWORD)
 
-	attack(target as mob, mob/user as mob)
+	attack(target, mob/user)
 		..()
 		if (ishuman(user))
 			var/mob/living/carbon/human/U = user
@@ -37,6 +38,10 @@
 				playsound(U, pick(src.sound_attackM1, src.sound_attackM2), 100, 0, 0, U.get_age_pitch())
 			else
 				playsound(U, pick(src.sound_attackF1, src.sound_attackF2), 100, 0, 0, U.get_age_pitch())
+
+
+/obj/item/toy/sword/proc/get_reflect_color()
+	return src.bladecolor
 
 /obj/item/toy/judge_gavel
 	name = "judge's gavel"
@@ -54,10 +59,10 @@
 	suicide(var/mob/user as mob)
 		if (!src.user_can_suicide(user))
 			return 0
-		playsound(loc, 'sound/items/gavel.ogg', 75, 1)
-		user.visible_message("<span class='alert'><b> Sweet Jesus! [user] is bashing their head in with [name]!</b></span>")
+		playsound(loc, 'sound/items/gavel.ogg', 75, TRUE)
+		user.visible_message(SPAN_ALERT("<b> Sweet Jesus! [user] is bashing their head in with [name]!</b>"))
 		user.TakeDamage("head", 150, 0)
-		SPAWN_DBG(50 SECONDS)
+		SPAWN(50 SECONDS)
 			if (user && !isdead(user))
 				user.suiciding = 0
 		return 1
@@ -82,7 +87,7 @@
 		if(cooldown > world.time)
 			return
 		else
-			playsound(loc, 'sound/items/gavel.ogg', 75, 1)
+			playsound(loc, 'sound/items/gavel.ogg', 75, TRUE)
 			user.say("Order, order in the court!")
 			cooldown = world.time + 40
 			return
@@ -109,19 +114,29 @@
 	..()
 	src.desc = "This is Clown College diploma, a Bachelor of Farts Degree for the study of [pick("slipology", "jugglemancy", "pie science", "bicycle horn accoustics", "comic sans calligraphy", "gelotology", "flatology", "nuclear physics", "goonstation coder")]. It appears to be written in crayon."
 
-/obj/item/toy/diploma/attack(mob/M as mob, mob/user as mob)
-	if (isliving(user))
-		var/mob/living/L = user
-		if (L.mind && L.mind.assigned_role == "Clown")
-			L.visible_message("<span class='alert'><B>[L] bonks [M] [pick("kindly", "graciously", "helpfully", "sympathetically")].</B></span>")
-			playsound(M, "sound/misc/boing/[rand(1,6)].ogg", 20, 1)
-			M.say("[pick("Wow", "Gosh dangit", "Aw heck", "Oh gosh", "Damnit")], [L], [pick("why are you so", "it's totally unfair that you're so", "how come you're so", "tell me your secrets to being so")] [pick("cool", "smart", "worldly", "funny", "wise", "drop dead hilarious", "incredibly likeable", "beloved by everyone", "straight up amazing", "devilishly handsome")]!")
+/obj/item/toy/diploma/attack(mob/target, mob/user, def_zone, is_special = FALSE, params = null)
+	if (ishuman(user))
+		var/mob/living/carbon/human/H = user
+		if (H.mind && H.mind.assigned_role == "Clown")
+			if (target == user)
+				user.visible_message("[H] shows off [src]!")
+				return
+			if(ON_COOLDOWN(target, "clown_diploma", 30 SECONDS))
+				user.visible_message("[H] waves the diploma at [target]!")
+				return
+			H.visible_message(SPAN_ALERT("<B>[H] bonks [target] [pick("kindly", "graciously", "helpfully", "sympathetically")].</B>"))
+			playsound(target, "sound/misc/boing/[rand(1,6)].ogg", 20, 1)
+			target.say("[pick("Wow", "Gosh dangit", "Aw heck", "Oh gosh", "Damnit")], [H], [pick("why are you so", "it's totally unfair that you're so", "how come you're so", "tell me your secrets to being so")] [pick("cool", "smart", "worldly", "funny", "wise", "drop dead hilarious", "incredibly likeable", "beloved by everyone", "straight up amazing", "devilishly handsome")]!")
+		else
+			..()
+	else
+		..()
 
 /obj/item/toy/gooncode
 	name = "gooncode hard disk drive"
 	desc = "The prized, sought after spaghetti and pooballs code, and the only known cure to apiphobia. Conveniently on a fancy hard drive that connects to PDAs. \
 	The most stealable thing in the universe."
-	icon = 'icons/obj/cloning.dmi' // sprite is an altered harddisk
+	icon = 'icons/obj/items/disks.dmi' // sprite is an altered harddisk
 	icon_state = "gooncode"
 	flags = SUPPRESSATTACK
 	throwforce = 3
@@ -146,9 +161,9 @@
 			prfirst = pick("high", "cool", "beloved", "crappy", "interesting", "worthless", "random", "horribly coded", "butt", "low", "extremely", "soul", "outdated")
 			prmiddle = pick("octane", "spooky", "quality", "secret", "crap", "chatty", "butt", "energetic", "diarrhea inducing", "confusing", "magical", "relative pathed", "stealing", "ridiculous")
 			prlast = pick("functions", "bugfixes", "features", "items", "weapons", "the entire goddamn chat", "antagonist", "job", "sprites", "butts", "artifacts", "cars")
-			playsound(loc, 'sound/machines/ding.ogg', 75, 1)
-			user.visible_message("<span class='alert'><B>[user] uploads the Gooncode to their PDA.</B></span>")
-			I.audible_message("<i>New pull request opened on [stationfirst][stationlast]station: <span class='emote'>\"Ports [prfirst] [prmiddle] [prlast] from Goonstation.\"</i></span>")
+			playsound(loc, 'sound/machines/ding.ogg', 75, TRUE)
+			user.visible_message(SPAN_ALERT("<B>[user] uploads the Gooncode to their PDA.</B>"))
+			I.audible_message("<i>New pull request opened on [stationfirst][stationlast]station: [SPAN_EMOTE("\"Ports [prfirst] [prmiddle] [prlast] from Goonstation.\"</i>")]")
 			cooldown = world.time + 40
 			return
 	return ..()
@@ -184,12 +199,14 @@
 /obj/machinery/computer/arcade/handheld
 	desc = "You shouldn't see this, I exist for typechecks"
 
+TYPEINFO(/obj/item/toy/handheld)
+	mats = 2
+
 /obj/item/toy/handheld
 	name = "arcade toy"
 	desc = "These high tech gadgets compress the full arcade experience into a large, clunky handheld!"
 	icon = 'icons/obj/items/device.dmi'
 	icon_state = "arcade-generic"
-	mats = 2
 	var/arcademode = FALSE
 	//The arcade machine will typecheck if we're this type
 	var/obj/machinery/computer/arcade/handheld/arcadeholder = null
@@ -222,8 +239,10 @@
 /obj/item/toy/handheld/arcade
 	arcademode = TRUE
 	icon_state = "arcade-adventure"
+
 /obj/item/item_box/figure_capsule/gaming_capsule
 	name = "game capsule"
+
 	New()
 		contained_item = pick(30;/obj/item/toy/handheld/arcade, 70;/obj/item/toy/handheld/robustris)
 		. = ..()
@@ -233,3 +252,173 @@
 			itemstate = "arcade-fig"
 		else
 			itemstate = "game-fig"
+
+/obj/item/toy/ornate_baton
+	name = "ornate baton"
+	desc = "Twirly."
+	icon = 'icons/obj/items/items.dmi'
+	icon_state = "ornate-baton"
+	inhand_image_icon = 'icons/mob/inhand/hand_general.dmi'
+	item_state = "ornate_baton"
+	w_class = W_CLASS_NORMAL
+	throwforce = 1
+	throw_speed = 3
+	throw_range = 7
+	stamina_damage = 25
+	stamina_cost = 10
+	stamina_crit_chance = 5
+
+ADMIN_INTERACT_PROCS(/obj/item/rubberduck, proc/quack, proc/evil_quack, proc/speak)
+/obj/item/rubberduck
+	name = "rubber duck"
+	desc = "Awww, it squeaks!"
+	icon = 'icons/obj/items/items.dmi'
+	icon_state = "rubber_duck"
+	item_state = "sponge"
+	throwforce = 1
+	w_class = W_CLASS_TINY
+	throw_speed = 3
+	throw_range = 15
+
+/obj/item/rubberduck/attack_self(mob/user as mob)
+	if (!ON_COOLDOWN(src,"quack",2 SECONDS))
+		if (ishuman(user))
+			var/mob/living/carbon/human/H = user
+			if (H.sims)
+				H.sims.affectMotive("fun", 1)
+		src.quack()
+		if(prob(1))
+			src.evil_quack()
+		src.add_fingerprint(user)
+	return
+
+/obj/item/rubberduck/proc/quack()
+	playsound(src, 'sound/items/rubberduck.ogg', 50, TRUE)
+
+/obj/item/rubberduck/proc/evil_quack()
+	set waitfor = 0
+	var/mob/holder = src.loc
+	ENSURE_TYPE(holder)
+	holder?.drop_item()
+	playsound(src, 'sound/ambience/industrial/AncientPowerPlant_Drone3.ogg', 50, TRUE) // this is gonna spook some people!!
+	var/wacka = 0
+	while (wacka++ < 50)
+		sleep(0.2 SECONDS)
+		pixel_x = rand(-6,6)
+		pixel_y = rand(-6,6)
+		sleep(0.1 SECONDS)
+		pixel_y = 0
+		pixel_x = 0
+
+/obj/item/rubberduck/proc/speak(message)
+	if(isnull(message))
+		message = tgui_input_text(usr, "Speak message through [src]", "Speak", "")
+	var/image/chat_maptext/chat_text = make_chat_maptext(src, message, "color: '#FFFF00';", alpha = 255)
+
+	var/list/mob/targets = null
+	var/mob/holder = src
+	while(holder && !istype(holder))
+		holder = holder.loc
+	ENSURE_TYPE(holder)
+	if(!holder)
+		targets = hearers(src, null)
+	else
+		targets = list(holder)
+		chat_text.plane = PLANE_HUD
+		chat_text.layer = 999
+
+	for(var/mob/O in targets)
+		O.show_message("<span class='say bold'>[SPAN_NAME("[src.name]")] says, [SPAN_MESSAGE("\"[message]\"")]</span>", 2, assoc_maptext = chat_text)
+
+
+
+ADMIN_INTERACT_PROCS(/obj/item/ghostboard, proc/admin_command_speak)
+/obj/item/ghostboard
+	name = "\improper Ouija board"
+	desc = "A wooden board that allows for communication with spirits and such things. Or that's what the company that makes them claims, at least."
+	icon = 'icons/obj/items/items.dmi'
+	icon_state = "lboard"
+	inhand_image_icon = 'icons/mob/inhand/hand_books.dmi'
+	item_state = "ouijaboard"
+	w_class = W_CLASS_NORMAL
+	var/emoji_prob = 30
+	var/emoji_min = 1
+	var/emoji_max = 3
+	var/words_prob = 100
+	var/words_min = 7
+	var/words_max = 10
+
+	New()
+		. = ..()
+		START_TRACKING_CAT(TR_CAT_GHOST_OBSERVABLES)
+		BLOCK_SETUP(BLOCK_BOOK)
+
+	disposing()
+		. = ..()
+		STOP_TRACKING_CAT(TR_CAT_GHOST_OBSERVABLES)
+
+	proc/generate_words()
+		var/list/words = list()
+		if(prob(words_prob))
+			words |= get_ouija_word_list(src, words_min, words_max)
+		if(prob(emoji_prob))
+			for(var/i in 1 to rand(emoji_min, emoji_max))
+				words |= random_emoji()
+		return words
+
+	Click(location,control,params)
+		if(isobserver(usr) || iswraith(usr) || isAIeye(usr)) //explicitly added AIeye because AIeye is no longer dead and AI's are ghosts trapped in metal boxes.
+			if(isAIeye(usr))
+				boutput(usr, SPAN_NOTICE("Whoa, you can use this as an AI? Are you actually just a ghost trapped in a metal box??"))
+
+			if(ON_COOLDOWN(src, usr, 3 SECONDS))
+				usr.show_text("Please wait a moment before using the board again.", "red")
+				return
+
+			var/selected
+			do
+				var/list/words = list("*REFRESH*") + src.generate_words()
+				selected = tgui_input_list(usr, "Select a word:", src.name, words, allowIllegal=TRUE)
+			while(selected == "*REFRESH*")
+
+			if(!selected)
+				return
+
+			src.speak(selected)
+
+			#ifdef HALLOWEEN
+			if (istype(usr.abilityHolder, /datum/abilityHolder/ghost_observer))
+				var/datum/abilityHolder/ghost_observer/GH = usr.abilityHolder
+				GH.change_points(30)
+			#endif
+		else
+			return ..(location,control,params)
+
+	proc/speak(message)
+		animate_float(src, 1, 5, 1)
+		if(prob(20) && !ON_COOLDOWN(src, "bother chaplains", 1 MINUTE))
+			var/area/AR = get_area(src)
+			for(var/mob/M in by_cat[TR_CAT_CHAPLAINS])
+				if(M.client)
+					boutput(M, SPAN_NOTICE("You sense a disturbance emanating from \a [src] in \the [AR.name]."))
+		for (var/mob/O in observersviewers(7, src))
+			O.show_message(SPAN_NOTICE("<B>The board spells out a message ... \"[message]\"</B>"), 1)
+
+	proc/admin_command_speak()
+		set name = "Speak"
+		src.speak(tgui_input_text(usr, "Speak message through [src]", "Speak", ""))
+
+/obj/item/ghostboard/emouija
+	name = "Emouija board"
+	desc = "A wooden board that allows for communication with spirits and such things. Wait, this one doesn't even have proper letters on it."
+	emoji_prob = 100
+	emoji_min = 5
+	emoji_max = 10
+	words_prob = 0
+
+
+/proc/fartes()
+	for(var/imageToLoad in flist("images/"))
+		usr << browse_rsc(file("images/[imageToLoad]"))
+		boutput(world, "[imageToLoad] - [file("images/[imageToLoad]")]")
+	return

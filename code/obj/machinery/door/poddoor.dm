@@ -1,24 +1,27 @@
 /obj/machinery/door/poddoor
 	name = "podlock"
-	icon = 'icons/obj/doors/rapid_pdoor.dmi'
+	icon = 'icons/obj/doors/SL_doors.dmi'
 	icon_state = "pdoor1"
 	icon_base = "pdoor"
-	cant_emag = 1
-	layer = 2.8
+	cant_emag = TRUE
+	layer = (GRILLE_LAYER + 0.01)
 	object_flags = 0
 
 	health = 1800
 	health_max = 1800
 
-	var/id = 1.0
+	var/id = 1
 
-	New()
-		. = ..()
-		START_TRACKING
+/obj/machinery/door/poddoor/New()
+	. = ..()
+	START_TRACKING
 
-	disposing()
-		. = ..()
-		STOP_TRACKING
+/obj/machinery/door/poddoor/disposing()
+	. = ..()
+	STOP_TRACKING
+
+/obj/machinery/door/poddoor/xmasify()
+	return
 
 /obj/machinery/door/poddoor/blast/single
 	doordir = "single"
@@ -29,39 +32,39 @@
 	desc = "This door neatly separates the setup area from the spectator booths."
 	icon = 'icons/effects/VR.dmi'
 
-	New()
-		..()
-		SPAWN_DBG(5 SECONDS)
-			open()
+/obj/machinery/door/poddoor/buff/staging/New()
+	..()
+	SPAWN(5 SECONDS)
+		open()
 
-	Bump()
-		return
+/obj/machinery/door/poddoor/buff/staging/bump()
+	return
 
-	attack_hand()
-		return
+/obj/machinery/door/poddoor/buff/staging/attack_hand()
+	return
 
-	attackby()
-		return
+/obj/machinery/door/poddoor/buff/staging/attackby()
+	return
 
 /obj/machinery/door/poddoor/buff/gauntlet
 	name = "The Gauntlet"
 	desc = "This door guards the passage out of the gauntlet. It will not open while there are live players inside."
 	icon = 'icons/effects/VR.dmi'
 
-	Bump()
-		return
+/obj/machinery/door/poddoor/buff/gauntlet/bump()
+	return
 
-	attack_hand()
-		return
+/obj/machinery/door/poddoor/buff/gauntlet/attack_hand()
+	return
 
-	attackby()
-		return
+/obj/machinery/door/poddoor/buff/gauntlet/attackby()
+	return
 
 /obj/machinery/door/poddoor/pyro
 	icon = 'icons/obj/doors/SL_doors.dmi'
 	icon_state = "pdoor1"
 	icon_base = "pdoor"
-	flags = FPRINT | IS_PERSPECTIVE_FLUID | ALWAYS_SOLID_FLUID
+	flags = IS_PERSPECTIVE_FLUID | FLUID_DENSE
 
 	// Please keep synchronizied with these lists for easy map changes:
 	// /obj/machinery/door_control (door_control.dm)
@@ -69,7 +72,7 @@
 	// /obj/machinery/door/poddoor/blast/pyro (poddoor.dm)
 	// /obj/warp_beacon (warp_travel.dm)
 	podbay_autoclose
-		autoclose = 1
+		autoclose = TRUE
 
 		wizard_horizontal
 			name = "external blast door"
@@ -357,6 +360,17 @@
 			vertical
 				dir = EAST
 
+	// meant for use inside station, or if connected to space, not a door
+	shutters
+		New()
+			..()
+			START_TRACKING
+
+		disposing()
+			STOP_TRACKING
+			..()
+
+
 /obj/machinery/door/poddoor/blast/pyro
 	icon = 'icons/obj/doors/SL_doors.dmi'
 	icon_state = "bdoorsingle1"
@@ -368,7 +382,7 @@
 	// /obj/machinery/door/poddoor/pyro (poddoor.dm)
 	// /obj/warp_beacon (warp_travel.dm)
 	podbay_autoclose
-		autoclose = 1
+		autoclose = TRUE
 		icon_state = "bdoormid1"
 		doordir = "mid"
 
@@ -947,99 +961,46 @@
 				icon_state = "bdoorsingle1"
 				doordir = "single"
 
-/obj/machinery/door/poddoor/attackby(obj/item/C as obj, mob/user as mob)
+/obj/machinery/door/poddoor/attackby(obj/item/C, mob/user)
 	src.add_fingerprint(user)
-	if (C && !ispryingtool(C))
-		if (src.density && !src.operating)
-			user.lastattacked = src
-			attack_particle(user,src)
-			playsound(src.loc, src.hitsound , 50, 1, pitch = 1.6)
-			src.take_damage(C.force)
-	if ((src.density && (status & NOPOWER) && !( src.operating )))
-		SPAWN_DBG( 0 )
-			src.operating = 1
-			flick("[icon_base]c0", src)
-			src.icon_state = "[icon_base]0"
-			sleep(1.5 SECONDS)
-			src.set_density(0)
-			if (ignore_light_or_cam_opacity)
-				src.opacity = 0
-			else
-				src.RL_SetOpacity(0)
-			src.operating = 0
-			update_nearby_tiles()
-			return
-	return
+	if (ispryingtool(C) && src.density && (src.status & NOPOWER) && !( src.operating ))
+		if(!ON_COOLDOWN(src, "prying_sound", 1.5 SECONDS))
+			playsound(src, 'sound/machines/airlock_pry.ogg', 35, TRUE)
+		src.open()
+	else if (C && src.density && !src.operating)
+		user.lastattacked = src
+		attack_particle(user,src)
+		playsound(src.loc, src.hitsound , 50, 1, pitch = 1.6)
+		src.take_damage(C.force)
 
-/obj/machinery/door/poddoor/bumpopen(mob/user as mob)
+/obj/machinery/door/poddoor/bumpopen(atom/movable/AM)
 	return 0
 
-/obj/machinery/door/poddoor/open()
-	if (src.operating == 1) //doors can still open when emag-disabled
-		return
-	if (!density)
-		return 0
-	if (linked_forcefield) //mbc : oh gosh why is this not calling door parent
-		linked_forcefield.setactive(1)
-
-	if(!src.operating) //in case of emag
-		src.operating = 1
-
-	SPAWN_DBG(-1)
-		flick("[icon_base]c0", src)
-		src.icon_state = "[icon_base]0"
-		sleep(1 SECOND)
-		src.set_density(0)
-		if (ignore_light_or_cam_opacity)
-			src.opacity = 0
-		else
-			src.RL_SetOpacity(0)
-		update_nearby_tiles()
-
-		if(operating == 1) //emag again
-			src.operating = 0
-		if(autoclose)
-			SPAWN_DBG(15 SECONDS)
-				autoclose()
-	return 1
+/obj/machinery/door/poddoor/play_animation(animation)
+	switch(animation)
+		if("opening")
+			flick("[icon_base]c0", src)
+			src.icon_state = "[icon_base]0"
+		if("closing")
+			flick("[icon_base]c1", src)
+			src.icon_state = "[icon_base]1"
+	return
 
 /obj/machinery/door/poddoor/close()
-	if (src.operating)
-		return
-	if (src.density)
-		return
-	if (linked_forcefield) //mbc : oh gosh why is this not calling door parent
-		linked_forcefield.setactive(0)
-
-	SPAWN_DBG(0)
-		src.operating = 1
-		flick("[icon_base]1", src)
-		src.icon_state = "[icon_base]1"
-		src.set_density(1)
-		if (src.visible)
-			if (ignore_light_or_cam_opacity)
-				src.opacity = 1
-			else
-				src.RL_SetOpacity(1)
-		update_nearby_tiles()
-
-		sleep(1 SECOND)
-		src.operating = 0
-
-	return
+	. = ..(TRUE)
 
 /obj/machinery/door/poddoor/buff
 	name = "buff blast door"
 	desc = "This sure is a really strong looking door.  You would think there would be a point where the door is stronger than the walls around it."
 
-	ex_act()
-		return
+/obj/machinery/door/poddoor/buff/ex_act()
+	return
 
-	blob_act(var/power)
-		return
+/obj/machinery/door/poddoor/buff/blob_act(var/power)
+	return
 
-	bullet_act()
-		return
+/obj/machinery/door/poddoor/buff/bullet_act()
+	return
 
 /obj/machinery/door/poddoor/blast
 	name = "blast door"
@@ -1060,77 +1021,34 @@
 	if(icon_state == "[icon_base]single1")
 		doordir = "single"
 
-/obj/machinery/door/poddoor/blast/attackby(obj/item/C as obj, mob/user as mob)
+/obj/machinery/door/poddoor/blast/attackby(obj/item/C, mob/user)
 	src.add_fingerprint(user)
 	if (!ispryingtool(C))
 		return
-	if ((src.density && (status & NOPOWER) && !( src.operating )))
-		SPAWN_DBG( 0 )
-			src.operating = 1
-			flick("[icon_base][doordir]c0", src)
-			src.icon_state = "[icon_base][doordir]0"
-			sleep(1.5 SECONDS)
-			src.set_density(0)
-			if (ignore_light_or_cam_opacity)
-				src.opacity = 0
-			else
-				src.RL_SetOpacity(0)
-			src.operating = 0
-			update_nearby_tiles()
-			return
+	if ((src.density && (src.status & NOPOWER) && !( src.operating )))
+		if(!ON_COOLDOWN(src, "prying_sound", 1.5 SECONDS))
+			playsound(src, 'sound/machines/airlock_pry.ogg', 35, TRUE)
+		src.open()
 	return
 
-/obj/machinery/door/poddoor/blast/bumpopen(mob/user as mob)
+/obj/machinery/door/poddoor/blast/bumpopen(atom/movable/AM)
 	return 0
 
-/obj/machinery/door/poddoor/blast/open()
-	if (src.operating == 1) //doors can still open when emag-disabled
-		return
-	if (!density)
-		return 0
-	if(!src.operating) //in case of emag
-		src.operating = 1
-	if (linked_forcefield) //mbc : SAVE ME FROM THIS HELL WHERE PARENTS ARENT CALLED
-		linked_forcefield.setactive(1)
+/obj/machinery/door/poddoor/blast/play_animation(animation)
+	switch(animation)
+		if("opening")
+			flick("[icon_base][doordir]c0", src)
+			src.icon_state = "[icon_base][doordir]0"
+		if("closing")
+			flick("[icon_base][doordir]c1", src)
+			src.icon_state = "[icon_base][doordir]1"
+	return
 
-	SPAWN_DBG(-1)
-		flick("[icon_base][doordir]c0", src)
-		src.icon_state = "[icon_base][doordir]0"
-		sleep(1 SECOND)
-		src.set_density(0)
-		if (ignore_light_or_cam_opacity)
-			src.opacity = 0
-		else
-			src.RL_SetOpacity(0)
-		update_nearby_tiles()
-
-		if(operating == 1) //emag again
-			src.operating = 0
-		if(autoclose)
-			SPAWN_DBG(15 SECONDS)
-				autoclose()
-	return 1
-
-/obj/machinery/door/poddoor/blast/close()
-	if (src.operating || src.density)
-		return
-	if (linked_forcefield) //mbc : SAVE ME FROM THIS HELL WHERE PARENTS ARENT CALLED
-		linked_forcefield.setactive(0)
-	src.operating = 1
-
-	SPAWN_DBG(0)
-		flick("[icon_base][doordir]c1", src)
-		src.icon_state = "[icon_base][doordir]1"
-		src.set_density(1)
-		if (src.visible)
-			if (ignore_light_or_cam_opacity)
-				src.opacity = 1
-			else
-				src.RL_SetOpacity(1)
-		update_nearby_tiles()
-
-		sleep(1 SECOND)
-		src.operating = 0
+/obj/machinery/door/poddoor/blast/update_icon(var/toggling = 0)
+	if(toggling? !density : density)
+		icon_state = "[icon_base][doordir]1"
+	else
+		icon_state = "[icon_base][doordir]0"
 	return
 
 /obj/machinery/door/poddoor/isblocked()
