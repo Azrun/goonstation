@@ -50,7 +50,7 @@
 /turf/unsimulated/floor/grey,
 /area/prefab/war_engine)
 "gR" = (
-/obj/decal/fakeobjects/firealarm_broken,
+/obj/fakeobject/firealarm_broken,
 /turf/simulated/wall/auto/reinforced/supernorn/resonance,
 /area/prefab/war_engine)
 "hU" = (
@@ -141,7 +141,7 @@
 /turf/simulated/floor/yellowblack,
 /area/prefab/war_engine)
 "kI" = (
-/obj/decal/fakeobjects{
+/obj/fakeobject{
 	anchored = 1;
 	density = 1;
 	desc = "Prototype Nuke Frame. How old is this?";
@@ -178,7 +178,7 @@
 /area/prefab/war_engine)
 "lN" = (
 /obj/table/auto,
-/obj/item/clothing/suit/fire/heavy,
+/obj/item/clothing/suit/hazard/fire/heavy,
 /obj/item/clothing/head/helmet/firefighter,
 /turf/unsimulated/floor/grey,
 /area/prefab/war_engine)
@@ -196,7 +196,7 @@
 /turf/unsimulated/floor/plating/scorched,
 /area/prefab/war_engine)
 "oH" = (
-/obj/decal/fakeobjects/lighttube_broken{
+/obj/fakeobject/lighttube_broken{
 	dir = 4;
 	pixel_x = 10
 	},
@@ -316,7 +316,9 @@
 /turf/unsimulated/floor/grey,
 /area/prefab/war_engine)
 "yL" = (
-/obj/machinery/atmospherics/portables_connector/east,
+/obj/machinery/atmospherics/unary/portables_connector{
+	dir = 4
+	},
 /obj/machinery/light/incandescent/harsh/very,
 /turf/simulated/floor/yellowblack,
 /area/prefab/war_engine)
@@ -485,7 +487,9 @@
 /turf/unsimulated/wall/auto/reinforced/supernorn/yellow,
 /area/prefab/war_engine)
 "IJ" = (
-/obj/machinery/atmospherics/unary/cold_sink/freezer/cryo/east,
+/obj/machinery/atmospherics/unary/cold_sink/freezer/cryo{
+	dir = 4
+	},
 /turf/simulated/floor/yellowblack,
 /area/prefab/war_engine)
 "IU" = (
@@ -524,7 +528,7 @@
 	},
 /area/prefab/war_engine)
 "KY" = (
-/obj/decal/fakeobjects/lighttube_broken{
+/obj/fakeobject/lighttube_broken{
 	dir = 1;
 	pixel_y = 21
 	},
@@ -562,7 +566,9 @@
 /turf/variableTurf/clear,
 /area/noGenerate)
 "Pw" = (
-/obj/machinery/atmospherics/pipe/simple/insulated/cold/horizontal,
+/obj/machinery/atmospherics/pipe/simple/insulated/cold{
+	dir = 4
+	},
 /obj/machinery/light/incandescent/harsh/very,
 /turf/simulated/floor/yellowblack,
 /area/prefab/war_engine)
@@ -685,7 +691,9 @@
 /turf/simulated/floor/resonance,
 /area/prefab/war_engine)
 "Vs" = (
-/obj/machinery/atmospherics/portables_connector/west,
+/obj/machinery/atmospherics/unary/portables_connector{
+	dir = 8
+	},
 /turf/simulated/floor/yellowblack,
 /area/prefab/war_engine)
 "VV" = (
@@ -703,7 +711,7 @@
 /obj/cable/reinforced{
 	icon_state = "0-10-thick"
 	},
-/obj/decal/fakeobjects/lighttube_broken{
+/obj/fakeobject/lighttube_broken{
 	dir = 4;
 	pixel_x = 10
 	},

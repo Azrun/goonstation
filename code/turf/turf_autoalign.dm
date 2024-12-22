@@ -836,20 +836,6 @@ TYPEINFO_NEW(/turf/unsimulated/wall/auto/reinforced/supernorn/yellow)
 	flags = FLUID_DENSE | IS_PERSPECTIVE_FLUID
 
 
-TYPEINFO(/turf/unsimulated/wall/auto/supernorn/yellow)
-TYPEINFO_NEW(/turf/unsimulated/wall/auto/supernorn/yellow)
-	. = ..()
-	connect_overlay = TRUE
-	connect_diagonal = TRUE
-
-/turf/unsimulated/wall/auto/reinforced/supernorn/yellow
-	icon = 'icons/turf/walls_manta.dmi'
-#ifdef IN_MAP_EDITOR
-	icon_state = "mapwall_r-Y"
-#endif
-	mod = "norn-Y-"
-
-
 TYPEINFO(/turf/unsimulated/wall/auto/supernorn/wood)
 TYPEINFO_NEW(/turf/unsimulated/wall/auto/supernorn/wood)
 	. = ..()

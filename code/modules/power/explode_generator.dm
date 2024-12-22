@@ -42,7 +42,8 @@
 		. = ..()
 		update_icon()
 
-	proc/update_icon()
+
+	update_icon()
 		if(src.status & NOPOWER)
 			src.UpdateOverlays(null,"band")
 		else
@@ -171,7 +172,7 @@
 					src.visible_message("<span class='alert'><B>[src] shoves [user] and forces them to hit themselves!</B></span>")
 					user.attackby(W, user)
 					if(prob(20))
-						W.attack_self(user)
+						W.AttackSelf(user)
 				else if(!W.cant_other_remove && prob(33) )
 					src.visible_message("<span class='alert'><B>[src] swings toward [user] and hits [W] out of [his_or_her(user)] hand!</B></span>")
 					user.deliver_move_trigger("bump")
@@ -228,7 +229,7 @@
 		if( !ON_COOLDOWN(A, "resonate", 1.5 SECONDS) )
 			src.power = exp_power
 			if( !ON_COOLDOWN(A, "resonate_delay", 5 SECONDS) )
-				SPAWN_DBG(1.5 SECONDS)
+				SPAWN(1.5 SECONDS)
 					explosion_new(src, src, exp_power) //allow for adjustment with resonance!!!
 					src.resonate_wobblers(exp_power*0.8)
 					src.power = 0
@@ -272,7 +273,7 @@
 			if (map_settings.auto_windows)
 				for (var/obj/window/auto/W in orange(1))
 					W.update_icon()
-		SPAWN_DBG(0.2 SECONDS)
+		SPAWN(0.2 SECONDS)
 			wall.color = "#44A"
 		return wall
 
@@ -287,7 +288,7 @@
 			if (map_settings.auto_windows)
 				for (var/obj/window/auto/W in orange(1))
 					W.update_icon()
-		SPAWN_DBG(0.2 SECONDS)
+		SPAWN(0.2 SECONDS)
 			wall.color = "#44A"
 		return wall
 
@@ -305,9 +306,19 @@
 
 //////// EXPLODEY PROTECTION WALLS
 
+TYPEINFO(/turf/simulated/wall/auto/supernorn/resonance)
+TYPEINFO_NEW(/turf/simulated/wall/auto/supernorn/resonance)
+	. = ..()
+	connect_overlay = FALSE
+	connect_diagonal = TRUE
+	connects_to = typecacheof(list(
+		/turf/simulated/wall/auto/supernorn/resonance,
+		/turf/simulated/wall/auto/reinforced/supernorn/resonance,
+		/obj/machinery/door/airlock/pyro/engineering/alt/resonance
+	))
+
 /turf/simulated/wall/auto/supernorn/resonance
 	explosion_resistance = 20
-	connects_to = list(/turf/simulated/wall/auto/supernorn/resonance, /turf/simulated/wall/auto/reinforced/supernorn/resonance, /obj/machinery/door/airlock/pyro/engineering/alt/resonance)
 	RL_LumB = 0.2
 	color = "#44A"
 	mat_changeappearance = 0
@@ -338,9 +349,19 @@
 	ReplaceWithFloor()
 		src.ReplaceWith(/turf/simulated/floor/resonance)
 
+TYPEINFO(/turf/simulated/wall/auto/reinforced/supernorn/resonance)
+TYPEINFO_NEW(/turf/simulated/wall/auto/reinforced/supernorn/resonance)
+	. = ..()
+	connect_overlay = FALSE
+	connect_diagonal = TRUE
+	connects_to = typecacheof(list(
+		/turf/simulated/wall/auto/supernorn/resonance,
+		/turf/simulated/wall/auto/reinforced/supernorn/resonance,
+		/obj/machinery/door/airlock/pyro/engineering/alt/resonance
+	))
+
 /turf/simulated/wall/auto/reinforced/supernorn/resonance
 	explosion_resistance = 60
-	connects_to = list(/turf/simulated/wall/auto/supernorn/resonance, /turf/simulated/wall/auto/reinforced/supernorn/resonance, /obj/machinery/door/airlock/pyro/engineering/alt/resonance)
 	RL_LumB = 0.2
 	color = "#44A"
 	mat_changeappearance = 0
@@ -455,7 +476,7 @@
 
 		center = locate(round(x/cnt), round(y/cnt), src.z)
 		playsound(center, 'sound/machines/shieldoverload.ogg', 50, 0, 0 , 1.2)
-		SPAWN_DBG(duration)
+		SPAWN(duration)
 			playsound(center, 'sound/effects/shielddown.ogg', 50, 0, 0)
 			for(var/turf/T in by_cat[TR_CAT_RESONANCE_ATOMS])
 				if(T.z != src.z) continue
