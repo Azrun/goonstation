@@ -123,7 +123,7 @@ var/datum/explosion_controller/explosions
 					continue // they can break even on severity 3
 				else if(istype(T, /turf/simulated))
 					severity = max(severity, 3)
-			T.ex_act(severity, explosion?.last_touched, null, explosion)
+			T.ex_act(severity, explosion?.last_touched, p, explosion)
 #endif
 		LAGCHECK(LAG_HIGH)
 

@@ -105,28 +105,34 @@
 		stored_power += new_power
 
 	process()
-		if(stored_power)
-			var/energy_transfer = stored_power * 0.05
-			var/stress_efficiency = 1
+		var/energy_transfer = min(round(stored_power * 0.05, 1 KILO WATTS), 50 KILO WATTS)
+		if(src.stored_power)
 
-			if(stored_power > 10 KILO WATTS)
-				energy_transfer = max(stored_power * 0.05, 10 KILO WATTS)
+			if(src.stored_power > 10 KILO WATTS )
+				stored_power -= min(energy_transfer, stored_power)
 
-			stored_power -= energy_transfer
+				var/stress_efficiency = 1
+				if(stress_fracture)
+					stress_efficiency = clamp(1+(-0.01*stress_fracture)+(-0.01*stress_fracture*stress_fracture), 0, 1)
 
-			if(stress_fracture)
-				stress_efficiency = clamp(1+(-0.01*stress_fracture)+(-0.01*stress_fracture*stress_fracture), 0, 1)
+				lastgen = energy_transfer*efficiency*stress_efficiency
+				add_avail(lastgen WATTS)
 
-			lastgen = energy_transfer*efficiency*stress_efficiency
-			add_avail(lastgen WATTS)
+
+				// Minor self-repair if energized
+				if( stress_fracture )
+					stress_fracture = max(stress_fracture - 0.02, 0)
+			else
+				lastgen = 0
+				energy_transfer = max(round(stored_power * 0.02), 20 WATTS)
+				stored_power -= min(energy_transfer, stored_power)
 
 			if(abs(stored_power - lastanimate_power) > 5 || !stored_power)
 				animate_swing(stored_power)
+#if !defined(LIVE_SERVER)
+		src.maptext = "<span class='pixel sh'>[engineering_notation(stored_power)]W<BR/>[engineering_notation(lastgen)]W</span>" // Azrun TODO DELETE THIS PRIOR TO ACCEPTANCE
+#endif
 
-			src.maptext = "<span class='pixel sh'>[round(stored_power)]<BR/>[round(lastgen)]</span>" // Azrun TODO DELETE THIS PRIOR TO ACCEPTANCE
-
-		if( stress_fracture )
-			stress_fracture = max(stress_fracture - 0.02, 0)
 
 	attackby(obj/item/W, mob/user)
 		src.add_fingerprint(user)
@@ -328,6 +334,7 @@ TYPEINFO_NEW(/turf/simulated/wall/auto/supernorn/resonance)
 	New()
 		START_TRACKING_CAT(TR_CAT_RESONANCE_ATOMS)
 		..()
+		explosion_resistance = initial(src.explosion_resistance)
 
 	proc/energize(activate)
 		if(activate)
@@ -336,7 +343,7 @@ TYPEINFO_NEW(/turf/simulated/wall/auto/supernorn/resonance)
 			RL_LumB = 0.0
 			color = "#A44"
 		else
-			explosion_resistance = 20
+			explosion_resistance = initial(src.explosion_resistance)
 			RL_LumR = 0.0
 			RL_LumB = 0.2
 			color = "#44A"
@@ -371,6 +378,7 @@ TYPEINFO_NEW(/turf/simulated/wall/auto/reinforced/supernorn/resonance)
 	New()
 		START_TRACKING_CAT(TR_CAT_RESONANCE_ATOMS)
 		..()
+		explosion_resistance = initial(src.explosion_resistance)
 
 	proc/energize(activate)
 		if(activate)
@@ -379,7 +387,7 @@ TYPEINFO_NEW(/turf/simulated/wall/auto/reinforced/supernorn/resonance)
 			RL_LumB = 0.0
 			color = "#A44"
 		else
-			explosion_resistance = 60
+			explosion_resistance = initial(src.explosion_resistance)
 			RL_LumR = 0.0
 			RL_LumB = 0.2
 			color = "#44A"
@@ -411,8 +419,8 @@ TYPEINFO_NEW(/turf/simulated/wall/auto/reinforced/supernorn/resonance)
 			explosion_protection = 200
 			explosion_resistance = 200
 		else
-			explosion_protection = 40
-			explosion_resistance = 40
+			explosion_protection = initial(src.explosion_protection)
+			explosion_resistance = initial(src.explosion_resistance)
 
 	ex_act(severity)
 		return
@@ -426,7 +434,7 @@ TYPEINFO_NEW(/turf/simulated/wall/auto/reinforced/supernorn/resonance)
 	desc = "A remote control switch to activate explosive resistive shield."
 	var/id = null
 	var/active = 0
-	anchored = 1.0
+	anchored = TRUE
 
 	attack_ai(mob/user as mob)
 		return src.attack_hand(user)
