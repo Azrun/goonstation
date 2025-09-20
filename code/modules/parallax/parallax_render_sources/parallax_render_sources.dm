@@ -451,3 +451,38 @@
 	parallax_icon_state = "void_clouds_2"
 	parallax_value = 0.7
 	blend_mode = BLEND_ADD
+
+// Rain Layers
+/atom/movable/screen/parallax_render_source/foreground/rain_drops
+	parallax_icon_state = "rain_drops"
+	color = list(
+		1, 0, 0, 0.4,
+		0, 1, 0, 0.4,
+		0, 0, 1, 0.4,
+		0, 0, 0, 1,
+		0, 0, 0, -1)
+	static_colour = TRUE
+	parallax_value = 0.95
+	scroll_speed = 100
+	scroll_angle = 180
+
+/atom/movable/screen/parallax_render_source/foreground/rain_splash
+	parallax_icon_state = "rain_splash"
+	color = list(
+		1, 0, 0, 0.8,
+		0, 1, 0, 0.8,
+		0, 0, 1, 0.8,
+		0, 0, 0, 1,
+		0, 0, 0, -1)
+	static_colour = TRUE
+	parallax_value = 1
+	scroll_speed = 0
+	scroll_angle = 0
+
+/atom/movable/screen/parallax_render_source/foreground/rain_splash/more_splash1
+	initial_x_coordinate = 120
+	initial_y_coordinate = 120
+
+/atom/movable/screen/parallax_render_source/foreground/rain_splash/more_splash2
+	initial_x_coordinate = 160
+	initial_y_coordinate = 160

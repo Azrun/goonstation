@@ -982,6 +982,7 @@ ABSTRACT_TYPE(/datum/terrainify)
 	additional_options = list("Rain"=list("No", "Yes", "Particles"), "Mining"=list("None","Normal","Rich"))
 	additional_toggles = list("Ambient Light Obj"=TRUE, "Prefabs"=FALSE, "Roads"=FALSE, "Re-Entry"=FALSE)
 	ambient_color = "#222222"
+	parallax_render_source_group = /datum/parallax_render_source_group/planet/rain
 
 	New()
 		syndi_camo_color = list(nuke_op_color_matrix[1], "#6f7026", nuke_op_color_matrix[3])

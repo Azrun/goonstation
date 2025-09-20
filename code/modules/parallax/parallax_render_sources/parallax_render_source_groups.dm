@@ -196,3 +196,10 @@ Z_LEVEL_PARALLAX_RENDER_SOURCE_GROUP(5)
 	if(prob(20))
 		src.add_parallax_render_source(/atom/movable/screen/parallax_render_source/foreground/snow)
 		src.parallax_render_source_types_and_sources[/atom/movable/screen/parallax_render_source/foreground/snow].scroll_speed = rand(1, 5)
+
+
+/datum/parallax_render_source_group/planet/rain
+	parallax_render_source_types = list(
+		/atom/movable/screen/parallax_render_source/foreground/rain_drops,
+		/atom/movable/screen/parallax_render_source/foreground/rain_splash,
+	)
